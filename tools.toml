@@ -1,0 +1,136 @@
+version = 1
+
+[supervisor]
+command = "__harness_done_supervisor"
+args = []
+working_dir = "."
+
+[supervisor.parser]
+entrypoint = "decide"
+script = '''
+let is_done = stdout_text.contains("done") || exit_code != 0;
+
+#{
+    "next_tool": if is_done { () } else { "codex-cli" },
+    "tool_args": [],
+    "is_done": is_done,
+    "summary": if is_done { "Supervisor marked the task complete" } else { "Continue with the next worker" }
+}
+'''
+
+[[tools]]
+id = "antigravity-cli"
+name = "Antigravity CLI"
+command = "agy"
+args = ["-p"]
+working_dir = "."
+
+[tools.parser]
+entrypoint = "parse"
+script = '''
+let level = if exit_code != 0 {
+    "error"
+} else {
+    "info"
+};
+
+let raw = if stdout_text.len() > 0 {
+    stdout_text
+} else {
+    stderr_text
+};
+
+#{
+    "tool_id": tool_id,
+    "source": if exit_code != 0 && stderr_text.len() > 0 { "stderr" } else { "stdout" },
+    "kind": "assistant",
+    "level": level,
+    "step_id": step_id,
+    "correlation_id": correlation_id,
+    "raw_output": raw,
+    "normalized_payload": #{
+        "exit_code": exit_code,
+        "stdout_text": stdout_text,
+        "stderr_text": stderr_text
+    },
+    "truncated": false
+}
+'''
+
+[[tools]]
+id = "codex-cli"
+name = "Codex CLI"
+command = "codex"
+args = ["exec", "--sandbox", "read-only", "--json"]
+working_dir = "."
+
+[tools.parser]
+entrypoint = "parse"
+script = '''
+let level = if exit_code != 0 {
+    "error"
+} else {
+    "info"
+};
+
+let raw = if stdout_text.len() > 0 {
+    stdout_text
+} else {
+    stderr_text
+};
+
+#{
+    "tool_id": tool_id,
+    "source": if exit_code != 0 && stderr_text.len() > 0 { "stderr" } else { "stdout" },
+    "kind": "assistant",
+    "level": level,
+    "step_id": step_id,
+    "correlation_id": correlation_id,
+    "raw_output": raw,
+    "normalized_payload": #{
+        "exit_code": exit_code,
+        "stdout_text": stdout_text,
+        "stderr_text": stderr_text
+    },
+    "truncated": false
+}
+'''
+
+[[tools]]
+id = "copilot-cli"
+name = "Copilot CLI"
+command = "copilot"
+args = ["--output-format", "json", "--allow-all-tools", "-p"]
+working_dir = "."
+
+[tools.parser]
+entrypoint = "parse"
+script = '''
+let level = if exit_code != 0 {
+    "error"
+} else {
+    "info"
+};
+
+let raw = if stdout_text.len() > 0 {
+    stdout_text
+} else {
+    stderr_text
+};
+
+#{
+    "tool_id": tool_id,
+    "source": if exit_code != 0 && stderr_text.len() > 0 { "stderr" } else { "stdout" },
+    "kind": "assistant",
+    "level": level,
+    "step_id": step_id,
+    "correlation_id": correlation_id,
+    "raw_output": raw,
+    "normalized_payload": #{
+        "exit_code": exit_code,
+        "stdout_text": stdout_text,
+        "stderr_text": stderr_text
+    },
+    "truncated": false
+}
+'''
