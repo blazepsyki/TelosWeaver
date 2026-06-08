@@ -69,6 +69,8 @@ pub struct AppState {
     pub breaker: CircuitBreakerState,
     pub intervention_required: Option<InterventionRequest>,
     pub started_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub human_intervention_feedback: Option<String>,
 }
 
 impl AppState {
@@ -83,6 +85,7 @@ impl AppState {
             breaker: CircuitBreakerState::default(),
             intervention_required: None,
             started_at: Utc::now(),
+            human_intervention_feedback: None,
         }
     }
 
@@ -184,6 +187,7 @@ impl AppState {
     pub fn resolve_intervention(&mut self) {
         self.intervention_required = None;
         self.breaker.tripped_step = None;
+        self.human_intervention_feedback = None;
         self.status = if !self.active_tools.is_empty() {
             SystemStatus::Running
         } else {

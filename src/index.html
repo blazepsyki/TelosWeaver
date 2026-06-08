@@ -72,7 +72,8 @@
             else if (state.status === 'error_recovering') colorCls = 'status-error';
             else if (state.status === 'paused_for_intervention') colorCls = 'status-paused';
 
-            document.getElementById('header').innerHTML = `<span class="${colorCls}">[Status: ${state.status}]</span> | Active Tool: ${state.current_tool || 'None'} | Step: ${state.current_step || 'None'}`;
+            const activeTools = Object.values(state.active_tools || {}).map(at => at.tool_id).sort().join(', ');
+            document.getElementById('header').innerHTML = `<span class="${colorCls}">[Status: ${state.status}]</span> | Active Tools: ${activeTools || 'None'} | Step: ${state.current_step || 'None'}`;
 
             if (state.status === 'paused_for_intervention') {
                 document.getElementById('statusMsg').style.display = 'none';

@@ -396,9 +396,19 @@ fn resolve_windows_known_program(command: &str) -> Option<PathBuf> {
     match command.to_ascii_lowercase().as_str() {
         "codex" => resolve_vscode_codex(),
         "copilot" => resolve_npm_shim("copilot").or_else(resolve_vscode_copilot),
-        "agy" => resolve_npm_shim("agy"),
+        "agy" => resolve_localappdata_agy().or_else(|| resolve_npm_shim("agy")),
         _ => None,
     }
+}
+
+#[cfg(windows)]
+fn resolve_localappdata_agy() -> Option<PathBuf> {
+    env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .and_then(|localappdata| {
+            let candidate = localappdata.join("agy").join("bin").join("agy.exe");
+            candidate.exists().then_some(candidate)
+        })
 }
 
 #[cfg(windows)]

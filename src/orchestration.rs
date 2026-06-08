@@ -57,6 +57,8 @@ pub struct HarnessContextSnapshot {
     pub generated_at: String,
     pub state: AppState,
     pub worker_tools: Vec<ToolDefinition>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub human_intervention_feedback: Option<String>,
 }
 
 #[derive(Debug)]
@@ -113,6 +115,7 @@ pub async fn write_harness_context_file(
         generated_at: Utc::now().to_rfc3339(),
         state: state.clone(),
         worker_tools: config.tools.clone(),
+        human_intervention_feedback: state.human_intervention_feedback.clone(),
     };
 
     let serialized = serde_json::to_vec_pretty(&snapshot)
@@ -144,6 +147,30 @@ pub async fn run_orchestration_loop(
     let mut pending_initial_prompt = initial_prompt.filter(|prompt| !prompt.trim().is_empty());
 
     for iteration in 0..max_iterations {
+        loop {
+            let status = {
+                let state_guard = state.read().await;
+                state_guard.status.clone()
+            };
+
+            if status == crate::state::SystemStatus::Halted {
+                broadcast_system_event(
+                    &state,
+                    broadcaster.as_ref(),
+                    "Orchestration halted by user".to_owned(),
+                    &correlation_id,
+                )
+                .await;
+                return Ok(());
+            }
+
+            if status != crate::state::SystemStatus::PausedForIntervention {
+                break;
+            }
+
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+
         let snapshot = {
             let state_guard = state.read().await;
             state_guard.clone()
@@ -167,6 +194,11 @@ pub async fn run_orchestration_loop(
             &correlation_id,
         )
         .await?;
+
+        {
+            let mut state_guard = state.write().await;
+            state_guard.human_intervention_feedback = None;
+        }
 
         if supervisor_decision.is_done {
             broadcast_system_event(
@@ -292,8 +324,28 @@ async fn run_worker_actions(
         });
     }
 
-    while let Some(result) = tasks.join_next().await {
-        result.map_err(|err| OrchestrationError::Join(err.to_string()))??;
+    loop {
+        if tasks.is_empty() {
+            break;
+        }
+
+        tokio::select! {
+            result = tasks.join_next() => {
+                if let Some(res) = result {
+                    res.map_err(|err| OrchestrationError::Join(err.to_string()))??;
+                }
+            }
+            _ = tokio::time::sleep(Duration::from_millis(200)) => {
+                let status = {
+                    let state_guard = state.read().await;
+                    state_guard.status.clone()
+                };
+                if status == crate::state::SystemStatus::Halted {
+                    tasks.abort_all();
+                    return Ok(());
+                }
+            }
+        }
     }
 
     Ok(())
@@ -336,16 +388,35 @@ async fn run_worker_action(
     )
     .await;
 
-    execute_tool(
+    let exec_result = execute_tool(
         Arc::new(worker_config),
-        state,
-        broadcaster,
+        state.clone(),
+        broadcaster.clone(),
         &action.tool_id,
-        action.task_id,
+        action.task_id.clone(),
         correlation_id,
         worker_timeout,
     )
-    .await?;
+    .await;
+
+    if let Err(err) = exec_result {
+        let error_msg = format!("Worker system error: {err}");
+        let message = HarnessMessage::system(
+            &action.tool_id,
+            &action.task_id,
+            MessageLevel::Error,
+            error_msg.clone(),
+            json!({ "error": error_msg }),
+        );
+        {
+            let mut state_guard = state.write().await;
+            state_guard.push_context(message.clone());
+            state_guard.record_step_error(&action.task_id, error_msg);
+        }
+        if let Some(sender) = broadcaster {
+            let _ = sender.send(message);
+        }
+    }
 
     Ok(())
 }

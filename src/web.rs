@@ -13,11 +13,9 @@ use axum::{
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tokio::fs;
 use tokio::sync::broadcast;
 
 use crate::message::{HarnessMessage, MessageLevel, MessageSource};
-use crate::orchestration::CONTEXT_FILE_NAME;
 use crate::state::{AppState, SharedAppState, SystemStatus};
 
 #[derive(Clone)]
@@ -150,20 +148,7 @@ async fn handle_socket(socket: WebSocket, app: AppStateWrapper) {
                         }
                         "modify" => {
                             if let Some(feedback) = cmd.feedback {
-                                let path = std::path::Path::new(CONTEXT_FILE_NAME);
-                                if let Ok(content) = fs::read_to_string(path).await {
-                                    if let Ok(mut json_val) =
-                                        serde_json::from_str::<serde_json::Value>(&content)
-                                    {
-                                        json_val["human_intervention_feedback"] =
-                                            serde_json::Value::String(feedback);
-                                        let _ = fs::write(
-                                            path,
-                                            serde_json::to_string_pretty(&json_val).unwrap(),
-                                        )
-                                        .await;
-                                    }
-                                }
+                                st.human_intervention_feedback = Some(feedback);
                                 st.intervention_required = None;
                                 st.status = SystemStatus::Running;
                             }
@@ -205,24 +190,69 @@ fn web_log_message(message: &HarnessMessage) -> Option<WebLogMessage> {
     })
 }
 
+fn is_json_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+
+    if serde_json::from_str::<Value>(trimmed).is_ok() {
+        return true;
+    }
+
+    if (trimmed.starts_with('{') && trimmed.ends_with('}'))
+        || (trimmed.starts_with('[') && trimmed.ends_with(']'))
+    {
+        return true;
+    }
+
+    if let (Some(start), Some(end)) = (trimmed.find('{'), trimmed.rfind('}')) {
+        if start < end {
+            let sub = &trimmed[start..=end];
+            if serde_json::from_str::<Value>(sub).is_ok() {
+                return true;
+            }
+        }
+    }
+
+    if let (Some(start), Some(end)) = (trimmed.find('['), trimmed.rfind(']')) {
+        if start < end {
+            let sub = &trimmed[start..=end];
+            if serde_json::from_str::<Value>(sub).is_ok() {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn filter_json_lines(text: &str) -> String {
+    let lines: Vec<&str> = text
+        .lines()
+        .filter(|line| !is_json_line(line))
+        .collect();
+    lines.join("\n")
+}
+
 fn display_output(message: &HarnessMessage) -> Option<String> {
     if message.source == MessageSource::System {
         return Some(message.raw_output.clone());
     }
 
-    if let Some(text) = extract_response_from_text(&message.raw_output) {
-        return Some(text);
-    }
+    let raw_result = if let Some(text) = extract_response_from_text(&message.raw_output) {
+        Some(text)
+    } else if let Some(text) = extract_response_from_value(&message.normalized_payload) {
+        Some(text)
+    } else if looks_like_json(&message.raw_output) {
+        None
+    } else {
+        Some(message.raw_output.clone())
+    };
 
-    if let Some(text) = extract_response_from_value(&message.normalized_payload) {
-        return Some(text);
-    }
-
-    if looks_like_json(&message.raw_output) {
-        return None;
-    }
-
-    Some(message.raw_output.clone())
+    raw_result
+        .map(|text| filter_json_lines(&text))
+        .filter(|text| !text.trim().is_empty())
 }
 
 fn looks_like_json(text: &str) -> bool {

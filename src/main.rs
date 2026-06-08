@@ -101,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some(tx.clone()),
             Some(prompt),
             Duration::from_secs(60), // Supervisor timeout
-            None,                    // Worker timeout
+            Some(Duration::from_secs(60)), // Worker timeout
             50,                      // max iterations
         )
         .await;
@@ -198,9 +198,7 @@ async fn broadcast_prompt_ready(state: &SharedAppState, tx: &broadcast::Sender<H
     {
         let mut state = state.write().await;
         state.push_context(message.clone());
-        if state.status != SystemStatus::Halted {
-            state.status = SystemStatus::Idle;
-        }
+        state.status = SystemStatus::Idle;
     }
     let _ = tx.send(message);
 }

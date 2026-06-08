@@ -15,12 +15,10 @@ use ratatui::{
     Terminal,
 };
 use serde_json::Value;
-use tokio::fs;
 use tokio::sync::{broadcast, mpsc};
 
 use crate::{
     message::{HarnessMessage, MessageLevel, MessageSource},
-    orchestration::CONTEXT_FILE_NAME,
     state::{SharedAppState, SystemStatus},
 };
 
@@ -84,19 +82,22 @@ pub async fn run_tui(
                 SystemStatus::Halted => Color::DarkGray,
             };
 
-            let current_tool = app_state
-                .current_tool
-                .clone()
-                .unwrap_or_else(|| "None".into());
+            let active_tools = if app_state.active_tools.is_empty() {
+                "None".to_owned()
+            } else {
+                let mut tools: Vec<_> = app_state.active_tools.values().map(|at| at.tool_id.clone()).collect();
+                tools.sort();
+                tools.join(", ")
+            };
             let status_label = if awaiting_startup_prompt {
                 "AwaitingPrompt".to_owned()
             } else {
                 format!("{:?}", app_state.status)
             };
             let header_text = format!(
-                " [Status: {}] | Active Tool: {} | Step: {} ",
+                " [Status: {}] | Active Tools: {} | Step: {} ",
                 status_label,
-                current_tool,
+                active_tools,
                 app_state
                     .current_step
                     .clone()
@@ -285,14 +286,7 @@ pub async fn run_tui(
                             match key.code {
                                 KeyCode::Enter => {
                                     // Modify operation selected & submitted
-                                    // Inject feedback to `.harness_context.json`
-                                    let path = std::path::Path::new(CONTEXT_FILE_NAME);
-                                    if let Ok(content) = fs::read_to_string(path).await {
-                                        if let Ok(mut json_val) = serde_json::from_str::<serde_json::Value>(&content) {
-                                            json_val["human_intervention_feedback"] = serde_json::Value::String(user_input.clone());
-                                            let _ = fs::write(path, serde_json::to_string_pretty(&json_val).unwrap()).await;
-                                        }
-                                    }
+                                    st.human_intervention_feedback = Some(user_input.clone());
 
                                     // Resume the core loop (clear intervention lock)
                                     st.intervention_required = None;
@@ -338,13 +332,18 @@ pub async fn run_tui(
                                         2 => {
                                             // Abort (중단)
                                             st.status = SystemStatus::Halted;
-                                            should_quit = true;
+                                            st.intervention_required = None;
                                         }
                                         _ => {}
                                     }
                                 }
                                 _ => {}
                             }
+                        }
+                    } else if st.status == SystemStatus::Running || st.status == SystemStatus::ErrorRecovering {
+                        if matches!(key.code, KeyCode::Char('a') | KeyCode::Char('A') | KeyCode::Esc) {
+                            st.status = SystemStatus::Halted;
+                            st.intervention_required = None;
                         }
                     }
                 }
@@ -442,7 +441,7 @@ fn input_panel_text(
     } else if paused_for_intervention {
         "[Proceed (진행)]   [Modify (수정)]   [Abort (중단)]".to_owned()
     } else {
-        "작업 진행 중... (종료: Ctrl+C, 프롬프트에서 /quit 또는 /exit)".to_owned()
+        "작업 진행 중... (중단: Esc 또는 A, 종료: Ctrl+C)".to_owned()
     }
 }
 
@@ -485,24 +484,69 @@ fn display_log_message(message: &HarnessMessage, show_raw_json: bool) -> Option<
     ))
 }
 
+fn is_json_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+
+    if serde_json::from_str::<Value>(trimmed).is_ok() {
+        return true;
+    }
+
+    if (trimmed.starts_with('{') && trimmed.ends_with('}'))
+        || (trimmed.starts_with('[') && trimmed.ends_with(']'))
+    {
+        return true;
+    }
+
+    if let (Some(start), Some(end)) = (trimmed.find('{'), trimmed.rfind('}')) {
+        if start < end {
+            let sub = &trimmed[start..=end];
+            if serde_json::from_str::<Value>(sub).is_ok() {
+                return true;
+            }
+        }
+    }
+
+    if let (Some(start), Some(end)) = (trimmed.find('['), trimmed.rfind(']')) {
+        if start < end {
+            let sub = &trimmed[start..=end];
+            if serde_json::from_str::<Value>(sub).is_ok() {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn filter_json_lines(text: &str) -> String {
+    let lines: Vec<&str> = text
+        .lines()
+        .filter(|line| !is_json_line(line))
+        .collect();
+    lines.join("\n")
+}
+
 fn display_output(message: &HarnessMessage) -> Option<String> {
     if message.source == MessageSource::System {
         return Some(message.raw_output.clone());
     }
 
-    if let Some(text) = extract_response_from_text(&message.raw_output) {
-        return Some(text);
-    }
+    let raw_result = if let Some(text) = extract_response_from_text(&message.raw_output) {
+        Some(text)
+    } else if let Some(text) = extract_response_from_value(&message.normalized_payload) {
+        Some(text)
+    } else if looks_like_json(&message.raw_output) {
+        None
+    } else {
+        Some(message.raw_output.clone())
+    };
 
-    if let Some(text) = extract_response_from_value(&message.normalized_payload) {
-        return Some(text);
-    }
-
-    if looks_like_json(&message.raw_output) {
-        return None;
-    }
-
-    Some(message.raw_output.clone())
+    raw_result
+        .map(|text| filter_json_lines(&text))
+        .filter(|text| !text.trim().is_empty())
 }
 
 fn level_color(level: &MessageLevel) -> Color {

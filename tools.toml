@@ -14,6 +14,8 @@ Read .harness_context.json in the current working directory. It contains the use
 
 Your job is only to plan and route work. Do not solve the user's task yourself.
 
+Always split the user's task into very small, atomic, step-by-step worker actions. Do not assign large, open-ended tasks to worker tools (especially copilot-cli). Break them down into specific, small sub-tasks so they can execute fast and save tokens.
+
 Return exactly one JSON object and no prose. Use this schema:
 {
   "is_done": false,
@@ -130,7 +132,7 @@ let raw = if stdout_text.len() > 0 {
 id = "copilot-cli"
 name = "Copilot CLI"
 command = "copilot"
-args = ["--output-format", "json", "--allow-all-tools", "-p"]
+args = ["--output-format", "json", "--allow-all-tools", "--effort", "low", "-p"]
 working_dir = "."
 
 [tools.parser]
