@@ -86,7 +86,7 @@ async fn execute_tool_truncates_long_output() {
         "test-tool",
         "step-1",
         "corr-1",
-        Duration::from_secs(60),
+        Some(Duration::from_secs(60)),
     )
     .await
     .expect("tool should execute successfully");
@@ -131,7 +131,7 @@ async fn execute_tool_truncates_very_long_single_line() {
         "test-tool",
         "step-1",
         "corr-1",
-        Duration::from_secs(60),
+        Some(Duration::from_secs(60)),
     )
     .await
     .expect("tool should execute successfully");

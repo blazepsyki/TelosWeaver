@@ -1,7 +1,7 @@
 use std::io::{self, stdout};
 
 use crossterm::{
-    event::{Event, EventStream, KeyCode},
+    event::{Event, EventStream, KeyCode, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 };
@@ -11,14 +11,15 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, Paragraph, Wrap},
     Terminal,
 };
+use serde_json::Value;
 use tokio::fs;
-use tokio::sync::{broadcast, oneshot};
+use tokio::sync::{broadcast, mpsc};
 
 use crate::{
-    message::{HarnessMessage, MessageLevel},
+    message::{HarnessMessage, MessageLevel, MessageSource},
     orchestration::CONTEXT_FILE_NAME,
     state::{SharedAppState, SystemStatus},
 };
@@ -28,7 +29,8 @@ use crate::{
 pub async fn run_tui(
     state: SharedAppState,
     mut log_rx: broadcast::Receiver<HarnessMessage>,
-    mut initial_prompt_tx: Option<oneshot::Sender<String>>,
+    prompt_tx: mpsc::UnboundedSender<String>,
+    show_raw_json: bool,
 ) -> io::Result<()> {
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
@@ -42,7 +44,10 @@ pub async fn run_tui(
     let mut input_mode = false;
     let mut user_input = String::new();
     let mut startup_prompt = String::new();
-    let mut awaiting_startup_prompt = initial_prompt_tx.is_some();
+    let mut awaiting_startup_prompt = true;
+    let mut log_scroll: usize = 0;
+    let mut log_page_height: usize = 1;
+    let mut max_log_scroll: usize = 0;
 
     // Signal for shutdown
     let mut should_quit = false;
@@ -52,14 +57,23 @@ pub async fn run_tui(
         let app_state = state.read().await.clone();
 
         terminal.draw(|f| {
+            let area = f.area();
+            let input_text = input_panel_text(
+                awaiting_startup_prompt,
+                &startup_prompt,
+                app_state.status == SystemStatus::PausedForIntervention,
+                input_mode,
+                &user_input,
+            );
+            let input_height = input_panel_height(&input_text, area.width, area.height);
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
-                    Constraint::Length(3), // Header / Status Bar
-                    Constraint::Min(1),    // Log Stream (Central variable area)
-                    Constraint::Length(3), // Input / Control Prompt
+                    Constraint::Length(3),            // Header / Status Bar
+                    Constraint::Min(1),               // Log Stream (Central variable area)
+                    Constraint::Length(input_height), // Input / Control Prompt
                 ])
-                .split(f.area());
+                .split(area);
 
             // 1. [Header / Status Bar]
             let status_color = match app_state.status {
@@ -103,47 +117,39 @@ pub async fn run_tui(
             f.render_widget(header, chunks[0]);
 
             // 2. [Log Stream]
-            let log_items: Vec<ListItem> = logs
+            let display_logs: Vec<(String, MessageLevel)> = logs
                 .iter()
-                .map(|msg| {
-                    let kst_offset = chrono::FixedOffset::east_opt(9 * 3600).unwrap();
-                    let time = msg
-                        .timestamp
-                        .with_timezone(&kst_offset)
-                        .format("%H:%M:%S")
-                        .to_string();
-                    let content = format!("[{}] [{:?}] {}", time, msg.level, msg.raw_output);
-
-                    let color = match msg.level {
-                        MessageLevel::Error => Color::Red,
-                        MessageLevel::Warn => Color::Yellow,
-                        MessageLevel::Info => Color::White,
-                        MessageLevel::Debug => Color::DarkGray,
-                    };
-
-                    ListItem::new(Line::from(Span::styled(
-                        content,
-                        Style::default().fg(color),
-                    )))
+                .filter_map(|msg| {
+                    display_log_message(msg, show_raw_json)
+                        .map(|content| (content, msg.level.clone()))
                 })
                 .collect();
+            let log_width = chunks[1].width.saturating_sub(2).max(1) as usize;
+            let log_height = chunks[1].height.saturating_sub(2) as usize;
+            log_page_height = log_height.max(1);
+            let log_view = visible_log_lines(&display_logs, log_width, log_height, log_scroll);
+            max_log_scroll = log_view.max_scroll;
+            log_scroll = log_scroll.min(max_log_scroll);
 
-            let log_widget = List::new(log_items).block(
+            let log_title = if max_log_scroll > 0 {
+                format!(
+                    " Event Logs & Agent Thoughts  Scroll {}/{} ",
+                    log_scroll, max_log_scroll
+                )
+            } else {
+                " Event Logs & Agent Thoughts ".to_owned()
+            };
+            let log_widget = Paragraph::new(log_view.lines).block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .title(" Event Logs & Agent Thoughts "),
+                    .title(format!("{log_title}  Up/Down PgUp/PgDn Home/End ")),
             );
-
-            // Auto-scroll to bottom behavior
-            let mut list_state = ListState::default();
-            if !logs.is_empty() {
-                list_state.select(Some(logs.len() - 1));
-            }
-            f.render_stateful_widget(log_widget, chunks[1], &mut list_state);
+            f.render_widget(log_widget, chunks[1]);
 
             // 3. [Input / Control Prompt]
             if awaiting_startup_prompt {
-                let prompt = Paragraph::new(format!("Prompt: {}_", startup_prompt))
+                let prompt = Paragraph::new(input_text)
+                    .wrap(Wrap { trim: false })
                     .style(Style::default().fg(Color::White))
                     .block(
                         Block::default()
@@ -153,7 +159,8 @@ pub async fn run_tui(
                 f.render_widget(prompt, chunks[2]);
             } else if app_state.status == SystemStatus::PausedForIntervention {
                 if input_mode {
-                    let prompt = Paragraph::new(format!("Feedback: {}_", user_input))
+                    let prompt = Paragraph::new(input_text)
+                        .wrap(Wrap { trim: false })
                         .style(Style::default().fg(Color::Yellow))
                         .block(
                             Block::default()
@@ -180,7 +187,8 @@ pub async fn run_tui(
                     f.render_widget(prompt, chunks[2]);
                 }
             } else {
-                let prompt = Paragraph::new("작업 진행 중... (종료: q 또는 Ctrl+C)")
+                let prompt = Paragraph::new(input_text)
+                    .wrap(Wrap { trim: false })
                     .style(Style::default().fg(Color::DarkGray))
                     .block(
                         Block::default()
@@ -195,28 +203,67 @@ pub async fn run_tui(
         tokio::select! {
             // Receive new broadcast logs from core engine
             Ok(msg) = log_rx.recv() => {
+                if is_prompt_ready_message(&msg) {
+                    awaiting_startup_prompt = true;
+                    startup_prompt.clear();
+                }
                 logs.push(msg);
             }
             // non-blocking event stream for keystrokes
             Some(Ok(evt)) = reader.next() => {
                 if let Event::Key(key) = evt {
-                    // Global shutdown intercept (Graceful shutdown request)
-                    if key.code == KeyCode::Char('q')
-                        || (key.code == KeyCode::Char('c')
-                            && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL))
+                    if !matches!(key.kind, KeyEventKind::Press) {
+                        continue;
+                    }
+
+                    if matches!(key.code, KeyCode::Char('c') | KeyCode::Char('C'))
+                        && key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
                     {
                         should_quit = true;
                         continue;
+                    }
+
+                    match key.code {
+                        KeyCode::Up => {
+                            log_scroll = (log_scroll + 1).min(max_log_scroll);
+                            continue;
+                        }
+                        KeyCode::Down => {
+                            log_scroll = log_scroll.saturating_sub(1);
+                            continue;
+                        }
+                        KeyCode::PageUp => {
+                            log_scroll =
+                                log_scroll.saturating_add(log_page_height).min(max_log_scroll);
+                            continue;
+                        }
+                        KeyCode::PageDown => {
+                            log_scroll = log_scroll.saturating_sub(log_page_height);
+                            continue;
+                        }
+                        KeyCode::Home => {
+                            log_scroll = max_log_scroll;
+                            continue;
+                        }
+                        KeyCode::End => {
+                            log_scroll = 0;
+                            continue;
+                        }
+                        _ => {}
                     }
 
                     if awaiting_startup_prompt {
                         match key.code {
                             KeyCode::Enter => {
                                 let prompt = startup_prompt.trim().to_owned();
+                                if is_quit_command(&prompt) {
+                                    should_quit = true;
+                                    continue;
+                                }
                                 if !prompt.is_empty() {
-                                    if let Some(sender) = initial_prompt_tx.take() {
-                                        let _ = sender.send(prompt);
-                                    }
+                                    let _ = prompt_tx.send(prompt);
                                     awaiting_startup_prompt = false;
                                     startup_prompt.clear();
                                 }
@@ -316,4 +363,279 @@ pub async fn run_tui(
     }
 
     Ok(())
+}
+
+struct LogView {
+    lines: Vec<Line<'static>>,
+    max_scroll: usize,
+}
+
+fn visible_log_lines(
+    display_logs: &[(String, MessageLevel)],
+    width: usize,
+    height: usize,
+    scroll_from_bottom: usize,
+) -> LogView {
+    let mut all_lines = Vec::new();
+
+    for (content, level) in display_logs {
+        let style = Style::default().fg(level_color(level));
+        for line in content.lines() {
+            for segment in wrap_line(line, width) {
+                all_lines.push(Line::from(Span::styled(segment, style)));
+            }
+        }
+    }
+
+    let height = height.max(1);
+    let max_scroll = all_lines.len().saturating_sub(height);
+    let scroll = scroll_from_bottom.min(max_scroll);
+    let end = all_lines.len().saturating_sub(scroll);
+    let start = end.saturating_sub(height);
+
+    LogView {
+        lines: all_lines[start..end].to_vec(),
+        max_scroll,
+    }
+}
+
+fn wrap_line(line: &str, width: usize) -> Vec<String> {
+    let width = width.max(1);
+    if line.is_empty() {
+        return vec![String::new()];
+    }
+
+    let mut segments = Vec::new();
+    let mut current = String::new();
+    let mut current_width = 0;
+
+    for character in line.chars() {
+        let character_width = display_width(character);
+        if current_width > 0 && current_width + character_width > width {
+            segments.push(current);
+            current = String::new();
+            current_width = 0;
+        }
+
+        current.push(character);
+        current_width += character_width;
+    }
+
+    if !current.is_empty() {
+        segments.push(current);
+    }
+
+    segments
+}
+
+fn input_panel_text(
+    awaiting_prompt: bool,
+    prompt: &str,
+    paused_for_intervention: bool,
+    input_mode: bool,
+    feedback: &str,
+) -> String {
+    if awaiting_prompt {
+        format!("Prompt: {prompt}_")
+    } else if paused_for_intervention && input_mode {
+        format!("Feedback: {feedback}_")
+    } else if paused_for_intervention {
+        "[Proceed (진행)]   [Modify (수정)]   [Abort (중단)]".to_owned()
+    } else {
+        "작업 진행 중... (종료: Ctrl+C, 프롬프트에서 /quit 또는 /exit)".to_owned()
+    }
+}
+
+fn is_quit_command(input: &str) -> bool {
+    matches!(
+        input.trim().to_ascii_lowercase().as_str(),
+        "/quit" | "/exit"
+    )
+}
+
+fn input_panel_height(text: &str, terminal_width: u16, terminal_height: u16) -> u16 {
+    let content_width = terminal_width.saturating_sub(2).max(1) as usize;
+    let wrapped_lines = wrapped_line_count(text, content_width).max(1) as u16;
+    let desired = wrapped_lines.saturating_add(2).max(3);
+    let max_height = terminal_height.saturating_sub(6).max(3);
+    desired.min(max_height)
+}
+
+fn display_log_message(message: &HarnessMessage, show_raw_json: bool) -> Option<String> {
+    let display = if show_raw_json {
+        Some(message.raw_output.clone())
+    } else {
+        display_output(message)
+    }?;
+
+    if display.trim().is_empty() {
+        return None;
+    }
+
+    let kst_offset = chrono::FixedOffset::east_opt(9 * 3600).unwrap();
+    let time = message
+        .timestamp
+        .with_timezone(&kst_offset)
+        .format("%H:%M:%S")
+        .to_string();
+
+    Some(format!(
+        "[{}] [{:?}] [{}] {}",
+        time, message.level, message.tool_id, display
+    ))
+}
+
+fn display_output(message: &HarnessMessage) -> Option<String> {
+    if message.source == MessageSource::System {
+        return Some(message.raw_output.clone());
+    }
+
+    if let Some(text) = extract_response_from_text(&message.raw_output) {
+        return Some(text);
+    }
+
+    if let Some(text) = extract_response_from_value(&message.normalized_payload) {
+        return Some(text);
+    }
+
+    if looks_like_json(&message.raw_output) {
+        return None;
+    }
+
+    Some(message.raw_output.clone())
+}
+
+fn level_color(level: &MessageLevel) -> Color {
+    match level {
+        MessageLevel::Error => Color::Red,
+        MessageLevel::Warn => Color::Yellow,
+        MessageLevel::Info => Color::White,
+        MessageLevel::Debug => Color::DarkGray,
+    }
+}
+
+fn wrapped_line_count(text: &str, width: usize) -> usize {
+    let width = width.max(1);
+    text.lines()
+        .map(|line| line_display_width(line).max(1).div_ceil(width))
+        .sum::<usize>()
+        .max(1)
+}
+
+fn line_display_width(line: &str) -> usize {
+    line.chars().map(display_width).sum()
+}
+
+fn display_width(character: char) -> usize {
+    if character.is_control() {
+        return 0;
+    }
+
+    if is_wide_character(character) {
+        2
+    } else {
+        1
+    }
+}
+
+fn is_wide_character(character: char) -> bool {
+    matches!(
+        character as u32,
+        0x1100..=0x115F
+            | 0x2329..=0x232A
+            | 0x2E80..=0xA4CF
+            | 0xAC00..=0xD7A3
+            | 0xF900..=0xFAFF
+            | 0xFE10..=0xFE19
+            | 0xFE30..=0xFE6F
+            | 0xFF00..=0xFF60
+            | 0xFFE0..=0xFFE6
+            | 0x1F300..=0x1FAFF
+            | 0x20000..=0x3FFFD
+    )
+}
+
+fn is_prompt_ready_message(message: &HarnessMessage) -> bool {
+    message
+        .normalized_payload
+        .get("event")
+        .and_then(Value::as_str)
+        == Some("awaiting_prompt")
+}
+
+fn looks_like_json(text: &str) -> bool {
+    let trimmed = text.trim_start();
+    trimmed.starts_with('{') || trimmed.starts_with('[')
+}
+
+fn extract_response_from_text(text: &str) -> Option<String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    if let Ok(value) = serde_json::from_str::<Value>(trimmed) {
+        return extract_response_from_value(&value);
+    }
+
+    let parts: Vec<String> = trimmed
+        .lines()
+        .filter_map(|line| serde_json::from_str::<Value>(line.trim()).ok())
+        .filter_map(|value| extract_response_from_value(&value))
+        .filter(|part| !part.trim().is_empty())
+        .collect();
+
+    (!parts.is_empty()).then(|| parts.join("\n"))
+}
+
+fn extract_response_from_value(value: &Value) -> Option<String> {
+    match value {
+        Value::String(text) => non_empty(text),
+        Value::Array(items) => {
+            let parts: Vec<String> = items
+                .iter()
+                .filter_map(extract_response_from_value)
+                .filter(|part| !part.trim().is_empty())
+                .collect();
+            (!parts.is_empty()).then(|| parts.join("\n"))
+        }
+        Value::Object(map) => {
+            for key in [
+                "response",
+                "answer",
+                "message",
+                "text",
+                "content",
+                "output",
+                "last_agent_message",
+                "final_answer",
+            ] {
+                if let Some(text) = map.get(key).and_then(extract_response_from_value) {
+                    return Some(text);
+                }
+            }
+
+            for key in ["stdout_text", "stderr_text", "line"] {
+                if let Some(text) = map.get(key).and_then(Value::as_str) {
+                    if let Some(response) = extract_response_from_text(text) {
+                        return Some(response);
+                    }
+                }
+            }
+
+            for key in ["msg", "data", "delta", "result", "event", "item", "items"] {
+                if let Some(text) = map.get(key).and_then(extract_response_from_value) {
+                    return Some(text);
+                }
+            }
+
+            None
+        }
+        _ => None,
+    }
+}
+
+fn non_empty(text: &str) -> Option<String> {
+    let trimmed = text.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_owned())
 }

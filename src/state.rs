@@ -61,6 +61,8 @@ impl Default for CircuitBreakerState {
 pub struct AppState {
     pub current_tool: Option<String>,
     pub active_tool: Option<ActiveTool>,
+    #[serde(default)]
+    pub active_tools: HashMap<String, ActiveTool>,
     pub current_step: Option<String>,
     pub status: SystemStatus,
     pub context_log: Vec<HarnessMessage>,
@@ -74,6 +76,7 @@ impl AppState {
         Self {
             current_tool: None,
             active_tool: None,
+            active_tools: HashMap::new(),
             current_step: None,
             status: SystemStatus::Idle,
             context_log: Vec::new(),
@@ -93,18 +96,46 @@ impl AppState {
         let step_id = step_id.into();
         let correlation_id = correlation_id.into();
 
-        self.current_tool = Some(tool_id.clone());
-        self.active_tool = Some(ActiveTool {
+        let active_tool = ActiveTool {
             tool_id,
             step_id: step_id.clone(),
             correlation_id,
             started_at: Utc::now(),
-        });
+        };
+
+        self.current_tool = Some(active_tool.tool_id.clone());
+        self.active_tool = Some(active_tool.clone());
         self.current_step = Some(step_id);
+        self.active_tools
+            .insert(active_tool.step_id.clone(), active_tool);
         self.status = SystemStatus::Running;
     }
 
     pub fn finish_tool_run(&mut self) {
+        if let Some(step_id) = self.current_step.clone() {
+            self.finish_tool_run_for_step(&step_id);
+        } else {
+            self.refresh_current_tool();
+        }
+    }
+
+    pub fn finish_tool_run_for_step(&mut self, step_id: &str) {
+        self.active_tools.remove(step_id);
+        self.refresh_current_tool();
+    }
+
+    fn refresh_current_tool(&mut self) {
+        if let Some(active_tool) = self.active_tools.values().next().cloned() {
+            self.current_tool = Some(active_tool.tool_id.clone());
+            self.current_step = Some(active_tool.step_id.clone());
+            self.active_tool = Some(active_tool);
+
+            if self.intervention_required.is_none() {
+                self.status = SystemStatus::Running;
+            }
+            return;
+        }
+
         self.current_tool = None;
         self.active_tool = None;
         self.current_step = None;
@@ -153,7 +184,7 @@ impl AppState {
     pub fn resolve_intervention(&mut self) {
         self.intervention_required = None;
         self.breaker.tripped_step = None;
-        self.status = if self.current_tool.is_some() {
+        self.status = if !self.active_tools.is_empty() {
             SystemStatus::Running
         } else {
             SystemStatus::Idle

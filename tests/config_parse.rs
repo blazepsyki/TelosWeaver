@@ -18,14 +18,18 @@ fn parses_tools_toml_with_expected_tools() {
     assert_eq!(parsed.tools[2].id, "copilot-cli");
 
     let supervisor = parsed.supervisor.as_ref().expect("supervisor should parse");
-    assert_eq!(supervisor.command, "__harness_done_supervisor");
-    assert!(supervisor.args.is_empty());
+    assert_eq!(supervisor.command, "codex");
+    assert!(supervisor.args.contains(&"exec".to_owned()));
+    assert!(supervisor.args.contains(&"--json".to_owned()));
 
     assert!(supervisor
         .parser
         .script
-        .contains(r#""next_tool": if is_done { () } else { "codex-cli" }"#));
-    assert!(supervisor.parser.script.contains(r#""tool_args": []"#));
+        .contains(r#""summary": stdout_text"#));
+    assert!(supervisor
+        .args
+        .iter()
+        .any(|arg| arg.contains("\"actions\"")));
     assert!(!supervisor.parser.script.contains("check for code logic"));
 
     assert_eq!(parsed.tools[0].command, "agy");

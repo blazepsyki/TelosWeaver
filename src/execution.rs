@@ -22,6 +22,8 @@ use crate::config::{Config, ToolDefinition};
 use crate::message::{HarnessMessage, MessageLevel, MessageSource};
 use crate::state::SharedAppState;
 
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 const MAX_STREAM_LINE_CHARS: usize = 2_000;
 const MAX_CAPTURED_LINE_CHARS: usize = 4_000;
 const MAX_CAPTURED_LINES: usize = 100;
@@ -88,7 +90,7 @@ pub struct ExecutionEngine {
     config: Arc<Config>,
     state: SharedAppState,
     broadcaster: Option<broadcast::Sender<HarnessMessage>>,
-    timeout: Duration,
+    timeout: Option<Duration>,
 }
 
 impl ExecutionEngine {
@@ -96,7 +98,7 @@ impl ExecutionEngine {
         config: Arc<Config>,
         state: SharedAppState,
         broadcaster: Option<broadcast::Sender<HarnessMessage>>,
-        timeout: Duration,
+        timeout: Option<Duration>,
     ) -> Self {
         Self {
             config,
@@ -172,20 +174,24 @@ impl ExecutionEngine {
             self.broadcaster.clone(),
         ));
 
-        let exit_status = match timeout(self.timeout, child.wait()).await {
-            Ok(result) => result.map_err(ExecutionError::Io)?,
-            Err(_) => {
-                let _ = child.kill().await;
-                let _ = child.wait().await;
-                {
-                    let mut state = self.state.write().await;
-                    state.record_step_error(step_id.clone(), "tool execution timed out");
+        let exit_status = if let Some(timeout_duration) = self.timeout {
+            match timeout(timeout_duration, child.wait()).await {
+                Ok(result) => result.map_err(ExecutionError::Io)?,
+                Err(_) => {
+                    let _ = child.kill().await;
+                    let _ = child.wait().await;
+                    {
+                        let mut state = self.state.write().await;
+                        state.record_step_error(step_id.clone(), "tool execution timed out");
+                    }
+                    return Err(ExecutionError::Timeout {
+                        tool_id: tool.id.clone(),
+                        duration: timeout_duration,
+                    });
                 }
-                return Err(ExecutionError::Timeout {
-                    tool_id: tool.id.clone(),
-                    duration: self.timeout,
-                });
             }
+        } else {
+            child.wait().await.map_err(ExecutionError::Io)?
         };
 
         let stdout_text = stdout_task
@@ -214,7 +220,7 @@ impl ExecutionEngine {
             let mut state = self.state.write().await;
             state.push_context(message.clone());
             if exit_status.success() {
-                state.finish_tool_run();
+                state.finish_tool_run_for_step(&step_id);
             } else {
                 state.record_step_error(
                     step_id.clone(),
@@ -237,7 +243,24 @@ fn build_process_command(invocation: ToolInvocation) -> Command {
     command.stdin(Stdio::null()); // 입력 대기를 방지하여 프로세스 행(Hang) 해결
     command.stdout(Stdio::piped());
     command.stderr(Stdio::piped());
+    command.env("NO_COLOR", "1");
+    command.env("CLICOLOR", "0");
+    command.env("TERM", "dumb");
+    command.env("CI", "1");
+    suppress_child_console(&mut command);
     command
+}
+
+fn suppress_child_console(command: &mut Command) {
+    #[cfg(windows)]
+    {
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = command;
+    }
 }
 
 struct ToolInvocation {
@@ -315,14 +338,14 @@ fn resolve_windows_program(command: &str) -> Option<PathBuf> {
         return resolve_windows_candidate(command_path, has_extension);
     }
 
-    env::var_os("PATH")
-        .and_then(|path| {
+    resolve_windows_known_program(command).or_else(|| {
+        env::var_os("PATH").and_then(|path| {
             env::split_paths(&path).find_map(|dir| {
                 let candidate = dir.join(command);
                 resolve_windows_candidate(&candidate, has_extension)
             })
         })
-        .or_else(|| resolve_windows_known_program(command))
+    })
 }
 
 #[cfg(windows)]
@@ -331,14 +354,16 @@ fn resolve_windows_candidate(candidate: &Path, has_extension: bool) -> Option<Pa
         return candidate.exists().then(|| candidate.to_path_buf());
     }
 
-    if candidate.exists() {
-        return Some(candidate.to_path_buf());
-    }
-
-    windows_path_extensions()
+    let extension_match = windows_path_extensions()
         .into_iter()
         .map(|extension| candidate.with_extension(extension.trim_start_matches('.')))
-        .find(|path| path.exists())
+        .find(|path| path.exists());
+
+    if extension_match.is_some() {
+        return extension_match;
+    }
+
+    None
 }
 
 #[cfg(windows)]
@@ -370,7 +395,7 @@ fn windows_path_extensions() -> Vec<String> {
 fn resolve_windows_known_program(command: &str) -> Option<PathBuf> {
     match command.to_ascii_lowercase().as_str() {
         "codex" => resolve_vscode_codex(),
-        "copilot" => resolve_npm_shim("copilot"),
+        "copilot" => resolve_npm_shim("copilot").or_else(resolve_vscode_copilot),
         "agy" => resolve_npm_shim("agy"),
         _ => None,
     }
@@ -383,6 +408,23 @@ fn resolve_npm_shim(command: &str) -> Option<PathBuf> {
             .join("npm")
             .join(format!("{command}.cmd"));
         candidate.exists().then_some(candidate)
+    })
+}
+
+#[cfg(windows)]
+fn resolve_vscode_copilot() -> Option<PathBuf> {
+    env::var_os("APPDATA").and_then(|appdata| {
+        let cli_dir = PathBuf::from(appdata)
+            .join("Code")
+            .join("User")
+            .join("globalStorage")
+            .join("github.copilot-chat")
+            .join("copilotCli");
+
+        ["copilot.exe", "copilot.cmd", "copilot.bat"]
+            .into_iter()
+            .map(|file_name| cli_dir.join(file_name))
+            .find(|path| path.exists())
     })
 }
 
@@ -419,7 +461,7 @@ pub async fn execute_tool(
     tool_id: &str,
     step_id: impl Into<String>,
     correlation_id: impl Into<String>,
-    timeout_duration: Duration,
+    timeout_duration: Option<Duration>,
 ) -> Result<HarnessMessage, ExecutionError> {
     ExecutionEngine::new(config, state, broadcaster, timeout_duration)
         .execute_tool(tool_id, step_id, correlation_id)
@@ -483,7 +525,11 @@ where
         first_line = false;
         collected.push_str(&line);
 
-        let (display_line, line_truncated) = compact_line(&line, MAX_STREAM_LINE_CHARS);
+        let Some((display_line, normalized_payload, line_truncated)) =
+            display_stream_line(&line, &source)
+        else {
+            continue;
+        };
 
         let line_message = HarnessMessage::new(
             tool_id.clone(),
@@ -496,22 +542,153 @@ where
             step_id.clone(),
             correlation_id.clone(),
             display_line.clone(),
-            json!({
-                "stream": stream_name(&source),
-                "line": display_line,
-                "truncated": line_truncated
-            }),
+            normalized_payload,
             line_truncated,
         );
 
         if let Some(sender) = &broadcaster {
             let _ = sender.send(line_message);
-        } else {
-            println!("[{}] {}: {}", tool_id, stream_name(&source), line);
         }
     }
 
     Ok(collected)
+}
+
+fn display_stream_line(line: &str, source: &MessageSource) -> Option<(String, Value, bool)> {
+    if matches!(source, MessageSource::Stdout) {
+        if let Ok(value) = serde_json::from_str::<Value>(line) {
+            let display = display_stdout_json_event(&value)?;
+            let display = sanitize_stream_text(&display);
+            let display = display.trim_end();
+            if display.trim().is_empty() {
+                return None;
+            }
+
+            let (display, truncated) = compact_line(display, MAX_STREAM_LINE_CHARS);
+            return Some((
+                display.clone(),
+                json!({
+                    "stream": stream_name(source),
+                    "line": display,
+                    "raw_line": line,
+                    "truncated": truncated
+                }),
+                truncated,
+            ));
+        }
+    }
+
+    let display = sanitize_stream_text(line);
+    let display = display.trim_end();
+    if display.trim().is_empty() {
+        return None;
+    }
+
+    let (display, truncated) = compact_line(display, MAX_STREAM_LINE_CHARS);
+    Some((
+        display.clone(),
+        json!({
+            "stream": stream_name(source),
+            "line": display,
+            "raw_line": line,
+            "truncated": truncated
+        }),
+        truncated,
+    ))
+}
+
+fn sanitize_stream_text(input: &str) -> String {
+    let without_ansi = strip_ansi_sequences(input);
+    let latest_terminal_line = without_ansi
+        .split('\r')
+        .rev()
+        .find(|part| !part.trim().is_empty())
+        .unwrap_or("");
+
+    latest_terminal_line
+        .chars()
+        .filter_map(|ch| match ch {
+            '\t' => Some('\t'),
+            '\u{7f}' => None,
+            ch if ch.is_control() => None,
+            ch => Some(ch),
+        })
+        .collect()
+}
+
+fn strip_ansi_sequences(input: &str) -> String {
+    let mut output = String::with_capacity(input.len());
+    let mut chars = input.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch != '\x1b' {
+            output.push(ch);
+            continue;
+        }
+
+        match chars.peek().copied() {
+            Some('[') => {
+                chars.next();
+                for ch in chars.by_ref() {
+                    if ('@'..='~').contains(&ch) {
+                        break;
+                    }
+                }
+            }
+            Some(']') => {
+                chars.next();
+                let mut previous_was_escape = false;
+                for ch in chars.by_ref() {
+                    if ch == '\u{7}' || (previous_was_escape && ch == '\\') {
+                        break;
+                    }
+                    previous_was_escape = ch == '\x1b';
+                }
+            }
+            Some('(' | ')' | '*' | '+' | '-' | '.' | '/') => {
+                chars.next();
+                let _ = chars.next();
+            }
+            Some(_) => {
+                let _ = chars.next();
+            }
+            None => {}
+        }
+    }
+
+    output
+}
+
+fn display_stdout_json_event(value: &Value) -> Option<String> {
+    let item = value.get("item")?;
+    let item_type = item.get("type").and_then(Value::as_str)?;
+
+    match item_type {
+        "agent_message" => item
+            .get("text")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+            .map(str::to_owned),
+        "command_execution" => {
+            let status = item.get("status").and_then(Value::as_str);
+            if !matches!(status, Some("failed" | "declined")) {
+                return None;
+            }
+            let status = status.unwrap_or("failed");
+
+            let command = item
+                .get("command")
+                .and_then(Value::as_str)
+                .unwrap_or("command");
+            let output = item
+                .get("aggregated_output")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            Some(format!("command {status}: {command}\n{}", output.trim()))
+        }
+        _ => None,
+    }
 }
 
 fn stream_name(source: &MessageSource) -> &'static str {
@@ -712,5 +889,36 @@ fn dynamic_to_json(value: &Dynamic) -> Value {
         Value::Object(json_map)
     } else {
         Value::String(value.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_stream_text_removes_terminal_control_sequences() {
+        let input = "\x1b[?25lworking 10%\r\x1b[32mdone\x1b[0m";
+
+        assert_eq!(sanitize_stream_text(input), "done");
+    }
+
+    #[test]
+    fn display_stream_line_skips_control_only_output() {
+        let input = "\x1b[?25l\r\x1b[2K";
+
+        assert!(display_stream_line(input, &MessageSource::Stdout).is_none());
+    }
+
+    #[test]
+    fn display_stream_line_sanitizes_json_agent_message_text() {
+        let input = r#"{"item":{"type":"agent_message","text":"\u001b[31mhello\u001b[0m"}}"#;
+
+        let (display, payload, truncated) =
+            display_stream_line(input, &MessageSource::Stdout).expect("displayable message");
+
+        assert_eq!(display, "hello");
+        assert_eq!(payload["line"], "hello");
+        assert!(!truncated);
     }
 }

@@ -11,11 +11,12 @@ use axum::{
     Json, Router,
 };
 use futures::{SinkExt, StreamExt};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use tokio::fs;
 use tokio::sync::broadcast;
 
-use crate::message::HarnessMessage;
+use crate::message::{HarnessMessage, MessageLevel, MessageSource};
 use crate::orchestration::CONTEXT_FILE_NAME;
 use crate::state::{AppState, SharedAppState, SystemStatus};
 
@@ -31,6 +32,19 @@ pub struct WebControlCommand {
     pub feedback: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+struct WebLogMessage {
+    id: String,
+    tool_id: String,
+    source: MessageSource,
+    level: MessageLevel,
+    step_id: String,
+    correlation_id: String,
+    timestamp: String,
+    text: String,
+    truncated: bool,
+}
+
 pub async fn start_web_server(state: SharedAppState, log_tx: broadcast::Sender<HarnessMessage>) {
     let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
     let addr = format!("0.0.0.0:{}", port);
@@ -42,9 +56,20 @@ pub async fn start_web_server(state: SharedAppState, log_tx: broadcast::Sender<H
         .route("/api/state", get(get_state))
         .route("/ws", get(ws_handler))
         .fallback(|| async { (StatusCode::NOT_FOUND, "Not Found") })
-        .with_state(app_state);
+        .with_state(app_state.clone());
 
-    println!("Starting web dashboard on http://{}", addr);
+    let message = HarnessMessage::system(
+        "web",
+        "web-server",
+        MessageLevel::Info,
+        format!("Starting web dashboard on http://{}", addr),
+        json!({ "url": format!("http://{}", addr) }),
+    );
+    {
+        let mut state = app_state.state.write().await;
+        state.push_context(message.clone());
+    }
+    let _ = app_state.log_tx.send(message);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -80,17 +105,35 @@ async fn handle_socket(socket: WebSocket, app: AppStateWrapper) {
                 ))
                 .await;
         }
+        let history = st
+            .context_log
+            .iter()
+            .filter_map(web_log_message)
+            .collect::<Vec<_>>();
+        let payload = json!({
+            "type": "log_history",
+            "data": history,
+        });
+        let _ = sender.send(Message::Text(payload.to_string().into())).await;
     }
 
     let mut send_task = tokio::spawn(async move {
         // Send state updates on loop (basic polling for status, or broadcast everything)
         // For simplicity, we just relay HarnessMessages when they arrive. State updates could be manual ticks.
         while let Ok(msg) = rx.recv().await {
-            if let Ok(json) = serde_json::to_string(&msg) {
-                let payload = format!("{{\"type\": \"log\", \"data\": {}}}", json);
-                if sender.send(Message::Text(payload.into())).await.is_err() {
-                    break;
-                }
+            let Some(log) = web_log_message(&msg) else {
+                continue;
+            };
+            let payload = json!({
+                "type": "log",
+                "data": log,
+            });
+            if sender
+                .send(Message::Text(payload.to_string().into()))
+                .await
+                .is_err()
+            {
+                break;
             }
         }
     });
@@ -141,4 +184,120 @@ async fn handle_socket(socket: WebSocket, app: AppStateWrapper) {
         _ = (&mut send_task) => recv_task.abort(),
         _ = (&mut recv_task) => send_task.abort(),
     };
+}
+
+fn web_log_message(message: &HarnessMessage) -> Option<WebLogMessage> {
+    let text = display_output(message)?;
+    if text.trim().is_empty() {
+        return None;
+    }
+
+    Some(WebLogMessage {
+        id: message.id.to_string(),
+        tool_id: message.tool_id.clone(),
+        source: message.source.clone(),
+        level: message.level.clone(),
+        step_id: message.step_id.clone(),
+        correlation_id: message.correlation_id.clone(),
+        timestamp: message.timestamp.to_rfc3339(),
+        text,
+        truncated: message.truncated,
+    })
+}
+
+fn display_output(message: &HarnessMessage) -> Option<String> {
+    if message.source == MessageSource::System {
+        return Some(message.raw_output.clone());
+    }
+
+    if let Some(text) = extract_response_from_text(&message.raw_output) {
+        return Some(text);
+    }
+
+    if let Some(text) = extract_response_from_value(&message.normalized_payload) {
+        return Some(text);
+    }
+
+    if looks_like_json(&message.raw_output) {
+        return None;
+    }
+
+    Some(message.raw_output.clone())
+}
+
+fn looks_like_json(text: &str) -> bool {
+    let trimmed = text.trim_start();
+    trimmed.starts_with('{') || trimmed.starts_with('[')
+}
+
+fn extract_response_from_text(text: &str) -> Option<String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    if let Ok(value) = serde_json::from_str::<Value>(trimmed) {
+        return extract_response_from_value(&value);
+    }
+
+    let parts: Vec<String> = trimmed
+        .lines()
+        .filter_map(|line| serde_json::from_str::<Value>(line.trim()).ok())
+        .filter_map(|value| extract_response_from_value(&value))
+        .filter(|part| !part.trim().is_empty())
+        .collect();
+
+    (!parts.is_empty()).then(|| parts.join("\n"))
+}
+
+fn extract_response_from_value(value: &Value) -> Option<String> {
+    match value {
+        Value::String(text) => non_empty(text),
+        Value::Array(items) => {
+            let parts: Vec<String> = items
+                .iter()
+                .filter_map(extract_response_from_value)
+                .filter(|part| !part.trim().is_empty())
+                .collect();
+            (!parts.is_empty()).then(|| parts.join("\n"))
+        }
+        Value::Object(map) => {
+            for key in [
+                "response",
+                "answer",
+                "message",
+                "text",
+                "content",
+                "output",
+                "last_agent_message",
+                "final_answer",
+            ] {
+                if let Some(text) = map.get(key).and_then(extract_response_from_value) {
+                    return Some(text);
+                }
+            }
+
+            for key in ["stdout_text", "stderr_text", "line"] {
+                if let Some(text) = map.get(key).and_then(Value::as_str) {
+                    if let Some(response) = extract_response_from_text(text) {
+                        return Some(response);
+                    }
+                }
+            }
+
+            for key in ["msg", "data", "delta", "result", "event", "item", "items"] {
+                if let Some(text) = map.get(key).and_then(extract_response_from_value) {
+                    return Some(text);
+                }
+            }
+
+            None
+        }
+        _ => None,
+    }
+}
+
+fn non_empty(text: &str) -> Option<String> {
+    let trimmed = text.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_owned())
 }

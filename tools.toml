@@ -1,20 +1,50 @@
 version = 1
 
 [supervisor]
-command = "__harness_done_supervisor"
-args = []
+command = "codex"
+args = [
+    "exec",
+    "--sandbox",
+    "read-only",
+    "--json",
+    """
+You are the supervisor for a multi-CLI worker harness.
+
+Read .harness_context.json in the current working directory. It contains the user prompt in state.context_log and the available worker_tools.
+
+Your job is only to plan and route work. Do not solve the user's task yourself.
+
+Return exactly one JSON object and no prose. Use this schema:
+{
+  "is_done": false,
+  "summary": "brief routing summary",
+  "actions": [
+    {
+      "task_id": "short-stable-task-id",
+      "tool_id": "one of the worker_tools ids",
+      "args": [],
+      "prompt": "the specific worker prompt"
+    }
+  ]
+}
+
+If the current context already contains enough worker output to answer or stop, return:
+{
+  "is_done": true,
+  "summary": "why the orchestration is complete",
+  "actions": []
+}
+
+Prefer multiple actions when the user task can be usefully split across available worker tools.
+"""
+]
 working_dir = "."
 
 [supervisor.parser]
 entrypoint = "decide"
 script = '''
-let is_done = stdout_text.contains("done") || exit_code != 0;
-
 #{
-    "next_tool": if is_done { () } else { "codex-cli" },
-    "tool_args": [],
-    "is_done": is_done,
-    "summary": if is_done { "Supervisor marked the task complete" } else { "Continue with the next worker" }
+    "summary": stdout_text
 }
 '''
 

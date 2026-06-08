@@ -12,6 +12,7 @@ use tokio::fs;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::broadcast;
+use tokio::task::JoinSet;
 use tokio::time::timeout;
 use uuid::Uuid;
 
@@ -22,6 +23,8 @@ use crate::state::{AppState, SharedAppState};
 
 pub const CONTEXT_FILE_NAME: &str = ".harness_context.json";
 const BUILTIN_DONE_SUPERVISOR: &str = "__harness_done_supervisor";
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct SupervisorDecision {
@@ -30,9 +33,23 @@ pub struct SupervisorDecision {
     #[serde(default)]
     pub tool_args: Vec<String>,
     #[serde(default)]
+    pub actions: Vec<WorkerInvocation>,
+    #[serde(default)]
     pub is_done: bool,
     #[serde(default)]
     pub summary: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct WorkerInvocation {
+    #[serde(default)]
+    pub task_id: String,
+    #[serde(default)]
+    pub tool_id: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub prompt: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,7 +128,7 @@ pub async fn run_orchestration_loop(
     broadcaster: Option<broadcast::Sender<HarnessMessage>>,
     initial_prompt: Option<String>,
     supervisor_timeout: Duration,
-    worker_timeout: Duration,
+    worker_timeout: Option<Duration>,
     max_iterations: usize,
 ) -> Result<(), OrchestrationError> {
     let supervisor = config
@@ -124,6 +141,7 @@ pub async fn run_orchestration_loop(
         .unwrap_or_else(|| PathBuf::from("."));
     let context_path = root_dir.join(CONTEXT_FILE_NAME);
     let correlation_id = Uuid::new_v4().to_string();
+    let mut pending_initial_prompt = initial_prompt.filter(|prompt| !prompt.trim().is_empty());
 
     for iteration in 0..max_iterations {
         let snapshot = {
@@ -161,48 +179,24 @@ pub async fn run_orchestration_loop(
             return Ok(());
         }
 
-        let next_tool = supervisor_decision.next_tool.ok_or_else(|| {
-            OrchestrationError::Decision("next_tool is required when is_done is false".to_owned())
-        })?;
-
-        let mut worker_config = (*config).clone();
-        let worker = worker_config
-            .tools
-            .iter_mut()
-            .find(|tool| tool.id == next_tool)
-            .ok_or_else(|| {
-                OrchestrationError::Decision(format!("worker '{next_tool}' not found"))
-            })?;
-
-        let next_tool_args = if let Some(prompt) = initial_prompt
-            .as_ref()
-            .filter(|prompt| !prompt.trim().is_empty())
-        {
-            vec![prompt.clone()]
+        let used_legacy_action = supervisor_decision.actions.is_empty();
+        let mut actions = decision_worker_actions(supervisor_decision, iteration, config.as_ref())?;
+        if used_legacy_action {
+            if let Some(prompt) = pending_initial_prompt.take() {
+                if let Some(action) = actions.first_mut() {
+                    action.args = vec![prompt];
+                    action.prompt = None;
+                }
+            }
         } else {
-            supervisor_decision.tool_args.clone()
-        };
+            let _ = pending_initial_prompt.take();
+        }
 
-        worker.args = {
-            let mut args = worker.args.clone();
-            args.extend(next_tool_args);
-            args
-        };
-
-        broadcast_system_event(
-            &state,
-            broadcaster.as_ref(),
-            format!("Running worker CLI: {next_tool}"),
-            &correlation_id,
-        )
-        .await;
-
-        execute_tool(
-            Arc::new(worker_config),
+        run_worker_actions(
+            config.clone(),
             state.clone(),
             broadcaster.clone(),
-            &next_tool,
-            format!("orchestration-{iteration}"),
+            actions,
             correlation_id.clone(),
             worker_timeout,
         )
@@ -212,6 +206,148 @@ pub async fn run_orchestration_loop(
     Err(OrchestrationError::Decision(format!(
         "orchestration did not finish within {max_iterations} iterations"
     )))
+}
+
+fn decision_worker_actions(
+    decision: SupervisorDecision,
+    iteration: usize,
+    config: &Config,
+) -> Result<Vec<WorkerInvocation>, OrchestrationError> {
+    let mut actions = if decision.actions.is_empty() {
+        let next_tool = decision.next_tool.ok_or_else(|| {
+            OrchestrationError::Decision(
+                "actions or next_tool is required when is_done is false".to_owned(),
+            )
+        })?;
+        vec![WorkerInvocation {
+            task_id: format!("orchestration-{iteration}-worker-0"),
+            tool_id: next_tool,
+            args: decision.tool_args,
+            prompt: None,
+        }]
+    } else {
+        decision.actions
+    };
+
+    if actions.is_empty() {
+        return Err(OrchestrationError::Decision(
+            "supervisor returned no worker actions".to_owned(),
+        ));
+    }
+
+    for (index, action) in actions.iter_mut().enumerate() {
+        if action.tool_id.trim().is_empty() {
+            return Err(OrchestrationError::Decision(format!(
+                "worker action {index} is missing tool_id"
+            )));
+        }
+
+        if !config.tools.iter().any(|tool| tool.id == action.tool_id) {
+            let known_tools = config
+                .tools
+                .iter()
+                .map(|tool| tool.id.as_str())
+                .collect::<Vec<_>>()
+                .join(", ");
+            return Err(OrchestrationError::Decision(format!(
+                "worker action {index} references unknown tool_id '{}' (known tools: {known_tools})",
+                action.tool_id
+            )));
+        }
+
+        if action.task_id.trim().is_empty() {
+            action.task_id = format!("orchestration-{iteration}-worker-{index}");
+        }
+    }
+
+    Ok(actions)
+}
+
+async fn run_worker_actions(
+    config: Arc<Config>,
+    state: SharedAppState,
+    broadcaster: Option<broadcast::Sender<HarnessMessage>>,
+    actions: Vec<WorkerInvocation>,
+    correlation_id: String,
+    worker_timeout: Option<Duration>,
+) -> Result<(), OrchestrationError> {
+    let mut tasks = JoinSet::new();
+
+    for action in actions {
+        let config = config.clone();
+        let state = state.clone();
+        let broadcaster = broadcaster.clone();
+        let correlation_id = correlation_id.clone();
+
+        tasks.spawn(async move {
+            run_worker_action(
+                config,
+                state,
+                broadcaster,
+                action,
+                correlation_id,
+                worker_timeout,
+            )
+            .await
+        });
+    }
+
+    while let Some(result) = tasks.join_next().await {
+        result.map_err(|err| OrchestrationError::Join(err.to_string()))??;
+    }
+
+    Ok(())
+}
+
+async fn run_worker_action(
+    config: Arc<Config>,
+    state: SharedAppState,
+    broadcaster: Option<broadcast::Sender<HarnessMessage>>,
+    action: WorkerInvocation,
+    correlation_id: String,
+    worker_timeout: Option<Duration>,
+) -> Result<(), OrchestrationError> {
+    let mut worker_config = (*config).clone();
+    let worker = worker_config
+        .tools
+        .iter_mut()
+        .find(|tool| tool.id == action.tool_id)
+        .ok_or_else(|| {
+            OrchestrationError::Decision(format!("worker '{}' not found", action.tool_id))
+        })?;
+
+    worker.args = {
+        let mut args = worker.args.clone();
+        args.extend(action.args.clone());
+        if let Some(prompt) = action.prompt.filter(|prompt| !prompt.trim().is_empty()) {
+            args.push(prompt);
+        }
+        args
+    };
+
+    broadcast_system_event(
+        &state,
+        broadcaster.as_ref(),
+        format!(
+            "Running worker CLI: {} ({})",
+            action.tool_id, action.task_id
+        ),
+        &correlation_id,
+    )
+    .await;
+
+    execute_tool(
+        Arc::new(worker_config),
+        state,
+        broadcaster,
+        &action.tool_id,
+        action.task_id,
+        correlation_id,
+        worker_timeout,
+    )
+    .await?;
+
+    Ok(())
 }
 
 async fn run_supervisor_cli(
@@ -250,6 +386,7 @@ async fn run_supervisor_cli(
     command.stdin(Stdio::null()); // 입력 대기를 방지하여 프로세스 행(Hang) 해결
     command.stdout(Stdio::piped());
     command.stderr(Stdio::piped());
+    suppress_child_console(&mut command);
     command.env("HARNESS_CONTEXT_FILE", context_path);
     if !supervisor.args.is_empty() {
         command.args(&supervisor.args);
@@ -320,6 +457,18 @@ async fn run_supervisor_cli(
     Ok(decision)
 }
 
+fn suppress_child_console(command: &mut Command) {
+    #[cfg(windows)]
+    {
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = command;
+    }
+}
+
 async fn run_builtin_done_supervisor(
     supervisor: &SupervisorDefinition,
     context_path: &Path,
@@ -330,12 +479,19 @@ async fn run_builtin_done_supervisor(
     let context = fs::read_to_string(context_path).await?;
     let snapshot: HarnessContextSnapshot = serde_json::from_str(&context)
         .map_err(|err| OrchestrationError::Decision(err.to_string()))?;
-    let stdout_text = if snapshot
+    let has_done_marker = snapshot
         .state
         .context_log
         .iter()
-        .any(|message| raw_output_marks_done(&message.raw_output))
-    {
+        .filter(|message| message.correlation_id == correlation_id)
+        .any(|message| raw_output_marks_done(&message.raw_output));
+    let has_worker_response = snapshot
+        .state
+        .context_log
+        .iter()
+        .filter(|message| message.correlation_id == correlation_id)
+        .any(|message| message_is_worker_response(message, &snapshot.worker_tools));
+    let stdout_text = if has_done_marker || has_worker_response {
         "done"
     } else {
         "continue"
@@ -372,6 +528,11 @@ fn raw_output_marks_done(raw_output: &str) -> bool {
         .any(|token| token.eq_ignore_ascii_case("done"))
 }
 
+fn message_is_worker_response(message: &HarnessMessage, worker_tools: &[ToolDefinition]) -> bool {
+    !message.raw_output.trim().is_empty()
+        && worker_tools.iter().any(|tool| tool.id == message.tool_id)
+}
+
 pub fn parse_supervisor_decision(
     supervisor: &SupervisorDefinition,
     exit_code: Option<i64>,
@@ -396,10 +557,206 @@ pub fn parse_supervisor_decision(
     let payload = rhai_map_to_json(result);
     let mut decision: SupervisorDecision = serde_json::from_value(payload)
         .map_err(|err| OrchestrationError::Decision(err.to_string()))?;
+    if !decision_has_work_or_done(&decision) {
+        if let Some(extracted) = parse_decision_from_text(stdout_text) {
+            decision = extracted;
+        }
+    }
     if decision.next_tool.as_deref() == Some("") {
         decision.next_tool = None;
     }
     Ok(decision)
+}
+
+fn decision_has_work_or_done(decision: &SupervisorDecision) -> bool {
+    decision.is_done || decision.next_tool.is_some() || !decision.actions.is_empty()
+}
+
+fn parse_decision_from_text(text: &str) -> Option<SupervisorDecision> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let json_lines = trimmed
+        .lines()
+        .filter_map(|line| serde_json::from_str::<Value>(line.trim()).ok())
+        .collect::<Vec<_>>();
+
+    if let Some(decision) = json_lines
+        .iter()
+        .filter_map(extract_agent_message_decision)
+        .last()
+    {
+        return Some(decision);
+    }
+
+    if let Ok(value) = serde_json::from_str::<Value>(trimmed) {
+        if let Some(decision) = direct_decision_from_value(&value) {
+            return Some(decision);
+        }
+    }
+
+    if let Some(decision) = json_lines
+        .iter()
+        .filter_map(direct_decision_from_value)
+        .last()
+    {
+        return Some(decision);
+    }
+
+    if let Some(decision) = json_lines
+        .iter()
+        .filter_map(|value| find_decision_in_value(value, 0))
+        .last()
+    {
+        return Some(decision);
+    }
+
+    extract_json_object_candidates(trimmed)
+        .into_iter()
+        .filter_map(|candidate| serde_json::from_str::<Value>(&candidate).ok())
+        .filter_map(|value| direct_decision_from_value(&value))
+        .last()
+}
+
+fn extract_agent_message_decision(value: &Value) -> Option<SupervisorDecision> {
+    let item = value.get("item")?;
+    let item_type = item.get("type").and_then(Value::as_str)?;
+    if item_type != "agent_message" {
+        return None;
+    }
+
+    let text = item.get("text").and_then(Value::as_str)?;
+    parse_decision_text_payload(text)
+}
+
+fn parse_decision_text_payload(text: &str) -> Option<SupervisorDecision> {
+    let trimmed = text.trim();
+
+    if let Ok(value) = serde_json::from_str::<Value>(trimmed) {
+        if let Some(decision) = direct_decision_from_value(&value) {
+            return Some(decision);
+        }
+    }
+
+    extract_json_object_candidates(trimmed)
+        .into_iter()
+        .filter_map(|candidate| serde_json::from_str::<Value>(&candidate).ok())
+        .filter_map(|value| direct_decision_from_value(&value))
+        .last()
+}
+
+fn direct_decision_from_value(value: &Value) -> Option<SupervisorDecision> {
+    let object = value.as_object()?;
+    if !object.contains_key("is_done")
+        && !object.contains_key("actions")
+        && !object.contains_key("next_tool")
+    {
+        return None;
+    }
+
+    serde_json::from_value::<SupervisorDecision>(value.clone())
+        .ok()
+        .filter(decision_has_work_or_done)
+}
+
+fn find_decision_in_value(value: &Value, depth: usize) -> Option<SupervisorDecision> {
+    if depth > 8 {
+        return None;
+    }
+
+    if let Some(decision) = direct_decision_from_value(value) {
+        return Some(decision);
+    }
+
+    match value {
+        Value::Array(items) => items
+            .iter()
+            .find_map(|item| find_decision_in_value(item, depth + 1)),
+        Value::Object(map) => {
+            if map
+                .get("type")
+                .and_then(Value::as_str)
+                .is_some_and(|value| value == "command_execution")
+            {
+                return None;
+            }
+
+            for key in ["text", "message", "content", "response", "output"] {
+                if let Some(item) = map.get(key) {
+                    if let Some(decision) = find_decision_in_value(item, depth + 1) {
+                        return Some(decision);
+                    }
+                }
+            }
+
+            None
+        }
+        Value::String(text) => {
+            if let Ok(value) = serde_json::from_str::<Value>(text.trim()) {
+                return find_decision_in_value(&value, depth + 1);
+            }
+
+            extract_json_object_candidates(text)
+                .into_iter()
+                .filter_map(|candidate| serde_json::from_str::<Value>(&candidate).ok())
+                .find_map(|value| find_decision_in_value(&value, depth + 1))
+        }
+        _ => None,
+    }
+}
+
+fn extract_json_object_candidates(text: &str) -> Vec<String> {
+    let mut candidates = Vec::new();
+    let mut start = None;
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for (index, character) in text.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+
+        if character == '\\' && in_string {
+            escaped = true;
+            continue;
+        }
+
+        if character == '"' {
+            in_string = !in_string;
+            continue;
+        }
+
+        if in_string {
+            continue;
+        }
+
+        match character {
+            '{' => {
+                if depth == 0 {
+                    start = Some(index);
+                }
+                depth += 1;
+            }
+            '}' => {
+                if depth == 0 {
+                    continue;
+                }
+                depth -= 1;
+                if depth == 0 {
+                    if let Some(start_index) = start.take() {
+                        candidates.push(text[start_index..=index].to_owned());
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    candidates
 }
 
 async fn read_text_stream<R>(

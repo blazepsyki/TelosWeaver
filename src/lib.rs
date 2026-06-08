@@ -11,7 +11,8 @@ pub use execution::{execute_tool, parse_with_rhai, ExecutionEngine, ExecutionErr
 pub use message::{HarnessMessage, MessageLevel, MessageSource};
 pub use orchestration::{
     parse_supervisor_decision, run_orchestration_loop, write_harness_context_file,
-    HarnessContextSnapshot, OrchestrationError, SupervisorDecision, CONTEXT_FILE_NAME,
+    HarnessContextSnapshot, OrchestrationError, SupervisorDecision, WorkerInvocation,
+    CONTEXT_FILE_NAME,
 };
 pub use state::{
     ActiveTool, AppState, CircuitBreakerState, InterventionChoice, InterventionRequest,

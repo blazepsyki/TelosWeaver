@@ -14,10 +14,24 @@ use rust_multi_cli_harness::{
 use serde_json::json;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
-use tokio::sync::{broadcast, oneshot, RwLock};
+use tokio::sync::{broadcast, mpsc, RwLock};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cli_options = match CliOptions::parse(std::env::args().skip(1)) {
+        Ok(options) => options,
+        Err(message) => {
+            eprintln!("{message}");
+            eprintln!("{}", CliOptions::usage());
+            std::process::exit(2);
+        }
+    };
+
+    if cli_options.show_help {
+        println!("{}", CliOptions::usage());
+        return Ok(());
+    }
+
     let config_path = Path::new("tools.toml");
 
     let config = match Config::from_file(config_path) {
@@ -60,56 +74,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         start_web_server(web_state, web_tx).await;
     });
 
-    let (prompt_tx, prompt_rx) = oneshot::channel();
+    let (prompt_tx, mut prompt_rx) = mpsc::unbounded_channel();
     let tui_state = state.clone();
     let tui_rx = tx.subscribe();
+    let show_raw_json = cli_options.show_raw_json;
     let mut tui_task =
-        tokio::spawn(async move { run_tui(tui_state, tui_rx, Some(prompt_tx)).await });
+        tokio::spawn(async move { run_tui(tui_state, tui_rx, prompt_tx, show_raw_json).await });
 
-    let initial_prompt = tokio::select! {
-        prompt = prompt_rx => match prompt {
-            Ok(prompt) => prompt,
-            Err(_) => {
-                wait_for_tui(tui_task).await?;
+    loop {
+        let prompt = tokio::select! {
+            prompt = prompt_rx.recv() => match prompt {
+                Some(prompt) => prompt,
+                None => break,
+            },
+            result = &mut tui_task => {
+                handle_tui_result(result)?;
                 return Ok(());
             }
-        },
-        result = &mut tui_task => {
-            handle_tui_result(result)?;
-            return Ok(());
-        }
-    };
+        };
 
-    let prompt_message = HarnessMessage::system(
-        "startup",
-        "main",
-        MessageLevel::Info,
-        "Initial prompt received",
-        json!({ "prompt": initial_prompt.clone() }),
-    );
-    {
-        let mut state = state.write().await;
-        state.push_context(prompt_message.clone());
-    }
-    let _ = tx.send(prompt_message);
+        record_prompt_received(&state, &tx, &prompt).await;
 
-    // 2. 오케스트레이션 코어 로직 백그라운드 구동
-    let bg_config = config.clone();
-    let bg_state = state.clone();
-    let bg_tx = tx.clone();
-    let bg_initial_prompt = initial_prompt.clone();
-    tokio::spawn(async move {
-        if let Err(e) = run_orchestration_loop(
-            bg_config,
-            bg_state.clone(),
-            Some(bg_tx.clone()),
-            Some(bg_initial_prompt),
-            Duration::from_secs(60),  // Supervisor timeout
-            Duration::from_secs(120), // Worker timeout
-            50,                       // max iterations
+        let orchestration_result = run_orchestration_loop(
+            config.clone(),
+            state.clone(),
+            Some(tx.clone()),
+            Some(prompt),
+            Duration::from_secs(60), // Supervisor timeout
+            None,                    // Worker timeout
+            50,                      // max iterations
         )
-        .await
-        {
+        .await;
+
+        if let Err(e) = orchestration_result {
             let error_text = format!("Orchestration failed: {e}");
             let message = HarnessMessage::system(
                 "orchestration",
@@ -120,20 +117,92 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
 
             {
-                let mut state = bg_state.write().await;
+                let mut state = state.write().await;
                 state.push_context(message.clone());
-                state.status = SystemStatus::Halted;
+                state.status = SystemStatus::Idle;
             }
 
-            let _ = bg_tx.send(message);
+            let _ = tx.send(message);
             eprintln!("{error_text}");
         }
-    });
 
-    // 3. TUI (블로킹/메인 루프) 실행
+        broadcast_prompt_ready(&state, &tx).await;
+    }
+
     wait_for_tui(tui_task).await?;
 
     Ok(())
+}
+
+struct CliOptions {
+    show_raw_json: bool,
+    show_help: bool,
+}
+
+impl CliOptions {
+    fn parse(args: impl IntoIterator<Item = String>) -> Result<Self, String> {
+        let mut options = Self {
+            show_raw_json: false,
+            show_help: false,
+        };
+
+        for arg in args {
+            match arg.as_str() {
+                "--raw-json" | "--show-json" | "--json-logs" => {
+                    options.show_raw_json = true;
+                }
+                "-h" | "--help" => {
+                    options.show_help = true;
+                }
+                _ => {
+                    return Err(format!("Unknown argument: {arg}"));
+                }
+            }
+        }
+
+        Ok(options)
+    }
+
+    fn usage() -> &'static str {
+        "Usage: rust-multi-cli-harness [--raw-json]\n\nOptions:\n  --raw-json, --show-json, --json-logs  Show raw JSON CLI events in the TUI\n  -h, --help                            Show this help"
+    }
+}
+
+async fn record_prompt_received(
+    state: &SharedAppState,
+    tx: &broadcast::Sender<HarnessMessage>,
+    prompt: &str,
+) {
+    let prompt_message = HarnessMessage::system(
+        "prompt",
+        "main",
+        MessageLevel::Info,
+        "Prompt received",
+        json!({ "prompt": prompt }),
+    );
+    {
+        let mut state = state.write().await;
+        state.push_context(prompt_message.clone());
+    }
+    let _ = tx.send(prompt_message);
+}
+
+async fn broadcast_prompt_ready(state: &SharedAppState, tx: &broadcast::Sender<HarnessMessage>) {
+    let message = HarnessMessage::system(
+        "prompt",
+        "main",
+        MessageLevel::Info,
+        "Ready for next prompt",
+        json!({ "event": "awaiting_prompt" }),
+    );
+    {
+        let mut state = state.write().await;
+        state.push_context(message.clone());
+        if state.status != SystemStatus::Halted {
+            state.status = SystemStatus::Idle;
+        }
+    }
+    let _ = tx.send(message);
 }
 
 async fn wait_for_tui(
