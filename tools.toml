@@ -54,7 +54,7 @@ script = '''
 id = "antigravity-cli"
 name = "Antigravity CLI"
 command = "agy"
-args = ["-p"]
+args = ["--dangerously-skip-permissions", "-p"]
 working_dir = "."
 
 [tools.parser]
@@ -132,7 +132,7 @@ let raw = if stdout_text.len() > 0 {
 id = "copilot-cli"
 name = "Copilot CLI"
 command = "copilot"
-args = ["--output-format", "json", "--allow-all-tools", "--effort", "low", "-p"]
+args = ["--output-format", "json", "--allow-all-tools", "-p"]
 working_dir = "."
 
 [tools.parser]

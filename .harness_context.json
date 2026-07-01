@@ -1,0 +1,1132 @@
+{
+  "generated_at": "2026-06-08T06:23:30.070493+00:00",
+  "state": {
+    "current_tool": "copilot-cli",
+    "active_tool": {
+      "tool_id": "copilot-cli",
+      "step_id": "inspect-ui-web-small",
+      "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+      "started_at": "2026-06-08T06:23:25.147771400Z"
+    },
+    "active_tools": {
+      "inspect-runtime-claims": {
+        "tool_id": "copilot-cli",
+        "step_id": "inspect-runtime-claims",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:20:48.768343900Z"
+      },
+      "inspect-orchestration-small": {
+        "tool_id": "antigravity-cli",
+        "step_id": "inspect-orchestration-small",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:23:25.147736700Z"
+      },
+      "inspect-ui-web-small": {
+        "tool_id": "copilot-cli",
+        "step_id": "inspect-ui-web-small",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:23:25.147771400Z"
+      },
+      "collect-file-metrics": {
+        "tool_id": "copilot-cli",
+        "step_id": "collect-file-metrics",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:20:48.768358400Z"
+      },
+      "verify-config-state-message": {
+        "tool_id": "antigravity-cli",
+        "step_id": "verify-config-state-message",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:21:17.634620800Z"
+      },
+      "metrics-current-files": {
+        "tool_id": "antigravity-cli",
+        "step_id": "metrics-current-files",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:23:25.147667900Z"
+      },
+      "inspect-tests-small": {
+        "tool_id": "antigravity-cli",
+        "step_id": "inspect-tests-small",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:23:25.147719Z"
+      },
+      "inspect-config-state-message": {
+        "tool_id": "copilot-cli",
+        "step_id": "inspect-config-state-message",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:23:25.147705600Z"
+      },
+      "inspect-ui-and-web-claims": {
+        "tool_id": "copilot-cli",
+        "step_id": "inspect-ui-and-web-claims",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:20:48.768386200Z"
+      },
+      "inspect-core-modules": {
+        "tool_id": "codex-cli",
+        "step_id": "inspect-core-modules",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:21:51.729158200Z"
+      },
+      "inspect-tests": {
+        "tool_id": "codex-cli",
+        "step_id": "inspect-tests",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:21:51.729139300Z"
+      },
+      "verify-ui-web-tests": {
+        "tool_id": "antigravity-cli",
+        "step_id": "verify-ui-web-tests",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:21:17.634652Z"
+      },
+      "verify-execution": {
+        "tool_id": "antigravity-cli",
+        "step_id": "verify-execution",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:21:17.634661Z"
+      },
+      "inspect-ui-web-modules": {
+        "tool_id": "codex-cli",
+        "step_id": "inspect-ui-web-modules",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:21:51.729184200Z"
+      },
+      "inspect-execution-small": {
+        "tool_id": "copilot-cli",
+        "step_id": "inspect-execution-small",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:23:25.147756100Z"
+      },
+      "inspect-core-implementation": {
+        "tool_id": "codex-cli",
+        "step_id": "inspect-core-implementation",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:19:21.266126700Z"
+      },
+      "verify-project-files": {
+        "tool_id": "antigravity-cli",
+        "step_id": "verify-project-files",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:21:17.634599100Z"
+      },
+      "inspect-project-structure": {
+        "tool_id": "codex-cli",
+        "step_id": "inspect-project-structure",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:19:21.266169Z"
+      },
+      "verify-orchestration": {
+        "tool_id": "antigravity-cli",
+        "step_id": "verify-orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:21:17.634687300Z"
+      },
+      "inspect-tests-claims": {
+        "tool_id": "copilot-cli",
+        "step_id": "inspect-tests-claims",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "started_at": "2026-06-08T06:20:48.768494300Z"
+      }
+    },
+    "current_step": "inspect-ui-web-small",
+    "status": "error_recovering",
+    "context_log": [
+      {
+        "id": "a607958e-77b5-4cc0-b471-8ed61ce52799",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "startup",
+        "correlation_id": "main",
+        "timestamp": "2026-06-08T06:18:11.338440500Z",
+        "raw_output": "Writing harness run log to logs\\harness-20260608-151811.jsonl",
+        "normalized_payload": {
+          "log_path": "logs\\harness-20260608-151811.jsonl"
+        },
+        "truncated": false
+      },
+      {
+        "id": "5c66fdc4-2ffe-4303-914d-e399f7a10ddf",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "web",
+        "correlation_id": "web-server",
+        "timestamp": "2026-06-08T06:18:11.338798800Z",
+        "raw_output": "Starting web dashboard on http://0.0.0.0:3000",
+        "normalized_payload": {
+          "url": "http://0.0.0.0:3000"
+        },
+        "truncated": false
+      },
+      {
+        "id": "7c19f96b-ac91-47df-b36c-1f91e9d2c4e4",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "prompt",
+        "correlation_id": "main",
+        "timestamp": "2026-06-08T06:18:15.584147200Z",
+        "raw_output": "Prompt received",
+        "normalized_payload": {
+          "prompt": "안녕?"
+        },
+        "truncated": false
+      },
+      {
+        "id": "5a5af23c-8c1f-4d45-849f-7a517c1132ac",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "c7818fdb-911e-410e-a53b-ea4165d28151",
+        "timestamp": "2026-06-08T06:18:15.584750900Z",
+        "raw_output": "Supervisor cycle 0 starting",
+        "normalized_payload": {
+          "text": "Supervisor cycle 0 starting"
+        },
+        "truncated": false
+      },
+      {
+        "id": "9b110e53-12e8-4e2f-8d08-f5fdaa9c6e84",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "c7818fdb-911e-410e-a53b-ea4165d28151",
+        "timestamp": "2026-06-08T06:18:15.584770200Z",
+        "raw_output": "Running supervisor CLI",
+        "normalized_payload": {
+          "text": "Running supervisor CLI"
+        },
+        "truncated": false
+      },
+      {
+        "id": "93d43607-7044-43f4-a5b2-2783e1f0c5b1",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "c7818fdb-911e-410e-a53b-ea4165d28151",
+        "timestamp": "2026-06-08T06:18:30.827047700Z",
+        "raw_output": "Supervisor marked orchestration complete",
+        "normalized_payload": {
+          "text": "Supervisor marked orchestration complete"
+        },
+        "truncated": false
+      },
+      {
+        "id": "244cc480-1a91-40b9-bc71-ac39f5af8fd1",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "prompt",
+        "correlation_id": "main",
+        "timestamp": "2026-06-08T06:18:30.827077900Z",
+        "raw_output": "Ready for next prompt",
+        "normalized_payload": {
+          "event": "awaiting_prompt"
+        },
+        "truncated": false
+      },
+      {
+        "id": "73330d5d-d104-481c-90d2-bad58b543ac4",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "prompt",
+        "correlation_id": "main",
+        "timestamp": "2026-06-08T06:19:04.424456500Z",
+        "raw_output": "Prompt received",
+        "normalized_payload": {
+          "prompt": "프로젝트 문서인 PROJECT_ANALYSIS.md를 읽고, 현재 구현에 맞게 수정해줘."
+        },
+        "truncated": false
+      },
+      {
+        "id": "a4df6bb7-0bea-4411-8054-0b1b2de7a9a9",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:19:04.425175800Z",
+        "raw_output": "Supervisor cycle 0 starting",
+        "normalized_payload": {
+          "text": "Supervisor cycle 0 starting"
+        },
+        "truncated": false
+      },
+      {
+        "id": "58d0c7dd-763a-4a7d-8249-d6bdfb903f7d",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:19:04.425195100Z",
+        "raw_output": "Running supervisor CLI",
+        "normalized_payload": {
+          "text": "Running supervisor CLI"
+        },
+        "truncated": false
+      },
+      {
+        "id": "441e16bc-e42c-4cd5-87f4-2f318768a202",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:19:21.266100Z",
+        "raw_output": "Running worker CLI: codex-cli (read-project-analysis)",
+        "normalized_payload": {
+          "text": "Running worker CLI: codex-cli (read-project-analysis)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "d026a947-5a64-4e65-9135-0bb234d81037",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:19:21.266108600Z",
+        "raw_output": "Running worker CLI: codex-cli (inspect-core-implementation)",
+        "normalized_payload": {
+          "text": "Running worker CLI: codex-cli (inspect-core-implementation)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "834cc5ec-d189-4075-abde-4631216b5b9f",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:19:21.266108900Z",
+        "raw_output": "Running worker CLI: codex-cli (inspect-project-structure)",
+        "normalized_payload": {
+          "text": "Running worker CLI: codex-cli (inspect-project-structure)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "7349082f-7b78-40ce-ada9-fcce37fd2463",
+        "tool_id": "codex-cli",
+        "source": "stdout",
+        "level": "info",
+        "step_id": "read-project-analysis",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:00.863951300Z",
+        "raw_output": "{\"type\":\"thread.started\",\"thread_id\":\"019ea5e2-cd13-78e1-8ecd-9d365954af5a\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"요청대로 `PROJECT_ANALYSIS.md`만 읽고, 파일 수정 없이 현재 섹션 구조와 구현 관련 주장을 정리하겠습니다.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -LiteralPath PROJECT_ANALYSIS.md'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -LiteralPath PROJECT_ANALYSIS.md'\",\"aggregated_output\":\"# Rust Multi-CLI Harness - 프로젝트 상세 분석 보고서\\r\\n\\r\\n## 목차\\r\\n\\r\\n1. [프로젝트 개요](#프로젝트-개요)\\r\\n2. [아키텍처 분석](#아키텍처-분석)\\r\\n3. [테스트 커버리지](#테스트-커버리지)\\r\\n4. [코드 품질 평가](#코드-품질-평가)\\r\\n5. [잠재 리스크 분석](#잠재-리스크-분석)\\r\\n6. [개선 제안](#개선-제안)\\r\\n7. [종합 평가](#종합-평가)\\r\\n\\r\\n---\\r\\n\\r\\n## 프로젝트 개요\\r\\n\\r\\n### 기본 정보\\r\\n- **프로젝트명**: rust-multi-cli-harness\\r\\n- **버전**: 0.1.0\\r\\n- **에디션**: Rust 2021\\r\\n- **목적**: 다중 CLI 도구를 중앙집중식으로 관리하고 오케스트레이션하는 플랫폼\\r\\n\\r\\n### 주요 기능\\r\\n1. **도구 오케스트레이션**: 여러 CLI 도구의 실행 순서를 관리\\r\\n2. **감독자 기반 의사결정**: 상위 감독자가 작업 흐름을 제어\\r\\n3. **웹 대시보드**: Axum 기반의 실시간 웹 인터페이스\\r\\n4. **TUI 인터페이스**: Ratatui 기반의 터미널 사용자 인터페이스\\r\\n5. **상태 관리**: 도구 실행 상태 및 회로 차단기 패턴 구현\\r\\n6. **메시지 시스템**: 도구 출력을 구조화된 메시지로 변환 (Rhai 스크립트)\\r\\n\\r\\n### 기술 스택\\r\\n**핵심 의존성**:\\r\\n- tokio: 비동기 런타임\\r\\n- axum: 웹 프레임워크 (WebSocket 지원)\\r\\n- ratatui: TUI 렌더링\\r\\n- rhai: 동적 스크립트 평가\\r\\n- serde/serde_json: 데이터 직렬화\\r\\n- chrono: 시간 처리\\r\\n- uuid: 고유 ID 생성\\r\\n\\r\\n---\\r\\n\\r\\n## 아키텍처 분석\\r\\n\\r\\n### 모듈 구조\\r\\n\\r\\n\\\\\\\\\\\\\\r\\nsrc/\\r\\n├── lib.rs (19줄)          # 공개 API 정의\\r\\n├── main.rs (244줄)        # 애플리케이션 진입점\\r\\n├── config.rs (70줄)       # TOML 설정 파싱\\r\\n├── execution.rs (833줄)   # CLI 도구 실행 엔진\\r\\n├── orchestration.rs (828줄) # 감독자 및 오케스트레이션 로직\\r\\n├── state.rs (179줄)       # 애플리케이션 상태 관리\\r\\n├── message.rs (79줄)      # 메시지 구조 정의\\r\\n├── tui.rs (577줄)         # 터미널 사용자 인터페이스\\r\\n└── web.rs (251줄)         # 웹 서버 및 WebSocket\\r\\n\\\\\\\\\\\\\\r\\n\\r\\n**총 소스 코드 라인 수**: 약 3,080줄\\r\\n\\r\\n### 주요 아키텍처 특징\\r\\n\\r\\n#### 1. 이벤트 기반 통신\\r\\n- broadcast 채널로 메시지 브로드캐스팅\\r\\n- TUI와 웹 서버가 동시에 상태 수신\\r\\n- 비동기 메시지 처리로 성능 최적화\\r\\n\\r\\n#### 2. 감독자 패턴\\r\\n- 외부 감독자(Codex, Copilot, Antigravity CLI) 호출\\r\\n- JSON 기반 의사결정 (is_done, actions)\\r\\n- 레거시 호환성 (next_tool + tool_args)\\r\\n\\r\\n#### 3. 상태 머신 설계\\r\\n- Idle -> Running -> (ErrorRecovering/PausedForIntervention) -> Idle\\r\\n- 회로\n... [Truncated 7755 chars] ...\nexecution.rs: 129줄 (25%)\\r\\n- state_init.rs: 39줄 (7%)\\r\\n- config_parse.rs: 44줄 (8%)\\r\\n- message_state.rs: 16줄 (3%)\\r\\n\\r\\n**코드 대비 테스트 비율**: 16.9% (권장: 30% 이상)\\r\\n\\r\\n---\\r\\n\\r\\n### 의존성 분석\\r\\n\\r\\n#### 직접 의존성 (10개)\\r\\n1. **tokio** - 비동기 런타임 (핵심)\\r\\n2. **axum** - 웹 프레임워크 (선택적)\\r\\n3. **ratatui** - TUI 라이브러리 (선택적)\\r\\n4. **rhai** - 스크립트 엔진 (핵심)\\r\\n5. **serde** - 직렬화 (핵심)\\r\\n6. **serde_json** - JSON 처리 (핵심)\\r\\n7. **toml** - TOML 파싱 (핵심)\\r\\n8. **chrono** - 시간 처리 (핵심)\\r\\n9. **uuid** - ID 생성 (핵심)\\r\\n10. **crossterm** - 터미널 제어 (선택적)\\r\\n\\r\\n#### 개발 의존성 (1개)\\r\\n- **pretty_assertions** - 테스트 assertion\\r\\n\\r\\n### 의존성 평가\\r\\n- **개수**: 적절 (10개, 가벼움)\\r\\n- **버전 관리**: 느슨함 (^1.0 대부분) - 안정적\\r\\n- **보안**: 정기 업데이트 필요 (최신 버전 확인)\\r\\n\\r\\n---\\r\\n\\r\\n## 분석 일시 및 범위\\r\\n\\r\\n- **분석 날짜**: 2026-06-08\\r\\n- **분석 도구**: 정적 코드 분석\\r\\n- **분석 범위**: src/, tests/, Cargo.toml, tools.toml\\r\\n- **분석 깊이**: 코드 검토, 구조 분석\\r\\n- **포함되지 않은 항목**: 실행 테스트, 성능 프로파일링, 보안 감사\\r\\n\\r\\n---\\r\\n\\r\\n## 주요 발견사항 요약\\r\\n\\r\\n### 강점 (Top 3)\\r\\n1. ✅ **우수한 비동기 아키텍처** - Tokio, 채널, 타임아웃 처리 잘 구현\\r\\n2. ✅ **명확한 모듈화** - 관심사 분리, 인터페이스 정의 우수\\r\\n3. ✅ **유연한 설정 시스템** - TOML + Rhai로 무한 확장성\\r\\n\\r\\n### 약점 (Top 3)\\r\\n1. ❌ **메모리 누수 위험** - context_log 무한 증가\\r\\n2. ❌ **문서 부족** - Rustdoc 전무, 코드 가독성 저해\\r\\n3. ❌ **불완전한 에러 복구** - 재시도, Fallback 메커니즘 없음\\r\\n\\r\\n### 개선 우선순위\\r\\n1. **급급함** (이번 주): 메모리 누수, 웹 에러 처리\\r\\n2. **높음** (이번 달): 문서화, 테스트 확대\\r\\n3. **중간** (다음 달): 로깅, 모니터링, 성능 최적화\\r\\n\\r\\n---\\r\\n\\r\\n## 참고 자료\\r\\n\\r\\n### 추천 읽을거리\\r\\n- Rust Error Handling Best Practices\\r\\n- Tokio Tutorial: Structured Concurrency\\r\\n- Production-Grade Logging with tracing\\r\\n- Testing Async Code in Rust\\r\\n\\r\\n### 도구 추천\\r\\n- cargo-audit: 보안 취약점 검사\\r\\n- cargo-tarpaulin: 테스트 커버리지 측정\\r\\n- cargo-clippy: 추가 린트 검사\\r\\n- cargo-deny: 의존성 검증\\r\\n\\r\\n---\\r\\n\\r\\n## 문서 변경 이력\\r\\n\\r\\n| 버전 | 날짜 | 변경사항 |\\r\\n|------|------|---------|\\r\\n| 1.0 | 2026-06-08 | 초기 분석 및 보고서 작성 |\\r\\n\\r\\n---\\r\\n\\r\\n*이 분석 보고서는 읽기 전용 코드 검토를 기반으로 작성되었습니다. 동적 분석, 성능 테스트, 보안 감사는 포함되지 않았습니다.*\\r\\n\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"agent_message\",\"text\":\"`PROJECT_ANALYSIS.md`만 읽었습니다. 파일은 수정하지 않았습니다.\\n\\n**현재 섹션 요약**\\n- `프로젝트 개요`: Rust 다중 CLI 오케스트레이션 플랫폼의 목적, 기능, 기술 스택 설명\\n- `아키텍처 분석`: `src/` 모듈 구성, 이벤트 기반 통신, 감독자 패턴, 상태 머신, Rhai 파서, 프로세스 관리 설명\\n- `테스트 커버리지`: 테스트 파일별 현황, 커버되는 영역과 미커버 영역, 약 35-40% 커버리지 추정\\n- `코드 품질 평가`: 모듈화, 에러 처리, 비동기 설계 등 장점과 문서화/로깅/메모리 위험 등 단점 정리\\n- `잠재 리스크 분석`: 메모리 누수, 감독자 응답 실패, 좀비 프로세스, TUI/웹 패닉, 경합 조건 등 위험 평가\\n- `개선 제안`: 즉시/중기/장기 개선안 제시\\n- `종합 평가`: 항목별 점수와 전체 6.4/10 평가\\n- `상세 분석 스냅샷`: 파일별 라인 수, 테스트 비율, 의존성 분석\\n- `분석 일시 및 범위`: 2026-06-08 정적 분석, 실행 테스트/성능/보안 감사 제외\\n- `주요 발견사항 요약`: 강점 Top 3, 약점 Top 3, 개선 우선순위\\n- `참고 자료`: 추천 학습 자료와 도구\\n- `문서 변경 이력`: 1.0 초기 보고서\\n\\n**구현 주장: 아키텍처/모듈**\\n- `src/`는 `lib.rs`, `main.rs`, `config.rs`, `execution.rs`, `orchestration.rs`, `state.rs`, `message.rs`, `tui.rs`, `web.rs`로 구성된다고 주장합니다.\\n- 총 소스 라인 수가 약 3,080줄이라고 주장합니다.\\n- `execution.rs`와 `orchestration.rs`가 각각 약 27%씩 큰 비중을 차지한다고 주장합니다.\\n- 공개 API가 `lib.rs`에 명시적으로 export된다고 주장합니다.\\n\\n**구현 주장: 런타임 기능**\\n- 여러 CLI 도구 실행 순서를 관리한다고 주장합니다.\\n- 상위 감독자가 작업 흐름을 제어한다고 주장합니다.\\n- Axum 기반 실시간 웹 대시보드와 WebSocket을 제공한다고 주장합니다.\\n- Ratatui 기반 TUI를 제공한다고 주장합니다.\\n- 도구 실행 상태와 회로 차단기 패턴을 구현한다고 주장합니다.\\n- 도구 출력을 Rhai 스크립트로 구조화된 메시지로 변환한다고 주장합니다.\\n\\n**구현 주장: 비동기/통신**\\n- `broadcast` 채널로 메시지를 브로드캐스팅한다고 주장합니다.\\n- TUI와 웹 서버가 동시에 상태를 수신한다고 주장합니다.\\n- Tokio, `JoinSet`, `tokio::select!`를 사용한 구조화된 동시성을 활용한다고 주장합니다.\\n- 채널 기반 통신으로 스레드 간 데이터를 안전하게 공유한다고 주장합니다.\\n\\n**구현 주장: 감독자/오케스트레이션**\\n- 외부 감독자 CLI로 Codex, Copilot, Antigravity CLI를 호출한다고 주장합니다.\\n- 감독자 결정은 JSON 기반이며 `is_done`, `actions` 필드를 사용한다고 주장합니다.\\n- `next_tool + tool_args` 형태의 레거시 호환성을 제공한다고 주장합니다.\\n- 감독자 응답 파싱 실패 시 재시도나 fallback이 없다고 주장합니다.\\n\\n**구현 주장: 상태 관리**\\n- 상태 머신이 `Idle -> Running -> ErrorRecovering/PausedForIntervention -> Idle` 흐름이라고 주장합니다.\\n- 반복 오류 감지를 위해 회로 차단기 패턴이 구현되어 있다고 주장합니다.\\n- `context_log`가 자동 정리 없이 계속 증가한다고 주장합니다.\\n\\n**구현 주장: 프로세스/출력 처리**\\n- Windows/Unix 크로스플랫폼 프로세스 관리를 지원한다고 주장합니다.\\n- stdout/stderr를 동시에 캡처한다고 주장합니다.\\n- 텍스트 출력은 최대 4,000자/라인, 100줄, 120,000자 기준으로 제한/압축된다고 주장합니다.\\n- 도구 타임아웃 기본값이 `main.rs`에서 60초로 고정되어 있다고 주장합니다.\\n\\n**구현 주장: 테스트**\\n- 테스트 파일은 5개이며 총 523줄, 테스트 수는 12개 이상이라고 주장합니다.\\n- 설정 파싱, 상태 초기화, 회로 차단기, Rhai 파싱, 도구 실행, 감독자 결정 흐름이 테스트된다고 주장합니다.\\n- TUI 렌더링, 웹 서버/WebSocket, 타임아웃, 잘못된 Rhai, 동시성, 메인 루프 통합은 테스트되지 않는다고 주장합니다.\\n- 코드 대비 테스트 비율은 16.9%, 현재 커버리지는 약 35-40%라고 주장합니다.\\n\\n**구현 주장: 품질/리스크**\\n- Rustdoc 주석이 전무하다고 주장합니다.\\n- `eprintln!` 중심이며 구조화 로깅이 없다고 주장합니다.\\n- 웹 서버 코드에 `unwrap()`이 있어 bind/serve 실패 시 패닉 가능성이 있다고 주장합니다.\\n- String 기반 타입 사용으로 타입 안전성이 약하다고 주장합니다.\\n- Rhai 스크립트에 `--sandbox read-only` 플래그를 사용한다고 주장합니다.\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":28950,\"cached_input_tokens\":15104,\"output_tokens\":1388,\"reasoning_output_tokens\":67}}",
+        "normalized_payload": {
+          "exit_code": 0,
+          "stderr_text": "Reading additional input from stdin...",
+          "stdout_text": "{\"type\":\"thread.started\",\"thread_id\":\"019ea5e2-cd13-78e1-8ecd-9d365954af5a\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"요청대로 `PROJECT_ANALYSIS.md`만 읽고, 파일 수정 없이 현재 섹션 구조와 구현 관련 주장을 정리하겠습니다.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -LiteralPath PROJECT_ANALYSIS.md'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -LiteralPath PROJECT_ANALYSIS.md'\",\"aggregated_output\":\"# Rust Multi-CLI Harness - 프로젝트 상세 분석 보고서\\r\\n\\r\\n## 목차\\r\\n\\r\\n1. [프로젝트 개요](#프로젝트-개요)\\r\\n2. [아키텍처 분석](#아키텍처-분석)\\r\\n3. [테스트 커버리지](#테스트-커버리지)\\r\\n4. [코드 품질 평가](#코드-품질-평가)\\r\\n5. [잠재 리스크 분석](#잠재-리스크-분석)\\r\\n6. [개선 제안](#개선-제안)\\r\\n7. [종합 평가](#종합-평가)\\r\\n\\r\\n---\\r\\n\\r\\n## 프로젝트 개요\\r\\n\\r\\n### 기본 정보\\r\\n- **프로젝트명**: rust-multi-cli-harness\\r\\n- **버전**: 0.1.0\\r\\n- **에디션**: Rust 2021\\r\\n- **목적**: 다중 CLI 도구를 중앙집중식으로 관리하고 오케스트레이션하는 플랫폼\\r\\n\\r\\n### 주요 기능\\r\\n1. **도구 오케스트레이션**: 여러 CLI 도구의 실행 순서를 관리\\r\\n2. **감독자 기반 의사결정**: 상위 감독자가 작업 흐름을 제어\\r\\n3. **웹 대시보드**: Axum 기반의 실시간 웹 인터페이스\\r\\n4. **TUI 인터페이스**: Ratatui 기반의 터미널 사용자 인터페이스\\r\\n5. **상태 관리**: 도구 실행 상태 및 회로 차단기 패턴 구현\\r\\n6. **메시지 시스템**: 도구 출력을 구조화된 메시지로 변환 (Rhai 스크립트)\\r\\n\\r\\n### 기술 스택\\r\\n**핵심 의존성**:\\r\\n- tokio: 비동기 런타임\\r\\n- axum: 웹 프레임워크 (WebSocket 지원)\\r\\n- ratatui: TUI 렌더링\\r\\n- rhai: 동적 스크립트 평가\\r\\n- serde/serde_json: 데이터 직렬화\\r\\n- chrono: 시간 처리\\r\\n- uuid: 고유 ID 생성\\r\\n\\r\\n---\\r\\n\\r\\n## 아키텍처 분석\\r\\n\\r\\n### 모듈 구조\\r\\n\\r\\n\\\\\\\\\\\\\\r\\nsrc/\\r\\n├── lib.rs (19줄)          # 공개 API 정의\\r\\n├── main.rs (244줄)        # 애플리케이션 진입점\\r\\n├── config.rs (70줄)       # TOML 설정 파싱\\r\\n├── execution.rs (833줄)   # CLI 도구 실행 엔진\\r\\n├── orchestration.rs (828줄) # 감독자 및 오케스트레이션 로직\\r\\n├── state.rs (179줄)       # 애플리케이션 상태 관리\\r\\n├── message.rs (79줄)      # 메시지 구조 정의\\r\\n├── tui.rs (577줄)         # 터미널 사용자 인터페이스\\r\\n└── web.rs (251줄)         # 웹 서버 및 WebSocket\\r\\n\\\\\\\\\\\\\\r\\n\\r\\n**총 소스 코드 라인 수**: 약 3,080줄\\r\\n\\r\\n### 주요 아키텍처 특징\\r\\n\\r\\n#### 1. 이벤트 기반 통신\\r\\n- broadcast 채널로 메시지 브로드캐스팅\\r\\n- TUI와 웹 서버가 동시에 상태 수신\\r\\n- 비동기 메시지 처리로 성능 최적화\\r\\n\\r\\n#### 2. 감독자 패턴\\r\\n- 외부 감독자(Codex, Copilot, Antigravity CLI) 호출\\r\\n- JSON 기반 의사결정 (is_done, actions)\\r\\n- 레거시 호환성 (next_tool + tool_args)\\r\\n\\r\\n#### 3. 상태 머신 설계\\r\\n- Idle -> Running -> (ErrorRecovering/PausedForIntervention) -> Idle\\r\\n- 회로\n... [Truncated 7755 chars] ...\nexecution.rs: 129줄 (25%)\\r\\n- state_init.rs: 39줄 (7%)\\r\\n- config_parse.rs: 44줄 (8%)\\r\\n- message_state.rs: 16줄 (3%)\\r\\n\\r\\n**코드 대비 테스트 비율**: 16.9% (권장: 30% 이상)\\r\\n\\r\\n---\\r\\n\\r\\n### 의존성 분석\\r\\n\\r\\n#### 직접 의존성 (10개)\\r\\n1. **tokio** - 비동기 런타임 (핵심)\\r\\n2. **axum** - 웹 프레임워크 (선택적)\\r\\n3. **ratatui** - TUI 라이브러리 (선택적)\\r\\n4. **rhai** - 스크립트 엔진 (핵심)\\r\\n5. **serde** - 직렬화 (핵심)\\r\\n6. **serde_json** - JSON 처리 (핵심)\\r\\n7. **toml** - TOML 파싱 (핵심)\\r\\n8. **chrono** - 시간 처리 (핵심)\\r\\n9. **uuid** - ID 생성 (핵심)\\r\\n10. **crossterm** - 터미널 제어 (선택적)\\r\\n\\r\\n#### 개발 의존성 (1개)\\r\\n- **pretty_assertions** - 테스트 assertion\\r\\n\\r\\n### 의존성 평가\\r\\n- **개수**: 적절 (10개, 가벼움)\\r\\n- **버전 관리**: 느슨함 (^1.0 대부분) - 안정적\\r\\n- **보안**: 정기 업데이트 필요 (최신 버전 확인)\\r\\n\\r\\n---\\r\\n\\r\\n## 분석 일시 및 범위\\r\\n\\r\\n- **분석 날짜**: 2026-06-08\\r\\n- **분석 도구**: 정적 코드 분석\\r\\n- **분석 범위**: src/, tests/, Cargo.toml, tools.toml\\r\\n- **분석 깊이**: 코드 검토, 구조 분석\\r\\n- **포함되지 않은 항목**: 실행 테스트, 성능 프로파일링, 보안 감사\\r\\n\\r\\n---\\r\\n\\r\\n## 주요 발견사항 요약\\r\\n\\r\\n### 강점 (Top 3)\\r\\n1. ✅ **우수한 비동기 아키텍처** - Tokio, 채널, 타임아웃 처리 잘 구현\\r\\n2. ✅ **명확한 모듈화** - 관심사 분리, 인터페이스 정의 우수\\r\\n3. ✅ **유연한 설정 시스템** - TOML + Rhai로 무한 확장성\\r\\n\\r\\n### 약점 (Top 3)\\r\\n1. ❌ **메모리 누수 위험** - context_log 무한 증가\\r\\n2. ❌ **문서 부족** - Rustdoc 전무, 코드 가독성 저해\\r\\n3. ❌ **불완전한 에러 복구** - 재시도, Fallback 메커니즘 없음\\r\\n\\r\\n### 개선 우선순위\\r\\n1. **급급함** (이번 주): 메모리 누수, 웹 에러 처리\\r\\n2. **높음** (이번 달): 문서화, 테스트 확대\\r\\n3. **중간** (다음 달): 로깅, 모니터링, 성능 최적화\\r\\n\\r\\n---\\r\\n\\r\\n## 참고 자료\\r\\n\\r\\n### 추천 읽을거리\\r\\n- Rust Error Handling Best Practices\\r\\n- Tokio Tutorial: Structured Concurrency\\r\\n- Production-Grade Logging with tracing\\r\\n- Testing Async Code in Rust\\r\\n\\r\\n### 도구 추천\\r\\n- cargo-audit: 보안 취약점 검사\\r\\n- cargo-tarpaulin: 테스트 커버리지 측정\\r\\n- cargo-clippy: 추가 린트 검사\\r\\n- cargo-deny: 의존성 검증\\r\\n\\r\\n---\\r\\n\\r\\n## 문서 변경 이력\\r\\n\\r\\n| 버전 | 날짜 | 변경사항 |\\r\\n|------|------|---------|\\r\\n| 1.0 | 2026-06-08 | 초기 분석 및 보고서 작성 |\\r\\n\\r\\n---\\r\\n\\r\\n*이 분석 보고서는 읽기 전용 코드 검토를 기반으로 작성되었습니다. 동적 분석, 성능 테스트, 보안 감사는 포함되지 않았습니다.*\\r\\n\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"agent_message\",\"text\":\"`PROJECT_ANALYSIS.md`만 읽었습니다. 파일은 수정하지 않았습니다.\\n\\n**현재 섹션 요약**\\n- `프로젝트 개요`: Rust 다중 CLI 오케스트레이션 플랫폼의 목적, 기능, 기술 스택 설명\\n- `아키텍처 분석`: `src/` 모듈 구성, 이벤트 기반 통신, 감독자 패턴, 상태 머신, Rhai 파서, 프로세스 관리 설명\\n- `테스트 커버리지`: 테스트 파일별 현황, 커버되는 영역과 미커버 영역, 약 35-40% 커버리지 추정\\n- `코드 품질 평가`: 모듈화, 에러 처리, 비동기 설계 등 장점과 문서화/로깅/메모리 위험 등 단점 정리\\n- `잠재 리스크 분석`: 메모리 누수, 감독자 응답 실패, 좀비 프로세스, TUI/웹 패닉, 경합 조건 등 위험 평가\\n- `개선 제안`: 즉시/중기/장기 개선안 제시\\n- `종합 평가`: 항목별 점수와 전체 6.4/10 평가\\n- `상세 분석 스냅샷`: 파일별 라인 수, 테스트 비율, 의존성 분석\\n- `분석 일시 및 범위`: 2026-06-08 정적 분석, 실행 테스트/성능/보안 감사 제외\\n- `주요 발견사항 요약`: 강점 Top 3, 약점 Top 3, 개선 우선순위\\n- `참고 자료`: 추천 학습 자료와 도구\\n- `문서 변경 이력`: 1.0 초기 보고서\\n\\n**구현 주장: 아키텍처/모듈**\\n- `src/`는 `lib.rs`, `main.rs`, `config.rs`, `execution.rs`, `orchestration.rs`, `state.rs`, `message.rs`, `tui.rs`, `web.rs`로 구성된다고 주장합니다.\\n- 총 소스 라인 수가 약 3,080줄이라고 주장합니다.\\n- `execution.rs`와 `orchestration.rs`가 각각 약 27%씩 큰 비중을 차지한다고 주장합니다.\\n- 공개 API가 `lib.rs`에 명시적으로 export된다고 주장합니다.\\n\\n**구현 주장: 런타임 기능**\\n- 여러 CLI 도구 실행 순서를 관리한다고 주장합니다.\\n- 상위 감독자가 작업 흐름을 제어한다고 주장합니다.\\n- Axum 기반 실시간 웹 대시보드와 WebSocket을 제공한다고 주장합니다.\\n- Ratatui 기반 TUI를 제공한다고 주장합니다.\\n- 도구 실행 상태와 회로 차단기 패턴을 구현한다고 주장합니다.\\n- 도구 출력을 Rhai 스크립트로 구조화된 메시지로 변환한다고 주장합니다.\\n\\n**구현 주장: 비동기/통신**\\n- `broadcast` 채널로 메시지를 브로드캐스팅한다고 주장합니다.\\n- TUI와 웹 서버가 동시에 상태를 수신한다고 주장합니다.\\n- Tokio, `JoinSet`, `tokio::select!`를 사용한 구조화된 동시성을 활용한다고 주장합니다.\\n- 채널 기반 통신으로 스레드 간 데이터를 안전하게 공유한다고 주장합니다.\\n\\n**구현 주장: 감독자/오케스트레이션**\\n- 외부 감독자 CLI로 Codex, Copilot, Antigravity CLI를 호출한다고 주장합니다.\\n- 감독자 결정은 JSON 기반이며 `is_done`, `actions` 필드를 사용한다고 주장합니다.\\n- `next_tool + tool_args` 형태의 레거시 호환성을 제공한다고 주장합니다.\\n- 감독자 응답 파싱 실패 시 재시도나 fallback이 없다고 주장합니다.\\n\\n**구현 주장: 상태 관리**\\n- 상태 머신이 `Idle -> Running -> ErrorRecovering/PausedForIntervention -> Idle` 흐름이라고 주장합니다.\\n- 반복 오류 감지를 위해 회로 차단기 패턴이 구현되어 있다고 주장합니다.\\n- `context_log`가 자동 정리 없이 계속 증가한다고 주장합니다.\\n\\n**구현 주장: 프로세스/출력 처리**\\n- Windows/Unix 크로스플랫폼 프로세스 관리를 지원한다고 주장합니다.\\n- stdout/stderr를 동시에 캡처한다고 주장합니다.\\n- 텍스트 출력은 최대 4,000자/라인, 100줄, 120,000자 기준으로 제한/압축된다고 주장합니다.\\n- 도구 타임아웃 기본값이 `main.rs`에서 60초로 고정되어 있다고 주장합니다.\\n\\n**구현 주장: 테스트**\\n- 테스트 파일은 5개이며 총 523줄, 테스트 수는 12개 이상이라고 주장합니다.\\n- 설정 파싱, 상태 초기화, 회로 차단기, Rhai 파싱, 도구 실행, 감독자 결정 흐름이 테스트된다고 주장합니다.\\n- TUI 렌더링, 웹 서버/WebSocket, 타임아웃, 잘못된 Rhai, 동시성, 메인 루프 통합은 테스트되지 않는다고 주장합니다.\\n- 코드 대비 테스트 비율은 16.9%, 현재 커버리지는 약 35-40%라고 주장합니다.\\n\\n**구현 주장: 품질/리스크**\\n- Rustdoc 주석이 전무하다고 주장합니다.\\n- `eprintln!` 중심이며 구조화 로깅이 없다고 주장합니다.\\n- 웹 서버 코드에 `unwrap()`이 있어 bind/serve 실패 시 패닉 가능성이 있다고 주장합니다.\\n- String 기반 타입 사용으로 타입 안전성이 약하다고 주장합니다.\\n- Rhai 스크립트에 `--sandbox read-only` 플래그를 사용한다고 주장합니다.\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":28950,\"cached_input_tokens\":15104,\"output_tokens\":1388,\"reasoning_output_tokens\":67}}"
+        },
+        "truncated": true
+      },
+      {
+        "id": "a885da42-53c3-4dec-91de-98cc009636f4",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "codex-cli",
+        "correlation_id": "inspect-core-implementation",
+        "timestamp": "2026-06-08T06:20:21.287013400Z",
+        "raw_output": "Worker system error: tool 'codex-cli' timed out after 60s",
+        "normalized_payload": {
+          "error": "Worker system error: tool 'codex-cli' timed out after 60s"
+        },
+        "truncated": false
+      },
+      {
+        "id": "ba1df4a1-c89f-4bc9-8ed4-a5b5d3686a82",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "codex-cli",
+        "correlation_id": "inspect-project-structure",
+        "timestamp": "2026-06-08T06:20:21.293602700Z",
+        "raw_output": "Worker system error: tool 'codex-cli' timed out after 60s",
+        "normalized_payload": {
+          "error": "Worker system error: tool 'codex-cli' timed out after 60s"
+        },
+        "truncated": false
+      },
+      {
+        "id": "9d611e4b-4ef3-4f23-a2db-c61981d1778e",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:21.295277Z",
+        "raw_output": "Supervisor cycle 1 starting",
+        "normalized_payload": {
+          "text": "Supervisor cycle 1 starting"
+        },
+        "truncated": false
+      },
+      {
+        "id": "ceda10f3-17e4-4011-9623-374b1ab5c18c",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:21.295300Z",
+        "raw_output": "Running supervisor CLI",
+        "normalized_payload": {
+          "text": "Running supervisor CLI"
+        },
+        "truncated": false
+      },
+      {
+        "id": "a2fb2d56-353f-46ac-8aa2-7620cd27d76c",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:48.768321300Z",
+        "raw_output": "Running worker CLI: copilot-cli (collect-file-metrics)",
+        "normalized_payload": {
+          "text": "Running worker CLI: copilot-cli (collect-file-metrics)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "ac6bc085-c006-4bda-a851-336664265282",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:48.768328100Z",
+        "raw_output": "Running worker CLI: copilot-cli (inspect-runtime-claims)",
+        "normalized_payload": {
+          "text": "Running worker CLI: copilot-cli (inspect-runtime-claims)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "978a4cae-ba6a-4d1b-b683-e5e12cb87a50",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:48.768340600Z",
+        "raw_output": "Running worker CLI: copilot-cli (inspect-ui-and-web-claims)",
+        "normalized_payload": {
+          "text": "Running worker CLI: copilot-cli (inspect-ui-and-web-claims)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "e061d255-f488-42fa-9e97-9f85cc3bdca8",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:48.768351800Z",
+        "raw_output": "Running worker CLI: copilot-cli (inspect-tests-claims)",
+        "normalized_payload": {
+          "text": "Running worker CLI: copilot-cli (inspect-tests-claims)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "3de62572-a330-4432-ba2a-66780f196c2c",
+        "tool_id": "copilot-cli",
+        "source": "stderr",
+        "level": "error",
+        "step_id": "collect-file-metrics",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:52.679308400Z",
+        "raw_output": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"aa4c65e8-f311-4cd5-b640-aa8de629ed84\",\"timestamp\":\"2026-06-08T06:20:51.752Z\",\"parentId\":\"173a4367-d970-446c-8436-f1417f9e34b0\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"3a277541-36f8-4d25-8e6e-b2a93d38bee3\",\"timestamp\":\"2026-06-08T06:20:52.643Z\",\"parentId\":\"cc99d4af-a5ee-4f0b-b1fd-dd7db0409cab\",\"ephemeral\":true}",
+        "normalized_payload": {
+          "exit_code": 1,
+          "stderr_text": "Error: Model \"claude-haiku-4.5\" does not support reasoning effort configuration (requested: \"low\").",
+          "stdout_text": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"aa4c65e8-f311-4cd5-b640-aa8de629ed84\",\"timestamp\":\"2026-06-08T06:20:51.752Z\",\"parentId\":\"173a4367-d970-446c-8436-f1417f9e34b0\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"3a277541-36f8-4d25-8e6e-b2a93d38bee3\",\"timestamp\":\"2026-06-08T06:20:52.643Z\",\"parentId\":\"cc99d4af-a5ee-4f0b-b1fd-dd7db0409cab\",\"ephemeral\":true}"
+        },
+        "truncated": false
+      },
+      {
+        "id": "da03eca5-7f84-4adc-a551-6a2d0f36e61d",
+        "tool_id": "copilot-cli",
+        "source": "stderr",
+        "level": "error",
+        "step_id": "inspect-ui-and-web-claims",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:52.729279700Z",
+        "raw_output": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"2550c229-5afa-47e2-887f-a0451bfdc26f\",\"timestamp\":\"2026-06-08T06:20:51.798Z\",\"parentId\":\"5f6db5b3-ef1d-41d3-9049-983c6c0c104e\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"3cf74e08-1aa7-4e61-b062-ef4ab74efc23\",\"timestamp\":\"2026-06-08T06:20:52.695Z\",\"parentId\":\"f86aec3e-9a15-4fbd-8e76-8a590565b3ab\",\"ephemeral\":true}",
+        "normalized_payload": {
+          "exit_code": 1,
+          "stderr_text": "Error: Model \"claude-haiku-4.5\" does not support reasoning effort configuration (requested: \"low\").",
+          "stdout_text": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"2550c229-5afa-47e2-887f-a0451bfdc26f\",\"timestamp\":\"2026-06-08T06:20:51.798Z\",\"parentId\":\"5f6db5b3-ef1d-41d3-9049-983c6c0c104e\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"3cf74e08-1aa7-4e61-b062-ef4ab74efc23\",\"timestamp\":\"2026-06-08T06:20:52.695Z\",\"parentId\":\"f86aec3e-9a15-4fbd-8e76-8a590565b3ab\",\"ephemeral\":true}"
+        },
+        "truncated": false
+      },
+      {
+        "id": "85e31547-f2eb-41da-96fc-f149479647f2",
+        "tool_id": "copilot-cli",
+        "source": "stderr",
+        "level": "error",
+        "step_id": "inspect-tests-claims",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:52.822653300Z",
+        "raw_output": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"52a7aa05-31e0-4bb6-9938-758668e4f40a\",\"timestamp\":\"2026-06-08T06:20:51.881Z\",\"parentId\":\"99a9e526-bbbe-4115-9b2d-a83e33c895d9\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"95f4065f-beb3-4d51-bfdf-7cafc5ffc1c7\",\"timestamp\":\"2026-06-08T06:20:52.785Z\",\"parentId\":\"87912e49-703a-44ab-9d42-8ace08979579\",\"ephemeral\":true}",
+        "normalized_payload": {
+          "exit_code": 1,
+          "stderr_text": "Error: Model \"claude-haiku-4.5\" does not support reasoning effort configuration (requested: \"low\").",
+          "stdout_text": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"52a7aa05-31e0-4bb6-9938-758668e4f40a\",\"timestamp\":\"2026-06-08T06:20:51.881Z\",\"parentId\":\"99a9e526-bbbe-4115-9b2d-a83e33c895d9\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"95f4065f-beb3-4d51-bfdf-7cafc5ffc1c7\",\"timestamp\":\"2026-06-08T06:20:52.785Z\",\"parentId\":\"87912e49-703a-44ab-9d42-8ace08979579\",\"ephemeral\":true}"
+        },
+        "truncated": false
+      },
+      {
+        "id": "83d6115c-10dc-462f-b9ad-2ac5f925b6a2",
+        "tool_id": "copilot-cli",
+        "source": "stderr",
+        "level": "error",
+        "step_id": "inspect-runtime-claims",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:53.379446300Z",
+        "raw_output": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"36cb1b66-fbd3-41c3-9996-0548f5cdfa66\",\"timestamp\":\"2026-06-08T06:20:52.429Z\",\"parentId\":\"63430a6e-7c61-4806-97a1-40954cafb61a\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"643a1791-977d-4832-bc39-29fb2b3d1323\",\"timestamp\":\"2026-06-08T06:20:53.342Z\",\"parentId\":\"edc93324-ca28-4fe3-97dd-8c58e5609de5\",\"ephemeral\":true}",
+        "normalized_payload": {
+          "exit_code": 1,
+          "stderr_text": "Error: Model \"claude-haiku-4.5\" does not support reasoning effort configuration (requested: \"low\").",
+          "stdout_text": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"36cb1b66-fbd3-41c3-9996-0548f5cdfa66\",\"timestamp\":\"2026-06-08T06:20:52.429Z\",\"parentId\":\"63430a6e-7c61-4806-97a1-40954cafb61a\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"643a1791-977d-4832-bc39-29fb2b3d1323\",\"timestamp\":\"2026-06-08T06:20:53.342Z\",\"parentId\":\"edc93324-ca28-4fe3-97dd-8c58e5609de5\",\"ephemeral\":true}"
+        },
+        "truncated": false
+      },
+      {
+        "id": "e243779f-973d-41fb-86db-9efc4c8e3742",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:53.381044Z",
+        "raw_output": "Supervisor cycle 2 starting",
+        "normalized_payload": {
+          "text": "Supervisor cycle 2 starting"
+        },
+        "truncated": false
+      },
+      {
+        "id": "8a4482f3-193f-4e08-916b-702297442cc3",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:20:53.381062600Z",
+        "raw_output": "Running supervisor CLI",
+        "normalized_payload": {
+          "text": "Running supervisor CLI"
+        },
+        "truncated": false
+      },
+      {
+        "id": "8261063a-8f9a-454b-88fc-c7f4abaa2997",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:17.634549300Z",
+        "raw_output": "Running worker CLI: antigravity-cli (verify-project-files)",
+        "normalized_payload": {
+          "text": "Running worker CLI: antigravity-cli (verify-project-files)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "108f2371-1624-42af-b9fc-3cfcb324e33b",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:17.634549300Z",
+        "raw_output": "Running worker CLI: antigravity-cli (verify-config-state-message)",
+        "normalized_payload": {
+          "text": "Running worker CLI: antigravity-cli (verify-config-state-message)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "ecc2a164-7738-46be-a8eb-b5e4be202b09",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:17.634563600Z",
+        "raw_output": "Running worker CLI: antigravity-cli (verify-ui-web-tests)",
+        "normalized_payload": {
+          "text": "Running worker CLI: antigravity-cli (verify-ui-web-tests)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "0bb7d628-37ec-4603-ae66-5c33b70c582d",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:17.634567100Z",
+        "raw_output": "Running worker CLI: antigravity-cli (verify-execution)",
+        "normalized_payload": {
+          "text": "Running worker CLI: antigravity-cli (verify-execution)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "6f9dc5be-2fd5-4eea-9209-ad598e5767d9",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:17.634578900Z",
+        "raw_output": "Running worker CLI: antigravity-cli (verify-orchestration)",
+        "normalized_payload": {
+          "text": "Running worker CLI: antigravity-cli (verify-orchestration)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "6608f2c0-dadd-4863-bda4-d2b4846aa030",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "antigravity-cli",
+        "correlation_id": "verify-ui-web-tests",
+        "timestamp": "2026-06-08T06:21:17.689913700Z",
+        "raw_output": "Worker system error: io error: stream did not contain valid UTF-8",
+        "normalized_payload": {
+          "error": "Worker system error: io error: stream did not contain valid UTF-8"
+        },
+        "truncated": false
+      },
+      {
+        "id": "f62a4622-3fb6-4789-82f2-bc7e688ee314",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "antigravity-cli",
+        "correlation_id": "verify-config-state-message",
+        "timestamp": "2026-06-08T06:21:17.728229100Z",
+        "raw_output": "Worker system error: io error: stream did not contain valid UTF-8",
+        "normalized_payload": {
+          "error": "Worker system error: io error: stream did not contain valid UTF-8"
+        },
+        "truncated": false
+      },
+      {
+        "id": "e511454a-8131-44c9-821a-3c8625e97870",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "antigravity-cli",
+        "correlation_id": "verify-project-files",
+        "timestamp": "2026-06-08T06:21:17.765655700Z",
+        "raw_output": "Worker system error: io error: stream did not contain valid UTF-8",
+        "normalized_payload": {
+          "error": "Worker system error: io error: stream did not contain valid UTF-8"
+        },
+        "truncated": false
+      },
+      {
+        "id": "03cd368c-fbe7-4339-a5af-e6fe3f8f3e8e",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "antigravity-cli",
+        "correlation_id": "verify-orchestration",
+        "timestamp": "2026-06-08T06:21:17.802145200Z",
+        "raw_output": "Worker system error: io error: stream did not contain valid UTF-8",
+        "normalized_payload": {
+          "error": "Worker system error: io error: stream did not contain valid UTF-8"
+        },
+        "truncated": false
+      },
+      {
+        "id": "48b3258c-7e66-4c15-8431-e3f6d236ca5f",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "antigravity-cli",
+        "correlation_id": "verify-execution",
+        "timestamp": "2026-06-08T06:21:17.842464200Z",
+        "raw_output": "Worker system error: io error: stream did not contain valid UTF-8",
+        "normalized_payload": {
+          "error": "Worker system error: io error: stream did not contain valid UTF-8"
+        },
+        "truncated": false
+      },
+      {
+        "id": "646181c8-b4a0-4d5f-a313-ce5eecee30b9",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:17.844315700Z",
+        "raw_output": "Supervisor cycle 3 starting",
+        "normalized_payload": {
+          "text": "Supervisor cycle 3 starting"
+        },
+        "truncated": false
+      },
+      {
+        "id": "92facd3f-fe09-448e-9172-64300570a07c",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:17.844353600Z",
+        "raw_output": "Running supervisor CLI",
+        "normalized_payload": {
+          "text": "Running supervisor CLI"
+        },
+        "truncated": false
+      },
+      {
+        "id": "0ec1f55b-f017-4b33-a52a-e4a2173fe006",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:51.729058500Z",
+        "raw_output": "Running worker CLI: codex-cli (inspect-doc-claims)",
+        "normalized_payload": {
+          "text": "Running worker CLI: codex-cli (inspect-doc-claims)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "10c33dc2-8852-4a39-b0b0-865cb176a12f",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:51.729068200Z",
+        "raw_output": "Running worker CLI: codex-cli (inspect-tests)",
+        "normalized_payload": {
+          "text": "Running worker CLI: codex-cli (inspect-tests)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "7388d01b-4285-44f8-8a50-5d27acbd093b",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:51.729068200Z",
+        "raw_output": "Running worker CLI: codex-cli (inspect-files-and-deps)",
+        "normalized_payload": {
+          "text": "Running worker CLI: codex-cli (inspect-files-and-deps)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "74c548b8-bfec-4d2a-8b2f-5fd3efe16397",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:51.729081Z",
+        "raw_output": "Running worker CLI: codex-cli (inspect-core-modules)",
+        "normalized_payload": {
+          "text": "Running worker CLI: codex-cli (inspect-core-modules)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "93215671-f4f2-4ab9-ba62-c499b25f687b",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:21:51.729083700Z",
+        "raw_output": "Running worker CLI: codex-cli (inspect-ui-web-modules)",
+        "normalized_payload": {
+          "text": "Running worker CLI: codex-cli (inspect-ui-web-modules)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "7f1e0693-63ca-4c2a-b462-c47c2e0583c4",
+        "tool_id": "codex-cli",
+        "source": "stdout",
+        "level": "info",
+        "step_id": "inspect-doc-claims",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:22:26.919246400Z",
+        "raw_output": "{\"type\":\"thread.started\",\"thread_id\":\"019ea5e5-1ed5-7c82-9ee4-efda04eba80b\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I’ll read only `PROJECT_ANALYSIS.md` and turn its implementation-specific statements into a verification checklist, grouped by the sections you named.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -LiteralPath PROJECT_ANALYSIS.md'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -LiteralPath PROJECT_ANALYSIS.md'\",\"aggregated_output\":\"# Rust Multi-CLI Harness - 프로젝트 상세 분석 보고서\\r\\n\\r\\n## 목차\\r\\n\\r\\n1. [프로젝트 개요](#프로젝트-개요)\\r\\n2. [아키텍처 분석](#아키텍처-분석)\\r\\n3. [테스트 커버리지](#테스트-커버리지)\\r\\n4. [코드 품질 평가](#코드-품질-평가)\\r\\n5. [잠재 리스크 분석](#잠재-리스크-분석)\\r\\n6. [개선 제안](#개선-제안)\\r\\n7. [종합 평가](#종합-평가)\\r\\n\\r\\n---\\r\\n\\r\\n## 프로젝트 개요\\r\\n\\r\\n### 기본 정보\\r\\n- **프로젝트명**: rust-multi-cli-harness\\r\\n- **버전**: 0.1.0\\r\\n- **에디션**: Rust 2021\\r\\n- **목적**: 다중 CLI 도구를 중앙집중식으로 관리하고 오케스트레이션하는 플랫폼\\r\\n\\r\\n### 주요 기능\\r\\n1. **도구 오케스트레이션**: 여러 CLI 도구의 실행 순서를 관리\\r\\n2. **감독자 기반 의사결정**: 상위 감독자가 작업 흐름을 제어\\r\\n3. **웹 대시보드**: Axum 기반의 실시간 웹 인터페이스\\r\\n4. **TUI 인터페이스**: Ratatui 기반의 터미널 사용자 인터페이스\\r\\n5. **상태 관리**: 도구 실행 상태 및 회로 차단기 패턴 구현\\r\\n6. **메시지 시스템**: 도구 출력을 구조화된 메시지로 변환 (Rhai 스크립트)\\r\\n\\r\\n### 기술 스택\\r\\n**핵심 의존성**:\\r\\n- tokio: 비동기 런타임\\r\\n- axum: 웹 프레임워크 (WebSocket 지원)\\r\\n- ratatui: TUI 렌더링\\r\\n- rhai: 동적 스크립트 평가\\r\\n- serde/serde_json: 데이터 직렬화\\r\\n- chrono: 시간 처리\\r\\n- uuid: 고유 ID 생성\\r\\n\\r\\n---\\r\\n\\r\\n## 아키텍처 분석\\r\\n\\r\\n### 모듈 구조\\r\\n\\r\\n\\\\\\\\\\\\\\r\\nsrc/\\r\\n├── lib.rs (19줄)          # 공개 API 정의\\r\\n├── main.rs (244줄)        # 애플리케이션 진입점\\r\\n├── config.rs (70줄)       # TOML 설정 파싱\\r\\n├── execution.rs (833줄)   # CLI 도구 실행 엔진\\r\\n├── orchestration.rs (828줄) # 감독자 및 오케스트레이션 로직\\r\\n├── state.rs (179줄)       # 애플리케이션 상태 관리\\r\\n├── message.rs (79줄)      # 메시지 구조 정의\\r\\n├── tui.rs (577줄)         # 터미널 사용자 인터페이스\\r\\n└── web.rs (251줄)         # 웹 서버 및 WebSocket\\r\\n\\\\\\\\\\\\\\r\\n\\r\\n**총 소스 코드 라인 수**: 약 3,080줄\\r\\n\\r\\n### 주요 아키텍처 특징\\r\\n\\r\\n#### 1. 이벤트 기반 통신\\r\\n- broadcast 채널로 메시지 브로드캐스팅\\r\\n- TUI와 웹 서버가 동시에 상태 수신\\r\\n- 비동기 메시지 처리로 성능 최적화\\r\\n\\r\\n#### 2. 감독자 패턴\\r\\n- 외부 감독자(Codex, Copilot, Antigravity CLI) 호출\\r\\n- JSON 기반 의사결정 (is_done, actions)\\r\\n- 레거시 호환성 (next_tool + tool_args)\\r\\n\\r\\n#### 3. 상태 머신 설계\\r\\n- Idle -> Running -> (ErrorRecovering/PausedForIntervention) -> Idle\\r\\n- 회로\n... [Truncated 7755 chars] ...\nexecution.rs: 129줄 (25%)\\r\\n- state_init.rs: 39줄 (7%)\\r\\n- config_parse.rs: 44줄 (8%)\\r\\n- message_state.rs: 16줄 (3%)\\r\\n\\r\\n**코드 대비 테스트 비율**: 16.9% (권장: 30% 이상)\\r\\n\\r\\n---\\r\\n\\r\\n### 의존성 분석\\r\\n\\r\\n#### 직접 의존성 (10개)\\r\\n1. **tokio** - 비동기 런타임 (핵심)\\r\\n2. **axum** - 웹 프레임워크 (선택적)\\r\\n3. **ratatui** - TUI 라이브러리 (선택적)\\r\\n4. **rhai** - 스크립트 엔진 (핵심)\\r\\n5. **serde** - 직렬화 (핵심)\\r\\n6. **serde_json** - JSON 처리 (핵심)\\r\\n7. **toml** - TOML 파싱 (핵심)\\r\\n8. **chrono** - 시간 처리 (핵심)\\r\\n9. **uuid** - ID 생성 (핵심)\\r\\n10. **crossterm** - 터미널 제어 (선택적)\\r\\n\\r\\n#### 개발 의존성 (1개)\\r\\n- **pretty_assertions** - 테스트 assertion\\r\\n\\r\\n### 의존성 평가\\r\\n- **개수**: 적절 (10개, 가벼움)\\r\\n- **버전 관리**: 느슨함 (^1.0 대부분) - 안정적\\r\\n- **보안**: 정기 업데이트 필요 (최신 버전 확인)\\r\\n\\r\\n---\\r\\n\\r\\n## 분석 일시 및 범위\\r\\n\\r\\n- **분석 날짜**: 2026-06-08\\r\\n- **분석 도구**: 정적 코드 분석\\r\\n- **분석 범위**: src/, tests/, Cargo.toml, tools.toml\\r\\n- **분석 깊이**: 코드 검토, 구조 분석\\r\\n- **포함되지 않은 항목**: 실행 테스트, 성능 프로파일링, 보안 감사\\r\\n\\r\\n---\\r\\n\\r\\n## 주요 발견사항 요약\\r\\n\\r\\n### 강점 (Top 3)\\r\\n1. ✅ **우수한 비동기 아키텍처** - Tokio, 채널, 타임아웃 처리 잘 구현\\r\\n2. ✅ **명확한 모듈화** - 관심사 분리, 인터페이스 정의 우수\\r\\n3. ✅ **유연한 설정 시스템** - TOML + Rhai로 무한 확장성\\r\\n\\r\\n### 약점 (Top 3)\\r\\n1. ❌ **메모리 누수 위험** - context_log 무한 증가\\r\\n2. ❌ **문서 부족** - Rustdoc 전무, 코드 가독성 저해\\r\\n3. ❌ **불완전한 에러 복구** - 재시도, Fallback 메커니즘 없음\\r\\n\\r\\n### 개선 우선순위\\r\\n1. **급급함** (이번 주): 메모리 누수, 웹 에러 처리\\r\\n2. **높음** (이번 달): 문서화, 테스트 확대\\r\\n3. **중간** (다음 달): 로깅, 모니터링, 성능 최적화\\r\\n\\r\\n---\\r\\n\\r\\n## 참고 자료\\r\\n\\r\\n### 추천 읽을거리\\r\\n- Rust Error Handling Best Practices\\r\\n- Tokio Tutorial: Structured Concurrency\\r\\n- Production-Grade Logging with tracing\\r\\n- Testing Async Code in Rust\\r\\n\\r\\n### 도구 추천\\r\\n- cargo-audit: 보안 취약점 검사\\r\\n- cargo-tarpaulin: 테스트 커버리지 측정\\r\\n- cargo-clippy: 추가 린트 검사\\r\\n- cargo-deny: 의존성 검증\\r\\n\\r\\n---\\r\\n\\r\\n## 문서 변경 이력\\r\\n\\r\\n| 버전 | 날짜 | 변경사항 |\\r\\n|------|------|---------|\\r\\n| 1.0 | 2026-06-08 | 초기 분석 및 보고서 작성 |\\r\\n\\r\\n---\\r\\n\\r\\n*이 분석 보고서는 읽기 전용 코드 검토를 기반으로 작성되었습니다. 동적 분석, 성능 테스트, 보안 감사는 포함되지 않았습니다.*\\r\\n\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"agent_message\",\"text\":\"**Verification Checklist**\\n\\n**Project Overview**\\n- Project name is `rust-multi-cli-harness`.\\n- Version is `0.1.0`.\\n- Rust edition is `2021`.\\n- Purpose is centralized management and orchestration of multiple CLI tools.\\n- Runtime features include CLI orchestration, supervisor decision-making, Axum web dashboard, Ratatui TUI, state management with circuit breaker, and Rhai-based message parsing.\\n\\n**Dependencies**\\n- Direct dependencies are exactly: `tokio`, `axum`, `ratatui`, `rhai`, `serde`, `serde_json`, `toml`, `chrono`, `uuid`, `crossterm`.\\n- Dev dependency is `pretty_assertions`.\\n- Axum includes WebSocket support.\\n- Dependency versions are mostly loose `^1.0`.\\n\\n**Module List And Line Counts**\\n- `src/lib.rs`: 19 lines, public API/module exports.\\n- `src/main.rs`: 244 lines, app entry point.\\n- `src/config.rs`: 70 lines, TOML config parsing.\\n- `src/execution.rs`: 833 lines, CLI execution engine.\\n- `src/orchestration.rs`: 828 lines, supervisor/orchestration logic.\\n- `src/state.rs`: 179 lines, app state management.\\n- `src/message.rs`: 79 lines, message structures.\\n- `src/tui.rs`: 577 lines, terminal UI.\\n- `src/web.rs`: 251 lines, web server/WebSocket.\\n- Total source code is about 3,080 lines.\\n\\n**Tests**\\n- `tests/config_parse.rs`: 44 lines, 1 test, config parsing.\\n- `tests/execution.rs`: 129 lines, 2 tests, tool execution and Rhai parsing.\\n- `tests/message_state.rs`: 16 lines, 1 test, message creation.\\n- `tests/orchestration.rs`: 295 lines, 5+ tests, orchestration and supervisor decisions.\\n- `tests/state_init.rs`: 39 lines, 3 tests, state initialization and circuit breaker.\\n- Total test code is 523 lines.\\n- Total test count is 12+.\\n- Code-to-test ratio is 16.9%.\\n- Claimed current coverage is about 35-40%.\\n- TUI rendering/input, web server/WebSocket/API, timeout edge cases, invalid Rhai, supervisor parse failures, concurrency, and `main.rs` integration are not\n... [Truncated 260 chars] ...\n.\\n- Converts tool output into structured messages.\\n- Captures stdout and stderr concurrently.\\n- Compresses/caps output at max 4,000 chars per line and 100 lines.\\n- Also has `MAX_CAPTURED_CHARS = 120,000`.\\n- Supports Windows and Unix process behavior.\\n- Hides Windows process windows.\\n\\n**Web/TUI Behavior**\\n- Web dashboard is Axum-based.\\n- Web server supports WebSocket.\\n- Web server exposes state API endpoints.\\n- TUI is Ratatui-based.\\n- TUI rendering and input are mostly untested.\\n- TUI and web can run simultaneously.\\n- Web server uses `unwrap()` around bind/serve calls.\\n\\n**Orchestration Behavior**\\n- External supervisors include Codex, Copilot, and Antigravity CLI.\\n- Supervisor decisions are JSON-based with `is_done` and `actions`.\\n- Legacy compatibility supports `next_tool` plus `tool_args`.\\n- Worker actions are handled.\\n- Supervisor response parse failure lacks retry/fallback behavior.\\n- Main loop manages full app lifecycle, TUI/web concurrent execution, shutdown, and error recovery.\\n\\n**State Management**\\n- State machine is claimed as `Idle -> Running -> (ErrorRecovering/PausedForIntervention) -> Idle`.\\n- Circuit breaker detects repeated errors.\\n- App state tracks tool lifecycle.\\n- `AppState.context_log` is a growing vector.\\n- There is no automatic cleanup/size limit for `context_log`.\\n\\n**Risks**\\n- Memory leak risk from unbounded `context_log`.\\n- Supervisor parse failure can stop orchestration due to missing retry/fallback.\\n- Zombie process risk when killing tool processes/children.\\n- TUI/web panic handling may be weak.\\n- Race condition risk with concurrent workers and shared state writes.\\n- Tool timeout defaults to fixed 60 seconds in `main.rs`.\\n- Hardcoded capture constants are not configurable.\\n- Logging uses `eprintln!`, with no structured logger.\\n- Rustdoc comments are absent.\\n- Type safety is weakened by string-based IDs/no NewType pattern.\\n- README is claimed absent.\\n- Rhai sandbox uses `--sandbox read-only` flag.\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":28991,\"cached_input_tokens\":21760,\"output_tokens\":1066,\"reasoning_output_tokens\":0}}",
+        "normalized_payload": {
+          "exit_code": 0,
+          "stderr_text": "Reading additional input from stdin...\n2026-06-08T06:21:56.821835Z ERROR codex_models_manager::manager: failed to refresh available models: timeout waiting for child process to exit",
+          "stdout_text": "{\"type\":\"thread.started\",\"thread_id\":\"019ea5e5-1ed5-7c82-9ee4-efda04eba80b\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I’ll read only `PROJECT_ANALYSIS.md` and turn its implementation-specific statements into a verification checklist, grouped by the sections you named.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -LiteralPath PROJECT_ANALYSIS.md'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -LiteralPath PROJECT_ANALYSIS.md'\",\"aggregated_output\":\"# Rust Multi-CLI Harness - 프로젝트 상세 분석 보고서\\r\\n\\r\\n## 목차\\r\\n\\r\\n1. [프로젝트 개요](#프로젝트-개요)\\r\\n2. [아키텍처 분석](#아키텍처-분석)\\r\\n3. [테스트 커버리지](#테스트-커버리지)\\r\\n4. [코드 품질 평가](#코드-품질-평가)\\r\\n5. [잠재 리스크 분석](#잠재-리스크-분석)\\r\\n6. [개선 제안](#개선-제안)\\r\\n7. [종합 평가](#종합-평가)\\r\\n\\r\\n---\\r\\n\\r\\n## 프로젝트 개요\\r\\n\\r\\n### 기본 정보\\r\\n- **프로젝트명**: rust-multi-cli-harness\\r\\n- **버전**: 0.1.0\\r\\n- **에디션**: Rust 2021\\r\\n- **목적**: 다중 CLI 도구를 중앙집중식으로 관리하고 오케스트레이션하는 플랫폼\\r\\n\\r\\n### 주요 기능\\r\\n1. **도구 오케스트레이션**: 여러 CLI 도구의 실행 순서를 관리\\r\\n2. **감독자 기반 의사결정**: 상위 감독자가 작업 흐름을 제어\\r\\n3. **웹 대시보드**: Axum 기반의 실시간 웹 인터페이스\\r\\n4. **TUI 인터페이스**: Ratatui 기반의 터미널 사용자 인터페이스\\r\\n5. **상태 관리**: 도구 실행 상태 및 회로 차단기 패턴 구현\\r\\n6. **메시지 시스템**: 도구 출력을 구조화된 메시지로 변환 (Rhai 스크립트)\\r\\n\\r\\n### 기술 스택\\r\\n**핵심 의존성**:\\r\\n- tokio: 비동기 런타임\\r\\n- axum: 웹 프레임워크 (WebSocket 지원)\\r\\n- ratatui: TUI 렌더링\\r\\n- rhai: 동적 스크립트 평가\\r\\n- serde/serde_json: 데이터 직렬화\\r\\n- chrono: 시간 처리\\r\\n- uuid: 고유 ID 생성\\r\\n\\r\\n---\\r\\n\\r\\n## 아키텍처 분석\\r\\n\\r\\n### 모듈 구조\\r\\n\\r\\n\\\\\\\\\\\\\\r\\nsrc/\\r\\n├── lib.rs (19줄)          # 공개 API 정의\\r\\n├── main.rs (244줄)        # 애플리케이션 진입점\\r\\n├── config.rs (70줄)       # TOML 설정 파싱\\r\\n├── execution.rs (833줄)   # CLI 도구 실행 엔진\\r\\n├── orchestration.rs (828줄) # 감독자 및 오케스트레이션 로직\\r\\n├── state.rs (179줄)       # 애플리케이션 상태 관리\\r\\n├── message.rs (79줄)      # 메시지 구조 정의\\r\\n├── tui.rs (577줄)         # 터미널 사용자 인터페이스\\r\\n└── web.rs (251줄)         # 웹 서버 및 WebSocket\\r\\n\\\\\\\\\\\\\\r\\n\\r\\n**총 소스 코드 라인 수**: 약 3,080줄\\r\\n\\r\\n### 주요 아키텍처 특징\\r\\n\\r\\n#### 1. 이벤트 기반 통신\\r\\n- broadcast 채널로 메시지 브로드캐스팅\\r\\n- TUI와 웹 서버가 동시에 상태 수신\\r\\n- 비동기 메시지 처리로 성능 최적화\\r\\n\\r\\n#### 2. 감독자 패턴\\r\\n- 외부 감독자(Codex, Copilot, Antigravity CLI) 호출\\r\\n- JSON 기반 의사결정 (is_done, actions)\\r\\n- 레거시 호환성 (next_tool + tool_args)\\r\\n\\r\\n#### 3. 상태 머신 설계\\r\\n- Idle -> Running -> (ErrorRecovering/PausedForIntervention) -> Idle\\r\\n- 회로\n... [Truncated 7755 chars] ...\nexecution.rs: 129줄 (25%)\\r\\n- state_init.rs: 39줄 (7%)\\r\\n- config_parse.rs: 44줄 (8%)\\r\\n- message_state.rs: 16줄 (3%)\\r\\n\\r\\n**코드 대비 테스트 비율**: 16.9% (권장: 30% 이상)\\r\\n\\r\\n---\\r\\n\\r\\n### 의존성 분석\\r\\n\\r\\n#### 직접 의존성 (10개)\\r\\n1. **tokio** - 비동기 런타임 (핵심)\\r\\n2. **axum** - 웹 프레임워크 (선택적)\\r\\n3. **ratatui** - TUI 라이브러리 (선택적)\\r\\n4. **rhai** - 스크립트 엔진 (핵심)\\r\\n5. **serde** - 직렬화 (핵심)\\r\\n6. **serde_json** - JSON 처리 (핵심)\\r\\n7. **toml** - TOML 파싱 (핵심)\\r\\n8. **chrono** - 시간 처리 (핵심)\\r\\n9. **uuid** - ID 생성 (핵심)\\r\\n10. **crossterm** - 터미널 제어 (선택적)\\r\\n\\r\\n#### 개발 의존성 (1개)\\r\\n- **pretty_assertions** - 테스트 assertion\\r\\n\\r\\n### 의존성 평가\\r\\n- **개수**: 적절 (10개, 가벼움)\\r\\n- **버전 관리**: 느슨함 (^1.0 대부분) - 안정적\\r\\n- **보안**: 정기 업데이트 필요 (최신 버전 확인)\\r\\n\\r\\n---\\r\\n\\r\\n## 분석 일시 및 범위\\r\\n\\r\\n- **분석 날짜**: 2026-06-08\\r\\n- **분석 도구**: 정적 코드 분석\\r\\n- **분석 범위**: src/, tests/, Cargo.toml, tools.toml\\r\\n- **분석 깊이**: 코드 검토, 구조 분석\\r\\n- **포함되지 않은 항목**: 실행 테스트, 성능 프로파일링, 보안 감사\\r\\n\\r\\n---\\r\\n\\r\\n## 주요 발견사항 요약\\r\\n\\r\\n### 강점 (Top 3)\\r\\n1. ✅ **우수한 비동기 아키텍처** - Tokio, 채널, 타임아웃 처리 잘 구현\\r\\n2. ✅ **명확한 모듈화** - 관심사 분리, 인터페이스 정의 우수\\r\\n3. ✅ **유연한 설정 시스템** - TOML + Rhai로 무한 확장성\\r\\n\\r\\n### 약점 (Top 3)\\r\\n1. ❌ **메모리 누수 위험** - context_log 무한 증가\\r\\n2. ❌ **문서 부족** - Rustdoc 전무, 코드 가독성 저해\\r\\n3. ❌ **불완전한 에러 복구** - 재시도, Fallback 메커니즘 없음\\r\\n\\r\\n### 개선 우선순위\\r\\n1. **급급함** (이번 주): 메모리 누수, 웹 에러 처리\\r\\n2. **높음** (이번 달): 문서화, 테스트 확대\\r\\n3. **중간** (다음 달): 로깅, 모니터링, 성능 최적화\\r\\n\\r\\n---\\r\\n\\r\\n## 참고 자료\\r\\n\\r\\n### 추천 읽을거리\\r\\n- Rust Error Handling Best Practices\\r\\n- Tokio Tutorial: Structured Concurrency\\r\\n- Production-Grade Logging with tracing\\r\\n- Testing Async Code in Rust\\r\\n\\r\\n### 도구 추천\\r\\n- cargo-audit: 보안 취약점 검사\\r\\n- cargo-tarpaulin: 테스트 커버리지 측정\\r\\n- cargo-clippy: 추가 린트 검사\\r\\n- cargo-deny: 의존성 검증\\r\\n\\r\\n---\\r\\n\\r\\n## 문서 변경 이력\\r\\n\\r\\n| 버전 | 날짜 | 변경사항 |\\r\\n|------|------|---------|\\r\\n| 1.0 | 2026-06-08 | 초기 분석 및 보고서 작성 |\\r\\n\\r\\n---\\r\\n\\r\\n*이 분석 보고서는 읽기 전용 코드 검토를 기반으로 작성되었습니다. 동적 분석, 성능 테스트, 보안 감사는 포함되지 않았습니다.*\\r\\n\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"agent_message\",\"text\":\"**Verification Checklist**\\n\\n**Project Overview**\\n- Project name is `rust-multi-cli-harness`.\\n- Version is `0.1.0`.\\n- Rust edition is `2021`.\\n- Purpose is centralized management and orchestration of multiple CLI tools.\\n- Runtime features include CLI orchestration, supervisor decision-making, Axum web dashboard, Ratatui TUI, state management with circuit breaker, and Rhai-based message parsing.\\n\\n**Dependencies**\\n- Direct dependencies are exactly: `tokio`, `axum`, `ratatui`, `rhai`, `serde`, `serde_json`, `toml`, `chrono`, `uuid`, `crossterm`.\\n- Dev dependency is `pretty_assertions`.\\n- Axum includes WebSocket support.\\n- Dependency versions are mostly loose `^1.0`.\\n\\n**Module List And Line Counts**\\n- `src/lib.rs`: 19 lines, public API/module exports.\\n- `src/main.rs`: 244 lines, app entry point.\\n- `src/config.rs`: 70 lines, TOML config parsing.\\n- `src/execution.rs`: 833 lines, CLI execution engine.\\n- `src/orchestration.rs`: 828 lines, supervisor/orchestration logic.\\n- `src/state.rs`: 179 lines, app state management.\\n- `src/message.rs`: 79 lines, message structures.\\n- `src/tui.rs`: 577 lines, terminal UI.\\n- `src/web.rs`: 251 lines, web server/WebSocket.\\n- Total source code is about 3,080 lines.\\n\\n**Tests**\\n- `tests/config_parse.rs`: 44 lines, 1 test, config parsing.\\n- `tests/execution.rs`: 129 lines, 2 tests, tool execution and Rhai parsing.\\n- `tests/message_state.rs`: 16 lines, 1 test, message creation.\\n- `tests/orchestration.rs`: 295 lines, 5+ tests, orchestration and supervisor decisions.\\n- `tests/state_init.rs`: 39 lines, 3 tests, state initialization and circuit breaker.\\n- Total test code is 523 lines.\\n- Total test count is 12+.\\n- Code-to-test ratio is 16.9%.\\n- Claimed current coverage is about 35-40%.\\n- TUI rendering/input, web server/WebSocket/API, timeout edge cases, invalid Rhai, supervisor parse failures, concurrency, and `main.rs` integration are not\n... [Truncated 260 chars] ...\n.\\n- Converts tool output into structured messages.\\n- Captures stdout and stderr concurrently.\\n- Compresses/caps output at max 4,000 chars per line and 100 lines.\\n- Also has `MAX_CAPTURED_CHARS = 120,000`.\\n- Supports Windows and Unix process behavior.\\n- Hides Windows process windows.\\n\\n**Web/TUI Behavior**\\n- Web dashboard is Axum-based.\\n- Web server supports WebSocket.\\n- Web server exposes state API endpoints.\\n- TUI is Ratatui-based.\\n- TUI rendering and input are mostly untested.\\n- TUI and web can run simultaneously.\\n- Web server uses `unwrap()` around bind/serve calls.\\n\\n**Orchestration Behavior**\\n- External supervisors include Codex, Copilot, and Antigravity CLI.\\n- Supervisor decisions are JSON-based with `is_done` and `actions`.\\n- Legacy compatibility supports `next_tool` plus `tool_args`.\\n- Worker actions are handled.\\n- Supervisor response parse failure lacks retry/fallback behavior.\\n- Main loop manages full app lifecycle, TUI/web concurrent execution, shutdown, and error recovery.\\n\\n**State Management**\\n- State machine is claimed as `Idle -> Running -> (ErrorRecovering/PausedForIntervention) -> Idle`.\\n- Circuit breaker detects repeated errors.\\n- App state tracks tool lifecycle.\\n- `AppState.context_log` is a growing vector.\\n- There is no automatic cleanup/size limit for `context_log`.\\n\\n**Risks**\\n- Memory leak risk from unbounded `context_log`.\\n- Supervisor parse failure can stop orchestration due to missing retry/fallback.\\n- Zombie process risk when killing tool processes/children.\\n- TUI/web panic handling may be weak.\\n- Race condition risk with concurrent workers and shared state writes.\\n- Tool timeout defaults to fixed 60 seconds in `main.rs`.\\n- Hardcoded capture constants are not configurable.\\n- Logging uses `eprintln!`, with no structured logger.\\n- Rustdoc comments are absent.\\n- Type safety is weakened by string-based IDs/no NewType pattern.\\n- README is claimed absent.\\n- Rhai sandbox uses `--sandbox read-only` flag.\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":28991,\"cached_input_tokens\":21760,\"output_tokens\":1066,\"reasoning_output_tokens\":0}}"
+        },
+        "truncated": true
+      },
+      {
+        "id": "685219ec-8b4e-403d-8f4e-edddd89e821f",
+        "tool_id": "codex-cli",
+        "source": "stdout",
+        "level": "info",
+        "step_id": "inspect-files-and-deps",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:22:27.090531400Z",
+        "raw_output": "{\"type\":\"thread.started\",\"thread_id\":\"019ea5e5-0d00-73d2-a08a-fd9ccb9bbf72\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I’ll stay within the requested scope: top-level listing plus `Cargo.toml`, `src/lib.rs`, and `src/main.rs`. Since `PROJECT_ANALYSIS.md` is outside that inspection set, I’ll avoid reading it and only report verifiable facts from the allowed files.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-ChildItem -Force | Select-Object Mode,Length,Name'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_2\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw src/lib.rs'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_3\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw src/main.rs'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_4\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw Cargo.toml'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-ChildItem -Force | Select-Object Mode,Length,Name'\",\"aggregated_output\":\"`\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-ChildItem -Force | Select-Object Mode,Length,Name'` rejected: blocked by policy\",\"exit_code\":-1,\"status\":\"declined\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw src/lib.rs'\",\"aggregated_output\":\"pub mod config;\\npub mod execution;\\npub mod message;\\npub mod orchestration;\\npub mod state;\\npub mod tui;\\npub mod web;\\n\\npub use config::{Config, SupervisorDefinition, ToolDefinition, ToolParser};\\npub use execution::{execute_tool, parse_with_rhai, ExecutionEngine, ExecutionError};\\npub use message::{HarnessMessage, MessageLevel, MessageSource};\\npub use orchestration::{\\n    parse_supervisor_decision, run_orchestration_loop, write_harness_context_file,\\n    HarnessContextSnapshot, OrchestrationError, SupervisorDecision, WorkerInvocation,\\n    CONTEXT_FILE_NAME,\\n};\\npub use state::{\\n    ActiveTool, AppState, CircuitBreakerState, InterventionChoice, InterventionRequest,\\n    SharedAppState, SystemStatus,\\n};\\n\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_3\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw src/main.rs'\",\"aggregated_output\":\"use std::path::{Path, PathBuf};\\r\\nuse std::sync::Arc;\\r\\nuse std::time::Duration;\\r\\n\\r\\nuse chrono::{Local, Utc};\\r\\nuse rust_multi_cli_harness::{\\r\\n    config::Config,\\r\\n    message::{HarnessMessage, MessageLevel},\\r\\n    orchestration::run_orchestration_loop,\\r\\n    state::{AppState, SharedAppState, SystemStatus},\\r\\n    tui::run_tui,\\r\\n    web::start_web_server,\\r\\n};\\r\\nuse serde_json::json;\\r\\nuse tokio::fs::{self, OpenOptions};\\r\\nuse tokio::io::AsyncWriteExt;\\r\\nuse tokio::sync::{broadcast, mpsc, RwLock};\\r\\n\\r\\n#[tokio::main]\\r\\nasync fn main() -> Result<(), Box<dyn std::error::Error>> {\\r\\n    let cli_options = match CliOptions::parse(std::env::args().skip(1)) {\\r\\n        Ok(options) => options,\\r\\n        Err(message) => {\\r\\n            eprintln!(\\\"{message}\\\");\\r\\n            eprintln!(\\\"{}\\\", CliOptions::usage());\\r\\n            std::process::exit(2);\\r\\n        }\\r\\n    };\\r\\n\\r\\n    if cli_options.show_help {\\r\\n        println!(\\\"{}\\\", CliOptions::usage());\\r\\n        return Ok(());\\r\\n    }\\r\\n\\r\\n    let config_path = Path::new(\\\"tools.toml\\\");\\r\\n\\r\\n    let config = match Config::from_file(config_path) {\\r\\n        Ok(c) => Arc::new(c),\\r\\n        Err(err) => {\\r\\n            eprintln!(\\\"Failed to load {}: {}\\\", config_path.display(), err);\\r\\n            std::process::exit(1);\\r\\n        }\\r\\n    };\\r\\n\\r\\n    let state: SharedAppState = Arc::new(RwLock::new(AppState::new()));\\r\\n    let (tx, _) = broadcast::channel(1024);\\r\\n    let log_path = run_log_path();\\r\\n\\r\\n    let logger_rx = tx.subscribe();\\r\\n    let logger_path = log_path.clone();\\r\\n    tokio::spawn(async move {\\r\\n        if let Err(err) = run_file_logger(logger_path, logger_rx).await {\\r\\n            eprintln!(\\\"Failed to write harness run log: {err}\\\");\\r\\n        }\\r\\n    \n... [Truncated 5205 chars] ...\nas Box<dyn std::error::Error>),\\r\\n        Err(err) => Err(Box::new(err)),\\r\\n    }\\r\\n}\\r\\n\\r\\nfn run_log_path() -> PathBuf {\\r\\n    let timestamp = Local::now().format(\\\"%Y%m%d-%H%M%S\\\").to_string();\\r\\n    Path::new(\\\"logs\\\").join(format!(\\\"harness-{timestamp}.jsonl\\\"))\\r\\n}\\r\\n\\r\\nasync fn run_file_logger(\\r\\n    path: PathBuf,\\r\\n    mut rx: broadcast::Receiver<HarnessMessage>,\\r\\n) -> std::io::Result<()> {\\r\\n    if let Some(parent) = path.parent() {\\r\\n        fs::create_dir_all(parent).await?;\\r\\n    }\\r\\n\\r\\n    let mut file = OpenOptions::new()\\r\\n        .create(true)\\r\\n        .append(true)\\r\\n        .open(&path)\\r\\n        .await?;\\r\\n\\r\\n    let run_start = json!({\\r\\n        \\\"type\\\": \\\"run_start\\\",\\r\\n        \\\"timestamp\\\": Utc::now(),\\r\\n        \\\"log_path\\\": path.display().to_string()\\r\\n    });\\r\\n    write_json_line(&mut file, &run_start).await?;\\r\\n\\r\\n    loop {\\r\\n        match rx.recv().await {\\r\\n            Ok(message) => {\\r\\n                let entry = json!({\\r\\n                    \\\"type\\\": \\\"harness_message\\\",\\r\\n                    \\\"data\\\": message\\r\\n                });\\r\\n                write_json_line(&mut file, &entry).await?;\\r\\n            }\\r\\n            Err(broadcast::error::RecvError::Lagged(skipped)) => {\\r\\n                let entry = json!({\\r\\n                    \\\"type\\\": \\\"logger_lagged\\\",\\r\\n                    \\\"timestamp\\\": Utc::now(),\\r\\n                    \\\"skipped_messages\\\": skipped\\r\\n                });\\r\\n                write_json_line(&mut file, &entry).await?;\\r\\n            }\\r\\n            Err(broadcast::error::RecvError::Closed) => break,\\r\\n        }\\r\\n    }\\r\\n\\r\\n    Ok(())\\r\\n}\\r\\n\\r\\nasync fn write_json_line(\\r\\n    file: &mut tokio::fs::File,\\r\\n    value: &serde_json::Value,\\r\\n) -> std::io::Result<()> {\\r\\n    let mut line = serde_json::to_vec(value)?;\\r\\n    line.push(b'\\\\n');\\r\\n    file.write_all(&line).await?;\\r\\n    file.flush().await\\r\\n}\\r\\n\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_4\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw Cargo.toml'\",\"aggregated_output\":\"[package]\\nname = \\\"rust-multi-cli-harness\\\"\\nversion = \\\"0.1.0\\\"\\nedition = \\\"2021\\\"\\n\\n[dependencies]\\nserde = { version = \\\"1\\\", features = [\\\"derive\\\"] }\\nserde_json = \\\"1\\\"\\ntoml = \\\"0.8\\\"\\nrhai = \\\"1\\\"\\ntokio = { version = \\\"1\\\", features = [\\\"sync\\\", \\\"rt-multi-thread\\\", \\\"macros\\\", \\\"process\\\", \\\"time\\\", \\\"io-util\\\", \\\"fs\\\"] }\\nchrono = { version = \\\"0.4\\\", features = [\\\"serde\\\", \\\"clock\\\"] }\\nuuid = { version = \\\"1\\\", features = [\\\"serde\\\", \\\"v4\\\"] }\\nratatui = \\\"0.30.0\\\"\\ncrossterm = { version = \\\"0.29.0\\\", features = [\\\"event-stream\\\"] }\\nfutures = \\\"0.3.32\\\"\\naxum = { version = \\\"0.8.9\\\", features = [\\\"ws\\\"] }\\n\\n[dev-dependencies]\\npretty_assertions = \\\"1\\\"\\n\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_5\",\"type\":\"agent_message\",\"text\":\"The first directory listing command was rejected by the sandbox policy, but the file reads succeeded. I’m retrying the top-level listing with a simpler read-only command.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_6\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-ChildItem -Name -Force'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_6\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-ChildItem -Name -Force'\",\"aggregated_output\":\".git\\r\\ncache\\r\\nlogs\\r\\nsrc\\r\\ntarget\\r\\ntests\\r\\n.gitignore\\r\\n.harness_context.json\\r\\nCargo.lock\\r\\nCargo.toml\\r\\nhelp.txt\\r\\ninstall.cmd\\r\\nPROJECT_ANALYSIS.md\\r\\ntools.toml\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_7\",\"type\":\"agent_message\",\"text\":\"I did not read `PROJECT_ANALYSIS.md` because it was outside the requested inspection set, so I cannot label facts as differing from its contents.\\n\\nVerified from allowed files:\\n\\n- Project: `rust-multi-cli-harness`\\n- Version: `0.1.0`\\n- Edition: `2021`\\n- Dependencies include `serde`, `serde_json`, `toml`, `rhai`, `tokio`, `chrono`, `uuid`, `ratatui`, `crossterm`, `futures`, and `axum` with `ws`\\n- Dev dependency: `pretty_assertions`\\n- Public modules: `config`, `execution`, `message`, `orchestration`, `state`, `tui`, `web`\\n- Public re-exports include config types, execution helpers/errors, message types, orchestration APIs/types, and app state types\\n- Entrypoint loads `tools.toml`, initializes shared state, starts JSONL logging under `logs/`, starts the web server in the background, then runs the TUI\\n- CLI flags supported: `--raw-json`, `--show-json`, `--json-logs`, `-h`, `--help`\\n- Web feature exists: `src/main.rs` imports and starts `web::start_web_server`; `axum` with websocket support is a dependency\\n- TUI feature exists: `src/main.rs` imports and runs `tui::run_tui`; `ratatui` and `crossterm` are dependencies\\n- Top-level entries include `.git`, `cache`, `logs`, `src`, `target`, `tests`, `.gitignore`, `.harness_context.json`, `Cargo.lock`, `Cargo.toml`, `help.txt`, `install.cmd`, `PROJECT_ANALYSIS.md`, and `tools.toml`\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":42136,\"cached_input_tokens\":27776,\"output_tokens\":1186,\"reasoning_output_tokens\":442}}",
+        "normalized_payload": {
+          "exit_code": 0,
+          "stderr_text": "Reading additional input from stdin...\n2026-06-08T06:22:07.291279Z ERROR codex_core::tools::router: error=`\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Get-ChildItem -Force | Select-Object Mode,Length,Name'` rejected: blocked by policy",
+          "stdout_text": "{\"type\":\"thread.started\",\"thread_id\":\"019ea5e5-0d00-73d2-a08a-fd9ccb9bbf72\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I’ll stay within the requested scope: top-level listing plus `Cargo.toml`, `src/lib.rs`, and `src/main.rs`. Since `PROJECT_ANALYSIS.md` is outside that inspection set, I’ll avoid reading it and only report verifiable facts from the allowed files.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-ChildItem -Force | Select-Object Mode,Length,Name'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_2\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw src/lib.rs'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_3\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw src/main.rs'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_4\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw Cargo.toml'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-ChildItem -Force | Select-Object Mode,Length,Name'\",\"aggregated_output\":\"`\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-ChildItem -Force | Select-Object Mode,Length,Name'` rejected: blocked by policy\",\"exit_code\":-1,\"status\":\"declined\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw src/lib.rs'\",\"aggregated_output\":\"pub mod config;\\npub mod execution;\\npub mod message;\\npub mod orchestration;\\npub mod state;\\npub mod tui;\\npub mod web;\\n\\npub use config::{Config, SupervisorDefinition, ToolDefinition, ToolParser};\\npub use execution::{execute_tool, parse_with_rhai, ExecutionEngine, ExecutionError};\\npub use message::{HarnessMessage, MessageLevel, MessageSource};\\npub use orchestration::{\\n    parse_supervisor_decision, run_orchestration_loop, write_harness_context_file,\\n    HarnessContextSnapshot, OrchestrationError, SupervisorDecision, WorkerInvocation,\\n    CONTEXT_FILE_NAME,\\n};\\npub use state::{\\n    ActiveTool, AppState, CircuitBreakerState, InterventionChoice, InterventionRequest,\\n    SharedAppState, SystemStatus,\\n};\\n\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_3\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw src/main.rs'\",\"aggregated_output\":\"use std::path::{Path, PathBuf};\\r\\nuse std::sync::Arc;\\r\\nuse std::time::Duration;\\r\\n\\r\\nuse chrono::{Local, Utc};\\r\\nuse rust_multi_cli_harness::{\\r\\n    config::Config,\\r\\n    message::{HarnessMessage, MessageLevel},\\r\\n    orchestration::run_orchestration_loop,\\r\\n    state::{AppState, SharedAppState, SystemStatus},\\r\\n    tui::run_tui,\\r\\n    web::start_web_server,\\r\\n};\\r\\nuse serde_json::json;\\r\\nuse tokio::fs::{self, OpenOptions};\\r\\nuse tokio::io::AsyncWriteExt;\\r\\nuse tokio::sync::{broadcast, mpsc, RwLock};\\r\\n\\r\\n#[tokio::main]\\r\\nasync fn main() -> Result<(), Box<dyn std::error::Error>> {\\r\\n    let cli_options = match CliOptions::parse(std::env::args().skip(1)) {\\r\\n        Ok(options) => options,\\r\\n        Err(message) => {\\r\\n            eprintln!(\\\"{message}\\\");\\r\\n            eprintln!(\\\"{}\\\", CliOptions::usage());\\r\\n            std::process::exit(2);\\r\\n        }\\r\\n    };\\r\\n\\r\\n    if cli_options.show_help {\\r\\n        println!(\\\"{}\\\", CliOptions::usage());\\r\\n        return Ok(());\\r\\n    }\\r\\n\\r\\n    let config_path = Path::new(\\\"tools.toml\\\");\\r\\n\\r\\n    let config = match Config::from_file(config_path) {\\r\\n        Ok(c) => Arc::new(c),\\r\\n        Err(err) => {\\r\\n            eprintln!(\\\"Failed to load {}: {}\\\", config_path.display(), err);\\r\\n            std::process::exit(1);\\r\\n        }\\r\\n    };\\r\\n\\r\\n    let state: SharedAppState = Arc::new(RwLock::new(AppState::new()));\\r\\n    let (tx, _) = broadcast::channel(1024);\\r\\n    let log_path = run_log_path();\\r\\n\\r\\n    let logger_rx = tx.subscribe();\\r\\n    let logger_path = log_path.clone();\\r\\n    tokio::spawn(async move {\\r\\n        if let Err(err) = run_file_logger(logger_path, logger_rx).await {\\r\\n            eprintln!(\\\"Failed to write harness run log: {err}\\\");\\r\\n        }\\r\\n    \n... [Truncated 5205 chars] ...\nas Box<dyn std::error::Error>),\\r\\n        Err(err) => Err(Box::new(err)),\\r\\n    }\\r\\n}\\r\\n\\r\\nfn run_log_path() -> PathBuf {\\r\\n    let timestamp = Local::now().format(\\\"%Y%m%d-%H%M%S\\\").to_string();\\r\\n    Path::new(\\\"logs\\\").join(format!(\\\"harness-{timestamp}.jsonl\\\"))\\r\\n}\\r\\n\\r\\nasync fn run_file_logger(\\r\\n    path: PathBuf,\\r\\n    mut rx: broadcast::Receiver<HarnessMessage>,\\r\\n) -> std::io::Result<()> {\\r\\n    if let Some(parent) = path.parent() {\\r\\n        fs::create_dir_all(parent).await?;\\r\\n    }\\r\\n\\r\\n    let mut file = OpenOptions::new()\\r\\n        .create(true)\\r\\n        .append(true)\\r\\n        .open(&path)\\r\\n        .await?;\\r\\n\\r\\n    let run_start = json!({\\r\\n        \\\"type\\\": \\\"run_start\\\",\\r\\n        \\\"timestamp\\\": Utc::now(),\\r\\n        \\\"log_path\\\": path.display().to_string()\\r\\n    });\\r\\n    write_json_line(&mut file, &run_start).await?;\\r\\n\\r\\n    loop {\\r\\n        match rx.recv().await {\\r\\n            Ok(message) => {\\r\\n                let entry = json!({\\r\\n                    \\\"type\\\": \\\"harness_message\\\",\\r\\n                    \\\"data\\\": message\\r\\n                });\\r\\n                write_json_line(&mut file, &entry).await?;\\r\\n            }\\r\\n            Err(broadcast::error::RecvError::Lagged(skipped)) => {\\r\\n                let entry = json!({\\r\\n                    \\\"type\\\": \\\"logger_lagged\\\",\\r\\n                    \\\"timestamp\\\": Utc::now(),\\r\\n                    \\\"skipped_messages\\\": skipped\\r\\n                });\\r\\n                write_json_line(&mut file, &entry).await?;\\r\\n            }\\r\\n            Err(broadcast::error::RecvError::Closed) => break,\\r\\n        }\\r\\n    }\\r\\n\\r\\n    Ok(())\\r\\n}\\r\\n\\r\\nasync fn write_json_line(\\r\\n    file: &mut tokio::fs::File,\\r\\n    value: &serde_json::Value,\\r\\n) -> std::io::Result<()> {\\r\\n    let mut line = serde_json::to_vec(value)?;\\r\\n    line.push(b'\\\\n');\\r\\n    file.write_all(&line).await?;\\r\\n    file.flush().await\\r\\n}\\r\\n\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_4\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-Content -Raw Cargo.toml'\",\"aggregated_output\":\"[package]\\nname = \\\"rust-multi-cli-harness\\\"\\nversion = \\\"0.1.0\\\"\\nedition = \\\"2021\\\"\\n\\n[dependencies]\\nserde = { version = \\\"1\\\", features = [\\\"derive\\\"] }\\nserde_json = \\\"1\\\"\\ntoml = \\\"0.8\\\"\\nrhai = \\\"1\\\"\\ntokio = { version = \\\"1\\\", features = [\\\"sync\\\", \\\"rt-multi-thread\\\", \\\"macros\\\", \\\"process\\\", \\\"time\\\", \\\"io-util\\\", \\\"fs\\\"] }\\nchrono = { version = \\\"0.4\\\", features = [\\\"serde\\\", \\\"clock\\\"] }\\nuuid = { version = \\\"1\\\", features = [\\\"serde\\\", \\\"v4\\\"] }\\nratatui = \\\"0.30.0\\\"\\ncrossterm = { version = \\\"0.29.0\\\", features = [\\\"event-stream\\\"] }\\nfutures = \\\"0.3.32\\\"\\naxum = { version = \\\"0.8.9\\\", features = [\\\"ws\\\"] }\\n\\n[dev-dependencies]\\npretty_assertions = \\\"1\\\"\\n\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_5\",\"type\":\"agent_message\",\"text\":\"The first directory listing command was rejected by the sandbox policy, but the file reads succeeded. I’m retrying the top-level listing with a simpler read-only command.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_6\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-ChildItem -Name -Force'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_6\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'Get-ChildItem -Name -Force'\",\"aggregated_output\":\".git\\r\\ncache\\r\\nlogs\\r\\nsrc\\r\\ntarget\\r\\ntests\\r\\n.gitignore\\r\\n.harness_context.json\\r\\nCargo.lock\\r\\nCargo.toml\\r\\nhelp.txt\\r\\ninstall.cmd\\r\\nPROJECT_ANALYSIS.md\\r\\ntools.toml\\r\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_7\",\"type\":\"agent_message\",\"text\":\"I did not read `PROJECT_ANALYSIS.md` because it was outside the requested inspection set, so I cannot label facts as differing from its contents.\\n\\nVerified from allowed files:\\n\\n- Project: `rust-multi-cli-harness`\\n- Version: `0.1.0`\\n- Edition: `2021`\\n- Dependencies include `serde`, `serde_json`, `toml`, `rhai`, `tokio`, `chrono`, `uuid`, `ratatui`, `crossterm`, `futures`, and `axum` with `ws`\\n- Dev dependency: `pretty_assertions`\\n- Public modules: `config`, `execution`, `message`, `orchestration`, `state`, `tui`, `web`\\n- Public re-exports include config types, execution helpers/errors, message types, orchestration APIs/types, and app state types\\n- Entrypoint loads `tools.toml`, initializes shared state, starts JSONL logging under `logs/`, starts the web server in the background, then runs the TUI\\n- CLI flags supported: `--raw-json`, `--show-json`, `--json-logs`, `-h`, `--help`\\n- Web feature exists: `src/main.rs` imports and starts `web::start_web_server`; `axum` with websocket support is a dependency\\n- TUI feature exists: `src/main.rs` imports and runs `tui::run_tui`; `ratatui` and `crossterm` are dependencies\\n- Top-level entries include `.git`, `cache`, `logs`, `src`, `target`, `tests`, `.gitignore`, `.harness_context.json`, `Cargo.lock`, `Cargo.toml`, `help.txt`, `install.cmd`, `PROJECT_ANALYSIS.md`, and `tools.toml`\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":42136,\"cached_input_tokens\":27776,\"output_tokens\":1186,\"reasoning_output_tokens\":442}}"
+        },
+        "truncated": true
+      },
+      {
+        "id": "ad39d06d-2504-4e48-b829-5bdc1057d506",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "codex-cli",
+        "correlation_id": "inspect-ui-web-modules",
+        "timestamp": "2026-06-08T06:22:51.761688900Z",
+        "raw_output": "Worker system error: tool 'codex-cli' timed out after 60s",
+        "normalized_payload": {
+          "error": "Worker system error: tool 'codex-cli' timed out after 60s"
+        },
+        "truncated": false
+      },
+      {
+        "id": "3b180880-19d0-435e-ab95-7199392ac5f6",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "codex-cli",
+        "correlation_id": "inspect-tests",
+        "timestamp": "2026-06-08T06:22:51.761689Z",
+        "raw_output": "Worker system error: tool 'codex-cli' timed out after 60s",
+        "normalized_payload": {
+          "error": "Worker system error: tool 'codex-cli' timed out after 60s"
+        },
+        "truncated": false
+      },
+      {
+        "id": "50b949e0-1eb3-4456-b4b4-c39ff0d12a34",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "codex-cli",
+        "correlation_id": "inspect-core-modules",
+        "timestamp": "2026-06-08T06:22:51.761862200Z",
+        "raw_output": "Worker system error: tool 'codex-cli' timed out after 60s",
+        "normalized_payload": {
+          "error": "Worker system error: tool 'codex-cli' timed out after 60s"
+        },
+        "truncated": false
+      },
+      {
+        "id": "3083fbf5-24cd-4804-afeb-60a07796d705",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:22:51.765748800Z",
+        "raw_output": "Supervisor cycle 4 starting",
+        "normalized_payload": {
+          "text": "Supervisor cycle 4 starting"
+        },
+        "truncated": false
+      },
+      {
+        "id": "7e0feaae-b896-4547-83cc-3df06456d4fe",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:22:51.765767900Z",
+        "raw_output": "Running supervisor CLI",
+        "normalized_payload": {
+          "text": "Running supervisor CLI"
+        },
+        "truncated": false
+      },
+      {
+        "id": "1ee477fa-e4d7-4b14-8d07-6782f286c9b4",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:23:25.147624300Z",
+        "raw_output": "Running worker CLI: antigravity-cli (metrics-current-files)",
+        "normalized_payload": {
+          "text": "Running worker CLI: antigravity-cli (metrics-current-files)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "6f3b48db-ecce-466c-878e-c8023be9f768",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:23:25.147626200Z",
+        "raw_output": "Running worker CLI: copilot-cli (inspect-config-state-message)",
+        "normalized_payload": {
+          "text": "Running worker CLI: copilot-cli (inspect-config-state-message)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "f32ce75c-722f-4090-b1a9-55da280ad876",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:23:25.147638600Z",
+        "raw_output": "Running worker CLI: antigravity-cli (inspect-orchestration-small)",
+        "normalized_payload": {
+          "text": "Running worker CLI: antigravity-cli (inspect-orchestration-small)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "7f929be1-e2ea-4dfd-a2a8-06a815c1619d",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:23:25.147644200Z",
+        "raw_output": "Running worker CLI: antigravity-cli (inspect-tests-small)",
+        "normalized_payload": {
+          "text": "Running worker CLI: antigravity-cli (inspect-tests-small)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "5dbef110-2fab-4430-acf4-6ac62caa1ee0",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:23:25.147647800Z",
+        "raw_output": "Running worker CLI: copilot-cli (inspect-execution-small)",
+        "normalized_payload": {
+          "text": "Running worker CLI: copilot-cli (inspect-execution-small)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "16e8a2cf-8a54-4922-8666-5b8daa6c27ff",
+        "tool_id": "system",
+        "source": "system",
+        "level": "info",
+        "step_id": "orchestration",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:23:25.147665200Z",
+        "raw_output": "Running worker CLI: copilot-cli (inspect-ui-web-small)",
+        "normalized_payload": {
+          "text": "Running worker CLI: copilot-cli (inspect-ui-web-small)"
+        },
+        "truncated": false
+      },
+      {
+        "id": "94872507-2d16-40f0-bb8a-78e530ff7f34",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "antigravity-cli",
+        "correlation_id": "metrics-current-files",
+        "timestamp": "2026-06-08T06:23:25.217172400Z",
+        "raw_output": "Worker system error: io error: stream did not contain valid UTF-8",
+        "normalized_payload": {
+          "error": "Worker system error: io error: stream did not contain valid UTF-8"
+        },
+        "truncated": false
+      },
+      {
+        "id": "f33374dd-00da-4159-938a-ff6393f3ca77",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "antigravity-cli",
+        "correlation_id": "inspect-tests-small",
+        "timestamp": "2026-06-08T06:23:25.257405400Z",
+        "raw_output": "Worker system error: io error: stream did not contain valid UTF-8",
+        "normalized_payload": {
+          "error": "Worker system error: io error: stream did not contain valid UTF-8"
+        },
+        "truncated": false
+      },
+      {
+        "id": "b85e933b-aa20-4a59-91e1-73f72d668771",
+        "tool_id": "system",
+        "source": "system",
+        "level": "error",
+        "step_id": "antigravity-cli",
+        "correlation_id": "inspect-orchestration-small",
+        "timestamp": "2026-06-08T06:23:25.301581200Z",
+        "raw_output": "Worker system error: io error: stream did not contain valid UTF-8",
+        "normalized_payload": {
+          "error": "Worker system error: io error: stream did not contain valid UTF-8"
+        },
+        "truncated": false
+      },
+      {
+        "id": "7243aa6d-c1dc-4513-bbcf-a9948a2977a7",
+        "tool_id": "copilot-cli",
+        "source": "stderr",
+        "level": "error",
+        "step_id": "inspect-execution-small",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:23:28.759751900Z",
+        "raw_output": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"217e7ef8-c58c-47c9-a712-45192b34594c\",\"timestamp\":\"2026-06-08T06:23:27.803Z\",\"parentId\":\"b6e0d694-8e31-46e4-83f1-6e444e8ac925\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"b4bfc8fe-cfc2-4a2b-b13b-19b7601b3312\",\"timestamp\":\"2026-06-08T06:23:28.721Z\",\"parentId\":\"7f7f9118-2ade-40e3-a431-11ece3cddf45\",\"ephemeral\":true}",
+        "normalized_payload": {
+          "exit_code": 1,
+          "stderr_text": "Error: Model \"claude-haiku-4.5\" does not support reasoning effort configuration (requested: \"low\").",
+          "stdout_text": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"217e7ef8-c58c-47c9-a712-45192b34594c\",\"timestamp\":\"2026-06-08T06:23:27.803Z\",\"parentId\":\"b6e0d694-8e31-46e4-83f1-6e444e8ac925\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"b4bfc8fe-cfc2-4a2b-b13b-19b7601b3312\",\"timestamp\":\"2026-06-08T06:23:28.721Z\",\"parentId\":\"7f7f9118-2ade-40e3-a431-11ece3cddf45\",\"ephemeral\":true}"
+        },
+        "truncated": false
+      },
+      {
+        "id": "45a1738f-2284-482c-8d04-3b3c0569199a",
+        "tool_id": "copilot-cli",
+        "source": "stderr",
+        "level": "error",
+        "step_id": "inspect-config-state-message",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:23:28.812414500Z",
+        "raw_output": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"3845b9b1-2c8e-4f29-bce8-037f60e18387\",\"timestamp\":\"2026-06-08T06:23:27.862Z\",\"parentId\":\"e9126134-a5f5-43e1-80e2-692b05289ce3\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"73bad6bd-33b0-4716-9a7a-febce7a8d422\",\"timestamp\":\"2026-06-08T06:23:28.780Z\",\"parentId\":\"1b0ab3ed-199f-4871-a7f5-799a880a1756\",\"ephemeral\":true}",
+        "normalized_payload": {
+          "exit_code": 1,
+          "stderr_text": "Error: Model \"claude-haiku-4.5\" does not support reasoning effort configuration (requested: \"low\").",
+          "stdout_text": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"3845b9b1-2c8e-4f29-bce8-037f60e18387\",\"timestamp\":\"2026-06-08T06:23:27.862Z\",\"parentId\":\"e9126134-a5f5-43e1-80e2-692b05289ce3\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"73bad6bd-33b0-4716-9a7a-febce7a8d422\",\"timestamp\":\"2026-06-08T06:23:28.780Z\",\"parentId\":\"1b0ab3ed-199f-4871-a7f5-799a880a1756\",\"ephemeral\":true}"
+        },
+        "truncated": false
+      },
+      {
+        "id": "70762b3f-16d8-4b32-8469-33684b50bcd1",
+        "tool_id": "copilot-cli",
+        "source": "stderr",
+        "level": "error",
+        "step_id": "inspect-ui-web-small",
+        "correlation_id": "aa961dc2-c5a3-49b7-8ce3-6a70e3d26638",
+        "timestamp": "2026-06-08T06:23:30.070115600Z",
+        "raw_output": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"1eeb0431-2a69-469b-8c96-43212ff9739b\",\"timestamp\":\"2026-06-08T06:23:29.148Z\",\"parentId\":\"fd02a465-7735-4ad6-b22e-1eaa32ebc5db\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"b45ac28a-4aef-4517-b2ea-cfd4ef346337\",\"timestamp\":\"2026-06-08T06:23:30.031Z\",\"parentId\":\"a0ec88d7-fbb4-4d89-aaa3-1a52cf7f083b\",\"ephemeral\":true}",
+        "normalized_payload": {
+          "exit_code": 1,
+          "stderr_text": "Error: Model \"claude-haiku-4.5\" does not support reasoning effort configuration (requested: \"low\").",
+          "stdout_text": "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"github-mcp-server\",\"status\":\"connected\"},\"id\":\"1eeb0431-2a69-469b-8c96-43212ff9739b\",\"timestamp\":\"2026-06-08T06:23:29.148Z\",\"parentId\":\"fd02a465-7735-4ad6-b22e-1eaa32ebc5db\",\"ephemeral\":true}\n{\"type\":\"session.mcp_servers_loaded\",\"data\":{\"servers\":[{\"name\":\"github-mcp-server\",\"status\":\"connected\",\"source\":\"builtin\",\"transport\":\"http\"}]},\"id\":\"b45ac28a-4aef-4517-b2ea-cfd4ef346337\",\"timestamp\":\"2026-06-08T06:23:30.031Z\",\"parentId\":\"a0ec88d7-fbb4-4d89-aaa3-1a52cf7f083b\",\"ephemeral\":true}"
+        },
+        "truncated": false
+      }
+    ],
+    "breaker": {
+      "threshold": 3,
+      "errors_by_step": {
+        "verify-execution": 1,
+        "inspect-core-modules": 2,
+        "inspect-project-structure": 2,
+        "inspect-tests-small": 1,
+        "verify-ui-web-tests": 1,
+        "verify-orchestration": 1,
+        "inspect-execution-small": 1,
+        "verify-config-state-message": 1,
+        "inspect-ui-web-modules": 2,
+        "inspect-runtime-claims": 1,
+        "inspect-ui-web-small": 1,
+        "inspect-tests": 2,
+        "inspect-orchestration-small": 1,
+        "inspect-ui-and-web-claims": 1,
+        "collect-file-metrics": 1,
+        "inspect-core-implementation": 2,
+        "inspect-tests-claims": 1,
+        "verify-project-files": 1,
+        "metrics-current-files": 1,
+        "inspect-config-state-message": 1
+      },
+      "tripped_step": null
+    },
+    "intervention_required": null,
+    "started_at": "2026-06-08T06:18:11.337700500Z"
+  },
+  "worker_tools": [
+    {
+      "id": "antigravity-cli",
+      "name": "Antigravity CLI",
+      "command": "agy",
+      "args": [
+        "--dangerously-skip-permissions",
+        "-p"
+      ],
+      "parser": {
+        "entrypoint": "parse",
+        "script": "let level = if exit_code != 0 {\n    \"error\"\n} else {\n    \"info\"\n};\n\nlet raw = if stdout_text.len() > 0 {\n    stdout_text\n} else {\n    stderr_text\n};\n\n#{\n    \"tool_id\": tool_id,\n    \"source\": if exit_code != 0 && stderr_text.len() > 0 { \"stderr\" } else { \"stdout\" },\n    \"kind\": \"assistant\",\n    \"level\": level,\n    \"step_id\": step_id,\n    \"correlation_id\": correlation_id,\n    \"raw_output\": raw,\n    \"normalized_payload\": #{\n        \"exit_code\": exit_code,\n        \"stdout_text\": stdout_text,\n        \"stderr_text\": stderr_text\n    },\n    \"truncated\": false\n}\n"
+      },
+      "working_dir": "."
+    },
+    {
+      "id": "codex-cli",
+      "name": "Codex CLI",
+      "command": "codex",
+      "args": [
+        "exec",
+        "--sandbox",
+        "read-only",
+        "--json"
+      ],
+      "parser": {
+        "entrypoint": "parse",
+        "script": "let level = if exit_code != 0 {\n    \"error\"\n} else {\n    \"info\"\n};\n\nlet raw = if stdout_text.len() > 0 {\n    stdout_text\n} else {\n    stderr_text\n};\n\n#{\n    \"tool_id\": tool_id,\n    \"source\": if exit_code != 0 && stderr_text.len() > 0 { \"stderr\" } else { \"stdout\" },\n    \"kind\": \"assistant\",\n    \"level\": level,\n    \"step_id\": step_id,\n    \"correlation_id\": correlation_id,\n    \"raw_output\": raw,\n    \"normalized_payload\": #{\n        \"exit_code\": exit_code,\n        \"stdout_text\": stdout_text,\n        \"stderr_text\": stderr_text\n    },\n    \"truncated\": false\n}\n"
+      },
+      "working_dir": "."
+    },
+    {
+      "id": "copilot-cli",
+      "name": "Copilot CLI",
+      "command": "copilot",
+      "args": [
+        "--output-format",
+        "json",
+        "--allow-all-tools",
+        "--effort",
+        "low",
+        "-p"
+      ],
+      "parser": {
+        "entrypoint": "parse",
+        "script": "let level = if exit_code != 0 {\n    \"error\"\n} else {\n    \"info\"\n};\n\nlet raw = if stdout_text.len() > 0 {\n    stdout_text\n} else {\n    stderr_text\n};\n\n#{\n    \"tool_id\": tool_id,\n    \"source\": if exit_code != 0 && stderr_text.len() > 0 { \"stderr\" } else { \"stdout\" },\n    \"kind\": \"assistant\",\n    \"level\": level,\n    \"step_id\": step_id,\n    \"correlation_id\": correlation_id,\n    \"raw_output\": raw,\n    \"normalized_payload\": #{\n        \"exit_code\": exit_code,\n        \"stdout_text\": stdout_text,\n        \"stderr_text\": stderr_text\n    },\n    \"truncated\": false\n}\n"
+      },
+      "working_dir": "."
+    }
+  ]
+}

@@ -1,10 +1,8 @@
-#[cfg(windows)]
 use std::env;
 use std::ffi::OsString;
 use std::fmt;
 #[cfg(windows)]
 use std::fs;
-#[cfg(windows)]
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -13,10 +11,12 @@ use std::time::Duration;
 
 use rhai::{Array, Dynamic, Engine, Map, Scope, INT};
 use serde_json::{json, Map as JsonMap, Value};
+use tokio::fs as async_fs;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::broadcast;
 use tokio::time::timeout;
+use uuid::Uuid;
 
 use crate::config::{Config, ToolDefinition};
 use crate::message::{HarnessMessage, MessageLevel, MessageSource};
@@ -127,7 +127,8 @@ impl ExecutionEngine {
             state.begin_tool_run(tool.id.clone(), step_id.clone(), correlation_id.clone());
         }
 
-        let invocation = resolve_invocation(&tool.command, &tool.args);
+        let mut invocation = resolve_invocation(&tool.command, &tool.args);
+        let antigravity_capture = prepare_antigravity_capture(&tool, &mut invocation);
         let resolved_program = invocation.program.to_string_lossy().into_owned();
         let resolved_args = invocation
             .args
@@ -140,14 +141,21 @@ impl ExecutionEngine {
             command.current_dir(PathBuf::from(working_dir));
         }
 
-        let mut child = command.spawn().map_err(|source| ExecutionError::Spawn {
-            tool_id: tool.id.clone(),
-            command: tool.command.clone(),
-            resolved_program,
-            args: resolved_args,
-            working_dir: tool.working_dir.clone(),
-            source,
-        })?;
+        let mut child = match command.spawn() {
+            Ok(child) => child,
+            Err(source) => {
+                let mut state = self.state.write().await;
+                state.finish_tool_run_for_step(&step_id);
+                return Err(ExecutionError::Spawn {
+                    tool_id: tool.id.clone(),
+                    command: tool.command.clone(),
+                    resolved_program,
+                    args: resolved_args,
+                    working_dir: tool.working_dir.clone(),
+                    source,
+                });
+            }
+        };
         let stdout = child
             .stdout
             .take()
@@ -182,7 +190,7 @@ impl ExecutionEngine {
                     let _ = child.wait().await;
                     {
                         let mut state = self.state.write().await;
-                        state.record_step_error(step_id.clone(), "tool execution timed out");
+                        state.finish_tool_run_for_step(&step_id);
                     }
                     return Err(ExecutionError::Timeout {
                         tool_id: tool.id.clone(),
@@ -194,24 +202,43 @@ impl ExecutionEngine {
             child.wait().await.map_err(ExecutionError::Io)?
         };
 
-        let stdout_text = stdout_task
+        let mut stdout_text = stdout_task
             .await
             .map_err(|err| ExecutionError::Join(err.to_string()))??;
         let stderr_text = stderr_task
             .await
             .map_err(|err| ExecutionError::Join(err.to_string()))??;
+        if stdout_text.trim().is_empty() {
+            if let Some(capture) = &antigravity_capture {
+                stdout_text = read_redirected_stdout_file(&capture.stdout_path).await?;
+                if stdout_text.trim().is_empty() {
+                    stdout_text = recover_antigravity_output_from_log(&capture.log_path).await?;
+                }
+            }
+        }
+        if let Some(capture) = antigravity_capture {
+            let _ = async_fs::remove_file(capture.stdout_path).await;
+            let _ = async_fs::remove_file(capture.log_path).await;
+        }
         let (stdout_text, stdout_truncated) = compact_captured_text(&stdout_text);
         let (stderr_text, stderr_truncated) = compact_captured_text(&stderr_text);
         let exit_code = exit_status.code().map(i64::from);
 
-        let mut message = parse_with_rhai(
+        let mut message = match parse_with_rhai(
             &tool,
             exit_code,
             &stdout_text,
             &stderr_text,
             &step_id,
             &correlation_id,
-        )?;
+        ) {
+            Ok(message) => message,
+            Err(err) => {
+                let mut state = self.state.write().await;
+                state.finish_tool_run_for_step(&step_id);
+                return Err(err);
+            }
+        };
         if stdout_truncated || stderr_truncated {
             message = message.marked_truncated();
         }
@@ -243,12 +270,225 @@ fn build_process_command(invocation: ToolInvocation) -> Command {
     command.stdin(Stdio::null()); // 입력 대기를 방지하여 프로세스 행(Hang) 해결
     command.stdout(Stdio::piped());
     command.stderr(Stdio::piped());
+    command.kill_on_drop(true);
     command.env("NO_COLOR", "1");
     command.env("CLICOLOR", "0");
     command.env("TERM", "dumb");
     command.env("CI", "1");
     suppress_child_console(&mut command);
     command
+}
+
+struct AntigravityCapture {
+    stdout_path: PathBuf,
+    log_path: PathBuf,
+}
+
+fn prepare_antigravity_capture(
+    tool: &ToolDefinition,
+    invocation: &mut ToolInvocation,
+) -> Option<AntigravityCapture> {
+    if !uses_antigravity_stdout_file_capture(tool) {
+        return None;
+    }
+
+    let capture_id = Uuid::new_v4();
+    let stdout_path =
+        env::temp_dir().join(format!("rust-multi-cli-harness-{capture_id}-stdout.txt"));
+    let log_path = env::temp_dir().join(format!(
+        "rust-multi-cli-harness-{capture_id}-antigravity.log"
+    ));
+    ensure_antigravity_log_file_arg(invocation, &log_path);
+    *invocation = redirect_stdout_to_file_invocation(invocation, &stdout_path);
+    Some(AntigravityCapture {
+        stdout_path,
+        log_path,
+    })
+}
+
+fn uses_antigravity_stdout_file_capture(tool: &ToolDefinition) -> bool {
+    tool.id.eq_ignore_ascii_case("antigravity-cli")
+        || tool.command.eq_ignore_ascii_case("agy")
+        || PathBuf::from(&tool.command)
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .is_some_and(|stem| stem.eq_ignore_ascii_case("agy"))
+}
+
+fn ensure_antigravity_log_file_arg(invocation: &mut ToolInvocation, log_path: &Path) {
+    let has_log_file = invocation
+        .args
+        .iter()
+        .any(|arg| arg.to_string_lossy().eq_ignore_ascii_case("--log-file"));
+
+    if !has_log_file {
+        invocation.args.push(OsString::from("--log-file"));
+        invocation.args.push(log_path.as_os_str().to_owned());
+    }
+}
+
+#[cfg(windows)]
+fn redirect_stdout_to_file_invocation(
+    invocation: &ToolInvocation,
+    stdout_path: &Path,
+) -> ToolInvocation {
+    let command_line = command_line_with_stdout_redirect(
+        invocation,
+        &stdout_path.as_os_str().to_string_lossy(),
+        quote_windows_cmd_arg,
+    );
+
+    ToolInvocation {
+        program: OsString::from("cmd.exe"),
+        args: vec![
+            OsString::from("/D"),
+            OsString::from("/S"),
+            OsString::from("/C"),
+            OsString::from(command_line),
+        ],
+    }
+}
+
+#[cfg(not(windows))]
+fn redirect_stdout_to_file_invocation(
+    invocation: &ToolInvocation,
+    stdout_path: &std::path::Path,
+) -> ToolInvocation {
+    let command_line = command_line_with_stdout_redirect(
+        invocation,
+        &stdout_path.as_os_str().to_string_lossy(),
+        quote_posix_shell_arg,
+    );
+
+    ToolInvocation {
+        program: OsString::from("sh"),
+        args: vec![OsString::from("-c"), OsString::from(command_line)],
+    }
+}
+
+fn command_line_with_stdout_redirect(
+    invocation: &ToolInvocation,
+    stdout_path: &str,
+    quote: fn(&str) -> String,
+) -> String {
+    let mut parts = Vec::with_capacity(invocation.args.len() + 3);
+    parts.push(quote(&invocation.program.to_string_lossy()));
+    parts.extend(
+        invocation
+            .args
+            .iter()
+            .map(|arg| quote(&arg.to_string_lossy())),
+    );
+    parts.push(">".to_owned());
+    parts.push(quote(stdout_path));
+    parts.join(" ")
+}
+
+#[cfg(windows)]
+fn quote_windows_cmd_arg(value: &str) -> String {
+    format!("\"{}\"", value.replace('"', "\"\""))
+}
+
+#[cfg(not(windows))]
+fn quote_posix_shell_arg(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+async fn read_redirected_stdout_file(path: &PathBuf) -> Result<String, ExecutionError> {
+    match async_fs::read(path).await {
+        Ok(bytes) => Ok(String::from_utf8_lossy(&bytes).into_owned()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+        Err(err) => Err(ExecutionError::Io(err)),
+    }
+}
+
+async fn recover_antigravity_output_from_log(log_path: &Path) -> Result<String, ExecutionError> {
+    let log_text = match async_fs::read_to_string(log_path).await {
+        Ok(text) => text,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(String::new()),
+        Err(err) => return Err(ExecutionError::Io(err)),
+    };
+
+    let Some(conversation_id) = extract_last_uuid(&log_text) else {
+        return Ok(String::new());
+    };
+
+    let Some(db_path) = antigravity_conversation_db_path(&conversation_id) else {
+        return Ok(String::new());
+    };
+    let bytes = match async_fs::read(db_path).await {
+        Ok(bytes) => bytes,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(String::new()),
+        Err(err) => return Err(ExecutionError::Io(err)),
+    };
+
+    Ok(extract_antigravity_bot_text(&bytes).unwrap_or_default())
+}
+
+fn extract_last_uuid(text: &str) -> Option<String> {
+    text.split(|character: char| !character.is_ascii_hexdigit() && character != '-')
+        .filter(|part| part.len() == 36)
+        .filter(|part| Uuid::parse_str(part).is_ok())
+        .last()
+        .map(str::to_owned)
+}
+
+fn antigravity_conversation_db_path(conversation_id: &str) -> Option<PathBuf> {
+    env::var_os("USERPROFILE").map(PathBuf::from).map(|home| {
+        home.join(".gemini")
+            .join("antigravity-cli")
+            .join("conversations")
+            .join(format!("{conversation_id}.db"))
+    })
+}
+
+fn extract_antigravity_bot_text(bytes: &[u8]) -> Option<String> {
+    let start = find_last_subsequence(bytes, b"bot-")?;
+    let text = String::from_utf8_lossy(&bytes[start..]);
+    printable_text_runs(&text)
+        .into_iter()
+        .find(|candidate| is_likely_antigravity_answer(candidate))
+}
+
+fn find_last_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack
+        .windows(needle.len())
+        .rposition(|window| window == needle)
+}
+
+fn printable_text_runs(text: &str) -> Vec<String> {
+    let mut runs = Vec::new();
+    let mut current = String::new();
+
+    for character in text.chars() {
+        if character == '\u{fffd}' || character.is_control() {
+            push_printable_run(&mut runs, &mut current);
+            continue;
+        }
+
+        current.push(character);
+    }
+
+    push_printable_run(&mut runs, &mut current);
+    runs
+}
+
+fn push_printable_run(runs: &mut Vec<String>, current: &mut String) {
+    let trimmed = current.trim();
+    if trimmed.chars().count() >= 2 {
+        runs.push(trimmed.to_owned());
+    }
+    current.clear();
+}
+
+fn is_likely_antigravity_answer(candidate: &str) -> bool {
+    let lower = candidate.to_ascii_lowercase();
+    !lower.starts_with("bot-")
+        && !lower.contains("user_settings_change")
+        && !lower.contains("respond with exactly")
+        && !lower.contains("conversation")
+        && !lower.contains("sessionid")
+        && Uuid::parse_str(candidate).is_err()
 }
 
 fn suppress_child_console(command: &mut Command) {
@@ -524,11 +764,22 @@ async fn read_stream<R>(
 where
     R: tokio::io::AsyncRead + Unpin,
 {
-    let mut lines = BufReader::new(reader).lines();
+    let mut reader = BufReader::new(reader);
     let mut collected = String::new();
     let mut first_line = true;
+    let mut line_bytes = Vec::new();
 
-    while let Some(line) = lines.next_line().await? {
+    loop {
+        line_bytes.clear();
+        let bytes_read = reader.read_until(b'\n', &mut line_bytes).await?;
+        if bytes_read == 0 {
+            break;
+        }
+        while matches!(line_bytes.last(), Some(b'\n' | b'\r')) {
+            line_bytes.pop();
+        }
+        let line = String::from_utf8_lossy(&line_bytes).into_owned();
+
         if !first_line {
             collected.push('\n');
         }
@@ -930,5 +1181,56 @@ mod tests {
         assert_eq!(display, "hello");
         assert_eq!(payload["line"], "hello");
         assert!(!truncated);
+    }
+
+    #[test]
+    fn antigravity_capture_uses_stdout_and_log_files_without_forcing_json_flag() {
+        let tool = ToolDefinition {
+            id: "antigravity-cli".to_owned(),
+            name: "Antigravity CLI".to_owned(),
+            command: "agy".to_owned(),
+            args: vec!["-p".to_owned(), "hello".to_owned()],
+            parser: crate::config::ToolParser {
+                entrypoint: "parse".to_owned(),
+                script: "#{}".to_owned(),
+            },
+            working_dir: None,
+        };
+        let mut invocation = ToolInvocation {
+            program: OsString::from("agy"),
+            args: tool.args.iter().map(OsString::from).collect(),
+        };
+
+        let capture = prepare_antigravity_capture(&tool, &mut invocation)
+            .expect("antigravity should use redirected stdout capture");
+        let args = invocation
+            .args
+            .iter()
+            .map(|arg| arg.to_string_lossy())
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        assert!(capture
+            .stdout_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.ends_with("-stdout.txt")));
+        assert!(capture
+            .log_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.ends_with("-antigravity.log")));
+        assert!(args.contains("--log-file"));
+        assert!(args.contains('>'));
+        assert!(!args.contains("--output-format"));
+    }
+
+    #[test]
+    fn extract_antigravity_bot_text_reads_last_bot_payload() {
+        let bytes = b"user prompt\0bot-12345678-1234-1234-1234-123456789abc\0B\x05hello\0older";
+
+        let output = extract_antigravity_bot_text(bytes).expect("bot text");
+
+        assert_eq!(output, "hello");
     }
 }

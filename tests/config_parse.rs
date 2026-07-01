@@ -42,7 +42,7 @@ fn parses_tools_toml_with_expected_tools() {
     assert_eq!(parsed.tools[2].command, "copilot");
     assert_eq!(
         parsed.tools[2].args,
-        vec!["--output-format", "json", "--allow-all-tools", "--effort", "low", "-p"]
+        vec!["--output-format", "json", "--allow-all-tools", "-p"]
     );
 
     assert_eq!(parsed.tools[0].parser.entrypoint, "parse");

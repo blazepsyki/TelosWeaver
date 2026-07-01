@@ -13,7 +13,6 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::broadcast;
 use tokio::task::JoinSet;
-use tokio::time::timeout;
 use uuid::Uuid;
 
 use crate::config::{Config, SupervisorDefinition, ToolDefinition};
@@ -64,6 +63,7 @@ pub struct HarnessContextSnapshot {
 #[derive(Debug)]
 pub enum OrchestrationError {
     MissingSupervisor,
+    Halted,
     Io(std::io::Error),
     Spawn(std::io::Error),
     Timeout { command: String, duration: Duration },
@@ -78,6 +78,7 @@ impl fmt::Display for OrchestrationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingSupervisor => write!(f, "supervisor configuration is missing"),
+            Self::Halted => write!(f, "orchestration halted by user"),
             Self::Io(err) => write!(f, "io error: {err}"),
             Self::Spawn(err) => write!(f, "failed to spawn supervisor: {err}"),
             Self::Timeout { command, duration } => {
@@ -185,7 +186,7 @@ pub async fn run_orchestration_loop(
         )
         .await;
 
-        let supervisor_decision = run_supervisor_cli(
+        let supervisor_decision = match run_supervisor_cli(
             supervisor,
             &context_path,
             supervisor_timeout,
@@ -193,7 +194,21 @@ pub async fn run_orchestration_loop(
             &state,
             &correlation_id,
         )
-        .await?;
+        .await
+        {
+            Ok(decision) => decision,
+            Err(OrchestrationError::Halted) => {
+                broadcast_system_event(
+                    &state,
+                    broadcaster.as_ref(),
+                    "Orchestration halted by user".to_owned(),
+                    &correlation_id,
+                )
+                .await;
+                return Ok(());
+            }
+            Err(err) => return Err(err),
+        };
 
         {
             let mut state_guard = state.write().await;
@@ -394,7 +409,7 @@ async fn run_worker_action(
         broadcaster.clone(),
         &action.tool_id,
         action.task_id.clone(),
-        correlation_id,
+        correlation_id.clone(),
         worker_timeout,
     )
     .await;
@@ -402,14 +417,15 @@ async fn run_worker_action(
     if let Err(err) = exec_result {
         let error_msg = format!("Worker system error: {err}");
         let message = HarnessMessage::system(
-            &action.tool_id,
             &action.task_id,
+            &correlation_id,
             MessageLevel::Error,
             error_msg.clone(),
             json!({ "error": error_msg }),
         );
         {
             let mut state_guard = state.write().await;
+            state_guard.finish_tool_run_for_step(&action.task_id);
             state_guard.push_context(message.clone());
             state_guard.record_step_error(&action.task_id, error_msg);
         }
@@ -457,6 +473,7 @@ async fn run_supervisor_cli(
     command.stdin(Stdio::null()); // 입력 대기를 방지하여 프로세스 행(Hang) 해결
     command.stdout(Stdio::piped());
     command.stderr(Stdio::piped());
+    command.kill_on_drop(true);
     suppress_child_console(&mut command);
     command.env("HARNESS_CONTEXT_FILE", context_path);
     if !supervisor.args.is_empty() {
@@ -466,7 +483,14 @@ async fn run_supervisor_cli(
         command.current_dir(PathBuf::from(working_dir));
     }
 
-    let mut child = command.spawn().map_err(OrchestrationError::Spawn)?;
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(err) => {
+            let mut state_guard = state.write().await;
+            state_guard.finish_tool_run_for_step("supervisor-cycle");
+            return Err(OrchestrationError::Spawn(err));
+        }
+    };
     let stdout = child
         .stdout
         .take()
@@ -489,19 +513,39 @@ async fn run_supervisor_cli(
         correlation_id.to_owned(),
     ));
 
-    let exit_status = match timeout(timeout_duration, child.wait()).await {
-        Ok(result) => result.map_err(OrchestrationError::Io)?,
-        Err(_) => {
-            let _ = child.kill().await;
-            let _ = child.wait().await;
-            {
-                let mut state_guard = state.write().await;
-                state_guard.record_step_error("supervisor-cycle", "supervisor timed out");
+    let timeout_sleep = tokio::time::sleep(timeout_duration);
+    tokio::pin!(timeout_sleep);
+    let exit_status = loop {
+        tokio::select! {
+            result = child.wait() => {
+                break result.map_err(OrchestrationError::Io)?;
             }
-            return Err(OrchestrationError::Timeout {
-                command: supervisor.command.clone(),
-                duration: timeout_duration,
-            });
+            _ = &mut timeout_sleep => {
+                let _ = child.kill().await;
+                let _ = child.wait().await;
+                {
+                    let mut state_guard = state.write().await;
+                    state_guard.finish_tool_run_for_step("supervisor-cycle");
+                    state_guard.record_step_error("supervisor-cycle", "supervisor timed out");
+                }
+                return Err(OrchestrationError::Timeout {
+                    command: supervisor.command.clone(),
+                    duration: timeout_duration,
+                });
+            }
+            _ = tokio::time::sleep(Duration::from_millis(200)) => {
+                let status = {
+                    let state_guard = state.read().await;
+                    state_guard.status.clone()
+                };
+                if status == crate::state::SystemStatus::Halted {
+                    let _ = child.kill().await;
+                    let _ = child.wait().await;
+                    let mut state_guard = state.write().await;
+                    state_guard.finish_tool_run_for_step("supervisor-cycle");
+                    return Err(OrchestrationError::Halted);
+                }
+            }
         }
     };
 
@@ -839,11 +883,22 @@ async fn read_text_stream<R>(
 where
     R: tokio::io::AsyncRead + Unpin,
 {
-    let mut lines = BufReader::new(reader).lines();
+    let mut reader = BufReader::new(reader);
     let mut collected = String::new();
     let mut first_line = true;
+    let mut line_bytes = Vec::new();
 
-    while let Some(line) = lines.next_line().await? {
+    loop {
+        line_bytes.clear();
+        let bytes_read = reader.read_until(b'\n', &mut line_bytes).await?;
+        if bytes_read == 0 {
+            break;
+        }
+        while matches!(line_bytes.last(), Some(b'\n' | b'\r')) {
+            line_bytes.pop();
+        }
+        let line = String::from_utf8_lossy(&line_bytes).into_owned();
+
         if !first_line {
             collected.push('\n');
         }
