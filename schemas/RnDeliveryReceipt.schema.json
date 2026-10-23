@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DeliveryReceipt",
+  "type": "object",
+  "properties": {
+    "messageId": {
+      "type": "string"
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "$ref": "#/$defs/DeliveryReceiptStatus"
+    },
+    "updatedAt": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "messageId",
+    "status",
+    "updatedAt"
+  ],
+  "$defs": {
+    "DeliveryReceiptStatus": {
+      "description": "전달 상태입니다. 어떤 값도 Task 완료를 뜻하지 않습니다 (DELEG-09).",
+      "type": "string",
+      "enum": [
+        "accepted",
+        "queued",
+        "delivered",
+        "held",
+        "refused",
+        "expired",
+        "failed"
+      ]
+    }
+  }
+}

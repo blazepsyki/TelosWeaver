@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RnResponse",
+  "description": "Wire에서 `result` 또는 `error` 필드 하나로 나타납니다.",
+  "type": "object",
+  "properties": {
+    "protocolVersion": {
+      "type": "string"
+    },
+    "requestId": {
+      "description": "요청과 같은 값입니다.",
+      "type": "string"
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "result": true
+      },
+      "required": [
+        "result"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/RnError"
+        }
+      },
+      "required": [
+        "error"
+      ]
+    }
+  ],
+  "required": [
+    "protocolVersion",
+    "requestId"
+  ],
+  "$defs": {
+    "RnError": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/RnErrorCode"
+        },
+        "details": true,
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "RnErrorCode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "unknown_method",
+            "invalid_params",
+            "not_found",
+            "refused",
+            "expired",
+            "unavailable",
+            "internal"
+          ]
+        },
+        {
+          "description": "Fork/RPC 비호환 (COMM-08)",
+          "type": "string",
+          "const": "unsupported_protocol_version"
+        },
+        {
+          "description": "Native ID·Host·Fingerprint 불일치 또는 주소 재바인딩 (COMM-06)",
+          "type": "string",
+          "const": "identity_mismatch"
+        },
+        {
+          "description": "같은 멱등 키에 다른 내용",
+          "type": "string",
+          "const": "idempotency_conflict"
+        }
+      ]
+    }
+  }
+}

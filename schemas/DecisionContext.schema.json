@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DecisionContext",
+  "description": "결정 검증 시점의 입력 Snapshot (Phase 0 최소). 검증 결과는 이 Snapshot과 함께 기록합니다.\n권한 상한은 사용자·Host·프로젝트·Plan·부모 위임의 교집합을 Core가 계산해 넣습니다 (§13.1).",
+  "type": "object",
+  "properties": {
+    "allowedBudgetProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowedPermissionProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowedProviders": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowedWorkspaceModes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/WorkspaceMode"
+      }
+    },
+    "controllerEpoch": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "limits": {
+      "$ref": "#/$defs/ControlLimits"
+    },
+    "planId": {
+      "type": "string"
+    },
+    "planRevision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "policyRevision": {
+      "type": "string"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TaskSummary"
+      }
+    }
+  },
+  "required": [
+    "planId",
+    "planRevision",
+    "controllerEpoch",
+    "policyRevision",
+    "limits",
+    "tasks",
+    "allowedProviders",
+    "allowedWorkspaceModes",
+    "allowedPermissionProfileIds",
+    "allowedBudgetProfileIds"
+  ],
+  "$defs": {
+    "ControlLimits": {
+      "type": "object",
+      "properties": {
+        "executionRetryLimit": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "maxDelegationDepth": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "maxPlanTasks": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "providerConcurrency": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "reworkLimit": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "providerConcurrency",
+        "maxDelegationDepth",
+        "maxPlanTasks",
+        "executionRetryLimit",
+        "reworkLimit"
+      ]
+    },
+    "TaskStatus": {
+      "description": "기본 경로: Created → Ready → Running → Executed → Validating → Verified → Completed.\n전이 규칙은 §9.4 표를 따르며 Core Scheduler가 소유합니다.",
+      "type": "string",
+      "enum": [
+        "Created",
+        "Blocked",
+        "Ready",
+        "Running",
+        "WaitingChild",
+        "WaitingMaster",
+        "WaitingUser",
+        "Executed",
+        "Validating",
+        "Verified",
+        "Completed",
+        "Failed",
+        "Skipped",
+        "Cancelling",
+        "Cancelled",
+        "Interrupted",
+        "NeedsReconciliation"
+      ]
+    },
+    "TaskSummary": {
+      "description": "결정 검증에 쓰는 Task 요약입니다.",
+      "type": "object",
+      "properties": {
+        "delegationDepth": {
+          "description": "최상위 Task는 0입니다.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "id": {
+          "type": "string"
+        },
+        "parentTaskId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus"
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "status",
+        "delegationDepth"
+      ]
+    },
+    "WorkspaceMode": {
+      "description": "P0 실행 대상은 None·Directory·GitWorktree입니다 (§10).",
+      "type": "string",
+      "enum": [
+        "none",
+        "directory",
+        "git-worktree",
+        "sandbox",
+        "remote"
+      ]
+    }
+  }
+}

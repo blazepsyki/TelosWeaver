@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ApiResponse",
+  "description": "Wire에서 `result` 또는 `error` 필드 하나로 나타납니다.",
+  "type": "object",
+  "properties": {
+    "protocolVersion": {
+      "type": "string"
+    },
+    "requestId": {
+      "type": "string"
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "result": true
+      },
+      "required": [
+        "result"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ApiError"
+        }
+      },
+      "required": [
+        "error"
+      ]
+    }
+  ],
+  "required": [
+    "protocolVersion",
+    "requestId"
+  ],
+  "$defs": {
+    "ApiError": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ApiErrorCode"
+        },
+        "details": true,
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "ApiErrorCode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "unauthenticated",
+            "forbidden",
+            "invalid_request",
+            "unsupported_method",
+            "unsupported_protocol_version",
+            "not_found",
+            "conflict",
+            "internal"
+          ]
+        },
+        {
+          "description": "필요한 구성 요소(Provider, RN 등)를 지금 쓸 수 없음",
+          "type": "string",
+          "const": "unavailable"
+        }
+      ]
+    }
+  }
+}

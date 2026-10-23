@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RnHealth",
+  "description": "`health.get` 결과. Fork 배포 메타데이터를 함께 보고합니다 (§12.3).",
+  "type": "object",
+  "properties": {
+    "forkCommit": {
+      "type": "string"
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "rpcVersion": {
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/RnHealthStatus"
+    },
+    "upstreamCommit": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "rpcVersion",
+    "upstreamCommit",
+    "forkCommit",
+    "hostId"
+  ],
+  "$defs": {
+    "RnHealthStatus": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "degraded"
+      ]
+    }
+  }
+}

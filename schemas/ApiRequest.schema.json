@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ApiRequest",
+  "type": "object",
+  "properties": {
+    "method": {
+      "$ref": "#/$defs/ApiMethod"
+    },
+    "params": true,
+    "protocolVersion": {
+      "type": "string"
+    },
+    "requestId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "protocolVersion",
+    "requestId",
+    "method",
+    "params"
+  ],
+  "$defs": {
+    "ApiMethod": {
+      "oneOf": [
+        {
+          "description": "[`HelloParams`] → [`HelloResult`]. 연결마다 첫 요청이어야 합니다.",
+          "type": "string",
+          "const": "core.hello"
+        },
+        {
+          "description": "빈 객체 → [`HealthResult`]",
+          "type": "string",
+          "const": "core.health"
+        },
+        {
+          "description": "[`RunsStartParams`] → [`RunsStartResult`]. Run ID는 Core가 발급합니다.",
+          "type": "string",
+          "const": "runs.start"
+        },
+        {
+          "description": "[`RunRef`] → [`RunsInspectResult`]",
+          "type": "string",
+          "const": "runs.inspect"
+        },
+        {
+          "description": "[`RunsCancelParams`] → [`RunsCancelResult`]. 접수 여부이며 실제 종료가 아닙니다.",
+          "type": "string",
+          "const": "runs.cancel"
+        },
+        {
+          "description": "[`RunsSubscribeParams`] → [`RunsSubscribeResult`], 이후 `runs.event` 알림",
+          "type": "string",
+          "const": "runs.subscribe"
+        },
+        {
+          "description": "[`SubscriptionRef`] → 빈 객체",
+          "type": "string",
+          "const": "runs.unsubscribe"
+        }
+      ]
+    }
+  }
+}

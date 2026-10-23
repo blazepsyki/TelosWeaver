@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RnRequest",
+  "type": "object",
+  "properties": {
+    "method": {
+      "$ref": "#/$defs/RnMethod"
+    },
+    "params": true,
+    "protocolVersion": {
+      "type": "string"
+    },
+    "requestId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "protocolVersion",
+    "requestId",
+    "method",
+    "params"
+  ],
+  "$defs": {
+    "RnMethod": {
+      "oneOf": [
+        {
+          "description": "빈 객체 → [`RnHealth`]",
+          "type": "string",
+          "const": "health.get"
+        },
+        {
+          "description": "빈 객체 → `Vec<ProviderConnector>`",
+          "type": "string",
+          "const": "providers.list"
+        },
+        {
+          "description": "[`SessionQuery`] → `Vec<SessionEndpoint>`",
+          "type": "string",
+          "const": "sessions.discover"
+        },
+        {
+          "description": "[`EndpointRef`] → [`SessionEndpoint`]",
+          "type": "string",
+          "const": "sessions.resolve"
+        },
+        {
+          "description": "[`EndpointRef`] → [`SessionCapabilities`]",
+          "type": "string",
+          "const": "sessions.capabilities"
+        },
+        {
+          "description": "[`MessageEnvelope`] → [`DeliveryReceipt`]",
+          "type": "string",
+          "const": "messages.send"
+        },
+        {
+          "description": "[`MessageRef`] → [`DeliveryReceipt`]",
+          "type": "string",
+          "const": "messages.status"
+        },
+        {
+          "description": "[`SubscribeParams`] → 이후 [`RnEvent`] 스트림",
+          "type": "string",
+          "const": "messages.subscribe"
+        },
+        {
+          "description": "P1. Agy 탐지·버전·기능 진단",
+          "type": "string",
+          "const": "providers.agy.probe"
+        }
+      ]
+    }
+  }
+}

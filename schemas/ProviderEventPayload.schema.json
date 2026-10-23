@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProviderEventPayload",
+  "description": "kind별 Payload의 합. Wire에서는 태그 없이 Payload 객체만 보냅니다.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/SessionStartedPayload"
+    },
+    {
+      "$ref": "#/$defs/TextDeltaPayload"
+    },
+    {
+      "$ref": "#/$defs/ToolStartedPayload"
+    },
+    {
+      "$ref": "#/$defs/ToolCompletedPayload"
+    },
+    {
+      "$ref": "#/$defs/ApprovalRequiredPayload"
+    },
+    {
+      "$ref": "#/$defs/UsagePayload"
+    },
+    {
+      "$ref": "#/$defs/TurnFinishedPayload"
+    },
+    {
+      "$ref": "#/$defs/ProcessExitedPayload"
+    },
+    {
+      "$ref": "#/$defs/ErrorPayload"
+    }
+  ],
+  "$defs": {
+    "ApprovalRequiredPayload": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "answerable": {
+          "description": "실행 중 응답을 보낼 수 있는지. Agy처럼 응답 경로가 없으면 `false`입니다 (§7.4).",
+          "type": "boolean"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "requestId",
+        "action",
+        "summary",
+        "answerable"
+      ]
+    },
+    "ErrorPayload": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/FailureKind"
+        },
+        "message": {
+          "type": "string"
+        },
+        "terminal": {
+          "description": "이 오류 뒤 Run이 더 진행되지 않는지. 종료 이벤트는 별도로 보냅니다.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "message",
+        "terminal"
+      ]
+    },
+    "FailureKind": {
+      "description": "알 수 없는 상태를 성공으로 처리하지 않습니다. 분류할 수 없으면 `Unknown`입니다.",
+      "type": "string",
+      "enum": [
+        "start_failed",
+        "authentication",
+        "configuration",
+        "protocol_parse",
+        "tool_denied",
+        "timeout",
+        "resource_limit",
+        "provider",
+        "unsupported_capability",
+        "unknown"
+      ]
+    },
+    "ProcessExitedPayload": {
+      "type": "object",
+      "properties": {
+        "childrenReaped": {
+          "description": "자식 프로세스까지 회수했는지. 확인할 수 없으면 생략합니다.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "exitCode": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32"
+        },
+        "termination": {
+          "$ref": "#/$defs/ProcessTermination"
+        }
+      },
+      "required": [
+        "termination"
+      ]
+    },
+    "ProcessTermination": {
+      "type": "string",
+      "enum": [
+        "exited",
+        "terminated_on_request",
+        "killed",
+        "external",
+        "unknown"
+      ]
+    },
+    "SessionStartedPayload": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "providerVersion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "TextChannel": {
+      "oneOf": [
+        {
+          "description": "에이전트의 응답 본문",
+          "type": "string",
+          "const": "assistant"
+        },
+        {
+          "description": "진행 상황 등 Provider가 표시용으로 보낸 텍스트",
+          "type": "string",
+          "const": "status"
+        }
+      ]
+    },
+    "TextDeltaPayload": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "$ref": "#/$defs/TextChannel"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "text"
+      ]
+    },
+    "ToolCompletedPayload": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/ToolOutcome"
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "outcome"
+      ]
+    },
+    "ToolOutcome": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "succeeded",
+            "failed",
+            "unknown"
+          ]
+        },
+        {
+          "description": "권한 정책이나 Provider가 실행을 거부했습니다.",
+          "type": "string",
+          "const": "denied"
+        }
+      ]
+    },
+    "ToolStartedPayload": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "TurnFinishedPayload": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/TurnStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "TurnStatus": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "failed",
+        "cancelled",
+        "interrupted",
+        "unknown"
+      ]
+    },
+    "UsagePayload": {
+      "description": "캐시 값이 입력 합계에 포함되어 있으면 `cache_included_in_input`을 `true`로 보고합니다 (§8.3).",
+      "type": "object",
+      "properties": {
+        "cacheIncludedInInput": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "cacheReadTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "cacheWriteTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "costUsd": {
+          "description": "API 실제 비용만 기록합니다. CLI 구독 사용량을 비용으로 환산하지 않습니다.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "inputTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "scope": {
+          "$ref": "#/$defs/UsageScope"
+        },
+        "source": {
+          "$ref": "#/$defs/UsageSource"
+        }
+      },
+      "required": [
+        "scope",
+        "source"
+      ]
+    },
+    "UsageScope": {
+      "oneOf": [
+        {
+          "description": "직전 usage 이벤트 이후의 증가량",
+          "type": "string",
+          "const": "delta"
+        },
+        {
+          "description": "Run 시작 이후 누적값",
+          "type": "string",
+          "const": "cumulative"
+        }
+      ]
+    },
+    "UsageSource": {
+      "type": "string",
+      "enum": [
+        "provider_reported",
+        "estimated"
+      ]
+    }
+  }
+}

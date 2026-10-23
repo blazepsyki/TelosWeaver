@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HelloParams",
+  "type": "object",
+  "properties": {
+    "clientName": {
+      "type": "string"
+    },
+    "clientVersion": {
+      "type": "string"
+    },
+    "token": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "clientName",
+    "clientVersion",
+    "token"
+  ]
+}

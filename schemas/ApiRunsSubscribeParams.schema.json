@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunsSubscribeParams",
+  "type": "object",
+  "properties": {
+    "afterSequence": {
+      "description": "이 값보다 큰 `sequence`부터 보냅니다. 0은 처음부터입니다.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "runId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "runId",
+    "afterSequence"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunsCancelResult",
+  "type": "object",
+  "properties": {
+    "accepted": {
+      "description": "`false`면 이미 끝난 Run이라 취소할 것이 없습니다.",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "accepted"
+  ]
+}

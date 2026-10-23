@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SubscriptionClosedParams",
+  "type": "object",
+  "properties": {
+    "lastSequence": {
+      "description": "마지막으로 보낸 이벤트 순서. 재구독의 `afterSequence`로 씁니다.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "reason": {
+      "$ref": "#/$defs/SubscriptionCloseReason"
+    },
+    "subscriptionId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "subscriptionId",
+    "reason",
+    "lastSequence"
+  ],
+  "$defs": {
+    "SubscriptionCloseReason": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "unsubscribed",
+            "shutdown"
+          ]
+        },
+        {
+          "description": "Run의 마지막 이벤트까지 보냈습니다.",
+          "type": "string",
+          "const": "run_finished"
+        },
+        {
+          "description": "요청한 순서의 이벤트가 보존 범위를 벗어났습니다. `runs.inspect` 후 다시 구독합니다.",
+          "type": "string",
+          "const": "events_unavailable"
+        },
+        {
+          "description": "느린 구독자로 판단해 끊었습니다. 제어 이벤트는 영속 기록에서 다시 조회할 수 있습니다 (§15.1).",
+          "type": "string",
+          "const": "slow_consumer"
+        }
+      ]
+    }
+  }
+}
