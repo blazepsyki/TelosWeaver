@@ -1,4 +1,4 @@
-# Rust Multi-CLI Harness - 프로젝트 상세 분석 보고서
+# TelosWeaver (구 Rust Multi-CLI Harness) - 프로젝트 상세 분석 보고서
 
 ## 목차
 
@@ -15,7 +15,7 @@
 ## 프로젝트 개요
 
 ### 기본 정보
-- **프로젝트명**: rust-multi-cli-harness
+- **프로젝트명**: TelosWeaver (구 `rust-multi-cli-harness`)
 - **버전**: 0.1.0
 - **에디션**: Rust 2021
 - **목적**: 다중 CLI 도구를 중앙집중식으로 관리하고 오케스트레이션하는 플랫폼
@@ -269,7 +269,8 @@ src/
 **영향**: 애플리케이션 중단 (TUI는 계속, 웹은 다운)  
 
 web.rs에서 unwrap() 사용:
-\\\ust
+\\\
+ust
 let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 axum::serve(listener, app).await.unwrap();
 \\\
@@ -309,7 +310,8 @@ main.rs에서 고정값 60초 사용.
 #### 1. 메모리 누수 방지
 AppState.context_log를 VecDeque로 변경하고 크기 제한:
 
-\\\ust
+\\\
+ust
 use std::collections::VecDeque;
 
 pub struct AppState {
@@ -330,7 +332,8 @@ impl AppState {
 #### 2. Rustdoc 주석 추가
 모든 공개 함수에 doc 주석 추가:
 
-\\\ust
+\\\
+ust
 /// CLI 도구를 실행하고 출력을 캡처합니다.
 /// 
 /// # Arguments
@@ -342,7 +345,8 @@ pub async fn execute_tool(&self, tool_id: &str, ...)
 \\\
 
 #### 3. 웹 서버 에러 처리 개선
-\\\ust
+\\\
+ust
 pub async fn start_web_server(...) {
     let listener = match tokio::net::TcpListener::bind(&addr).await {
         Ok(l) => l,
