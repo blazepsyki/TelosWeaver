@@ -24,8 +24,8 @@
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | 없음 | 배정 기록 완료. 다음: CONTRACT와 G0 범위 확정 |
-| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | reserved | `ph0/contract` / 대표 저장소 작업 트리 | `fca1669` | 없음 | 구현 착수 전. 착수 시 `in-progress`로 갱신 |
+| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | 없음 | G0 준비 완료(`556e62f`). CONTRACT 통합 후 G0 확정 |
+| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | in-progress | `ph0/contract` / `D:\worktree\TelosWeaver\ph0-contract` | `556e62f` | 없음 | §5 계약 작성 중. G0 확정 전 초안 |
 | PH0-HOST | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 공용 런타임·Core API 계약에 의존 |
 | PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | G0 후 Parser/Fixture 병렬 진행 가능 |
 | PH0-CLAUDE | 미배정 | unassigned | 미지정 | 미지정 | 없음 | G0 후 Parser/Fixture 병렬 진행 가능 |
@@ -85,5 +85,6 @@ G0 준비에서 등록한 Stub 경로입니다. 등록된 파일은 이후 해�
 |---|---|---|---|
 | 2026-10-24 01:05 | `claude-opus-5.5/session-c9336d2c` | 사용자 지정으로 통합 담당 인수. PH0-INTEGRATION `unassigned → in-progress`, PH0-CONTRACT `unassigned → reserved`, G0 `대기 → 준비 중`. 대표 저장소 기록 | `fca1669` |
 | 2026-10-24 01:23 | `claude-opus-5.5/session-c9336d2c` | G0 준비: 의존성 버전을 `[workspace.dependencies]`로 일원화, `telos-schema` `fixtures` feature 추가, §5의 Stub 경로 등록, G0 계약 범위 기록 | `4b67618` |
+| 2026-10-24 01:24 | `claude-opus-5.5/session-c9336d2c` | PH0-CONTRACT `reserved → in-progress`. Worktree `D:\worktree\TelosWeaver\ph0-contract`, Branch `ph0/contract` 생성 | `556e62f` |
 
-PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 `in-progress`로 기록합니다. PH0-CONTRACT는 같은 담당자가 `ph0/contract` Branch를 만들고 첫 수정에 들어갈 때 `in-progress`로 바꿉니다. 같은 작업 트리를 쓰는 Writer는 이 담당자 한 명뿐이며 두 작업을 직렬로 진행합니다.
+PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 `in-progress`로 기록합니다. 두 작업의 담당자는 같지만 PH0-INTEGRATION은 대표 저장소 `main`, PH0-CONTRACT는 별도 Worktree의 `ph0/contract`에서 진행하며 Writer는 각 작업 트리에 한 명입니다.
