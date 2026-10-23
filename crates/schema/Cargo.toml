@@ -6,7 +6,14 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[features]
+# 다른 crate의 시험에서 쓰는 공통 Fixture (Spec §19.5.2 생성·시험 계약)
+fixtures = []
+
 [dependencies]
-schemars = "1.2.3"
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.154"
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+telos-schema = { workspace = true, features = ["fixtures"] }

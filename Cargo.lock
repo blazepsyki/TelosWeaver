@@ -294,6 +294,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "telos-schema",
 ]
 
 [[package]]

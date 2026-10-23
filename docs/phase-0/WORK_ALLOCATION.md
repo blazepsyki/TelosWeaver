@@ -55,10 +55,35 @@
 
 요청에는 필요한 타입·메서드·의존성과 호환·시험 계획을 포함합니다. 통합 담당과 공통 계약 담당이 먼저 기준 변경을 통합하고 소비 작업에 전달합니다. 소비 작업에서 임시 공통 타입을 만들거나 같은 파일을 각자 수정하여 우회하지 않습니다.
 
-## 5. 변경 기록
+## 5. G0 계약 범위와 등록 경로
+
+Spec §19.5.2의 계약을 아래 위치에 정의합니다. G0 확정 전에는 모두 초안이며, 확정 후 변경은 §4의 변경 요청으로만 처리합니다.
+
+| 계약 | 정의 위치 | 작성 | 사용 작업 |
+|---|---|---|---|
+| Adapter 실행 | `telos_schema::{TaskSpec, RunContext, RunStarted, FailureKind}`, `telos_adapters::{AgentAdapter, AdapterError}` | CONTRACT | HOST, 세 Provider, MASTER |
+| 이벤트·취소 | `telos_schema::ProviderEvent`와 kind별 Payload, `AgentAdapter::{events, cancel_run, inspect_run}` 문서 계약 | CONTRACT | HOST, 세 Provider, INTEGRATION |
+| 공용 프로세스 경계 | `telos_adapters::runtime` 공개 인터페이스 (G0 Stub: `UnimplementedRuntime`) | INTEGRATION 등록, 이후 HOST 구현 | HOST, 세 Provider |
+| 마스터 결정 | `telos_schema::{MasterDecision, DecisionPayload, DecisionContext, DecisionOutcome}` | CONTRACT | MASTER, HOST |
+| Local Core API | `telos_schema::api` (전송·인증 규칙은 모듈 문서) | CONTRACT | HOST, EXT |
+| RN RPC | `telos_schema::rn`, `telos-rn-client`가 재노출 | CONTRACT 정의, INTEGRATION 등록 | RN, INTEGRATION |
+| 생성·시험 | `schemas/*.schema.json`, `telos_schema::fixtures`(`fixtures` feature), `telos_adapters::UnsupportedAdapter` 시험 대역, 증거 형식 `evidence/PH0-INTEGRATION/EVIDENCE_TEMPLATE.md` | CONTRACT, INTEGRATION | 전체 |
+
+G0 준비에서 등록한 Stub 경로입니다. 등록된 파일은 이후 해당 작업의 독점 경로이며 G0 확정 전까지는 등록 내용 외의 구현을 넣지 않습니다.
+
+| 경로 | 이후 소유 | 내용 |
+|---|---|---|
+| `crates/adapters/src/runtime/mod.rs` | HOST | 공용 프로세스 런타임 공개 인터페이스, `UnimplementedRuntime` |
+| `crates/core/src/api/mod.rs`, `crates/core/src/execution/mod.rs` | HOST | 모듈 문서만 |
+| `crates/core/src/master/mod.rs`, `crates/core/src/policy/mod.rs` | MASTER | 모듈 문서만 |
+
+의존성 버전은 루트 `Cargo.toml`의 `[workspace.dependencies]`에서만 정합니다.
+
+## 6. 변경 기록
 
 | 일시 (KST) | 기록자 | 변경 | 기준 Commit |
 |---|---|---|---|
 | 2026-10-24 01:05 | `claude-opus-5.5/session-c9336d2c` | 사용자 지정으로 통합 담당 인수. PH0-INTEGRATION `unassigned → in-progress`, PH0-CONTRACT `unassigned → reserved`, G0 `대기 → 준비 중`. 대표 저장소 기록 | `fca1669` |
+| 2026-10-24 01:23 | `claude-opus-5.5/session-c9336d2c` | G0 준비: 의존성 버전을 `[workspace.dependencies]`로 일원화, `telos-schema` `fixtures` feature 추가, §5의 Stub 경로 등록, G0 계약 범위 기록 | `4b67618` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 `in-progress`로 기록합니다. PH0-CONTRACT는 같은 담당자가 `ph0/contract` Branch를 만들고 첫 수정에 들어갈 때 `in-progress`로 바꿉니다. 같은 작업 트리를 쓰는 Writer는 이 담당자 한 명뿐이며 두 작업을 직렬로 진행합니다.

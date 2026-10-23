@@ -14,6 +14,7 @@ use telos_schema::{
 mod agy;
 mod claude;
 mod codex;
+pub mod runtime;
 mod unimplemented;
 
 pub use agy::AgyAdapter;
