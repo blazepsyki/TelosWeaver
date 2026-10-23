@@ -18,7 +18,7 @@
 | v1.1 | 2026-10-22 | 실행과 통신 분리, Reason Network 평가, 세션 정체성·전달 보장 구분 |
 | v1.2 | 2026-10-22 | 범용 Task·Workspace·Artifact·Validation, RN Fork, 세 Provider의 Managed 실행 |
 | **v1.3** | **2026-10-23** | **TelosWeaver 명칭, 마스터 총괄, 구체적인 입출력·승인·상태 계약, 세션 포크·토큰 효율, 지식·템플릿 단계 분리, 기존 코드와 독립된 새 구현** |
-| v1.3.1 | 2026-10-23 | Core 구현 언어를 TypeScript/Node.js에서 Rust로 변경(DEC-05), 계약 타입을 Rust 표기로 전환, Extension 타입 생성 경로 추가 |
+| v1.3.1 | 2026-10-23 | Core 구현 언어를 TypeScript/Node.js에서 Rust로 변경(DEC-05), 계약 타입을 Rust 표기로 전환, Extension 타입 생성 경로 추가, 기존 harness 코드 삭제 반영(DEC-04) |
 
 ## 목차
 
@@ -60,7 +60,7 @@ TelosWeaver는 서로 다른 AI 에이전트를 사용하여 **목표 확인 →
 | DEC-01 | 초기 제품은 파일·CLI 중심입니다. | 외부 메일·CRM Connector, 예약·외부 이벤트 자동화는 P2로 둡니다. |
 | DEC-02 | 지식 재사용과 파일 기반 Workflow 템플릿은 기본 실행 완성 후 첫 확장 단계에 넣습니다. | 기본 기능은 P1, 자동 지식 축적·시각적 편집은 P2입니다. |
 | DEC-03 | 마스터 에이전트가 작업과 실행 정책을 총괄합니다. | 마스터가 판단하고 Core가 권한·예산·상태를 검사하여 집행합니다. |
-| DEC-04 | 기존 코드는 보존하고 새 구현의 제약으로 고려하지 않습니다. | 기존 모듈·설정·로그·TUI/Web의 재사용·호환·이관을 요구하지 않습니다. |
+| DEC-04 | 기존 Rust harness 코드는 저장소에서 삭제했으며 새 구현과 무관합니다. | 기존 모듈·설정·로그·TUI/Web의 재사용·호환·이관을 요구하지 않습니다. 필요하면 Git 이력에서만 참고합니다. |
 | DEC-05 | Core는 RN Fork와 같은 Rust로 구현합니다. | Core·Adapter·RN Client·공통 Schema를 Cargo Workspace로 구성합니다. VS Code Extension만 TypeScript이며 공통 타입은 Rust에서 생성합니다. Core와 RN의 프로세스·DB 분리는 유지합니다. |
 
 추가 확정 방향은 세션 포크와 문맥 전달 전략을 토큰 효율 설계에 포함하는 것입니다. 포크 지원 여부와 효율은 Provider별로 검증하며 절감률을 사전에 보장하지 않습니다.
@@ -154,7 +154,7 @@ Task DAG, 모델 선택, 검증 성공 판정, 사용자 권한과 최종 Task �
 - 로컬 API·Named Pipe/Unix Socket에는 사용자·프로젝트 범위의 접근 제어를 적용합니다. Webview가 RN이나 Provider에 직접 접속하지 않습니다.
 - 새 구현의 실행 파일·상태 디렉터리·서비스 식별자는 `telos-weaver`로 구분합니다. 기존 harness 파일과 상태를 자동 변환하거나 덮어쓰지 않습니다.
 
-현재 저장소의 기존 코드 배치는 새 구현의 목표 구조가 아닙니다. 서비스 등록 방식은 구현 상세 설계에서 정하되, Core·Extension·RN Client·Provider Adapter·공통 Schema의 의존 방향을 분리합니다.
+저장소 구조는 §3.4의 구성 단위를 따릅니다. 서비스 등록 방식은 구현 상세 설계에서 정하되, Core·Extension·RN Client·Provider Adapter·공통 Schema의 의존 방향을 분리합니다.
 
 ### 3.4 구현 언어와 구성 단위
 
@@ -1233,7 +1233,7 @@ sequenceDiagram
 | GAP-14 RN 설정·Tier | §12, CFG-03·COMM-04 |
 | GAP-15 설정 계층 | §13, CFG-01~02 |
 | GAP-16 자원·진단 | §13~§15, OPS-02·SAFE-04 |
-| GAP-17 기존 코드 | §1.2·§3.3, DEC-04에 따라 호환 요구 제외 |
+| GAP-17 기존 코드 | §1.2·§3.3, DEC-04에 따라 기존 코드 삭제·호환 요구 제외 |
 | GAP-18 우선순위 정합성 | §18~§20, P0/P1의 최소·고급 범위 분리 |
 | GAP-19 포크·토큰 효율 | §7~§8·§13, FORK-01~04 |
 | GAP-20 마스터 총괄 | §3~§4·§21.3, MASTER-01~05 |

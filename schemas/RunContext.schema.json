@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunContext",
+  "type": "object",
+  "properties": {
+    "attempt": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "contextSnapshotId": {
+      "type": "string"
+    },
+    "controllerEpoch": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "idempotencyKey": {
+      "type": "string"
+    },
+    "policyRevision": {
+      "type": "string"
+    },
+    "runId": {
+      "description": "Core가 발급합니다. Adapter가 임의의 다른 Run을 만들지 않습니다.",
+      "type": "string"
+    },
+    "session": {
+      "$ref": "#/$defs/SessionRequest"
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "taskRevision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "workspaceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "runId",
+    "taskId",
+    "taskRevision",
+    "attempt",
+    "controllerEpoch",
+    "hostId",
+    "workspaceId",
+    "contextSnapshotId",
+    "policyRevision",
+    "idempotencyKey",
+    "session"
+  ],
+  "$defs": {
+    "SessionMode": {
+      "description": "Spec §8.1 문맥 전략.",
+      "type": "string",
+      "enum": [
+        "fresh",
+        "resume",
+        "native-fork",
+        "capsule"
+      ]
+    },
+    "SessionRequest": {
+      "type": "object",
+      "properties": {
+        "capsuleVersionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mode": {
+          "$ref": "#/$defs/SessionMode"
+        },
+        "sourceSessionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceTurnId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "mode"
+      ]
+    }
+  }
+}

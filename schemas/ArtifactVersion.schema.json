@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArtifactVersion",
+  "description": "불변입니다. 변경 가능한 작업 디렉터리 경로를 검증된 버전으로 간주하지 않습니다.",
+  "type": "object",
+  "properties": {
+    "artifactId": {
+      "type": "string"
+    },
+    "checksum": {
+      "type": "string"
+    },
+    "contentType": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/ArtifactKind"
+    },
+    "outputName": {
+      "type": "string"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "sourceRevision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "storageUri": {
+      "type": "string"
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "taskRevision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "versionId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "artifactId",
+    "versionId",
+    "taskId",
+    "taskRevision",
+    "runId",
+    "outputName",
+    "kind",
+    "contentType",
+    "storageUri",
+    "checksum",
+    "createdAt"
+  ],
+  "$defs": {
+    "ArtifactKind": {
+      "type": "string",
+      "enum": [
+        "text",
+        "file",
+        "document",
+        "dataset",
+        "code",
+        "diff",
+        "structured"
+      ]
+    }
+  }
+}

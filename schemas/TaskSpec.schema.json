@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskSpec",
+  "type": "object",
+  "properties": {
+    "agent": {
+      "$ref": "#/$defs/AgentSelection"
+    },
+    "budgetProfileId": {
+      "type": "string"
+    },
+    "completionPolicyId": {
+      "type": "string"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "id": {
+      "type": "string"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/InputBinding"
+      }
+    },
+    "objective": {
+      "type": "string"
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/OutputContract"
+      }
+    },
+    "parentTaskId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "permissionProfileId": {
+      "type": "string"
+    },
+    "planId": {
+      "type": "string"
+    },
+    "projectId": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "type": {
+      "$ref": "#/$defs/TaskType"
+    },
+    "validation": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ValidationContract"
+      }
+    },
+    "workspace": {
+      "$ref": "#/$defs/WorkspaceRequest"
+    }
+  },
+  "required": [
+    "id",
+    "revision",
+    "projectId",
+    "planId",
+    "type",
+    "objective",
+    "constraints",
+    "dependencies",
+    "agent",
+    "workspace",
+    "inputs",
+    "outputs",
+    "validation",
+    "permissionProfileId",
+    "budgetProfileId",
+    "completionPolicyId"
+  ],
+  "$defs": {
+    "AgentSelection": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "role"
+      ]
+    },
+    "ArtifactKind": {
+      "type": "string",
+      "enum": [
+        "text",
+        "file",
+        "document",
+        "dataset",
+        "code",
+        "diff",
+        "structured"
+      ]
+    },
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    },
+    "InputBinding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "ref": {
+              "$ref": "#/$defs/ArtifactVersionRef"
+            },
+            "source": {
+              "type": "string",
+              "const": "artifact"
+            }
+          },
+          "required": [
+            "source",
+            "name",
+            "ref"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "outputName": {
+              "type": "string"
+            },
+            "producerTaskId": {
+              "type": "string"
+            },
+            "producerTaskRevision": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "source": {
+              "type": "string",
+              "const": "task-output"
+            }
+          },
+          "required": [
+            "source",
+            "name",
+            "producerTaskId",
+            "producerTaskRevision",
+            "outputName"
+          ]
+        }
+      ]
+    },
+    "OutputContract": {
+      "type": "object",
+      "properties": {
+        "contentType": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "maxCount": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "minCount": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "description": "Task Revision 안에서 유일합니다.",
+          "type": "string"
+        },
+        "relativePath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "schemaId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "required",
+        "minCount",
+        "maxCount"
+      ]
+    },
+    "TaskType": {
+      "type": "string",
+      "enum": [
+        "general",
+        "research",
+        "analysis",
+        "document",
+        "coding",
+        "automation",
+        "review",
+        "custom"
+      ]
+    },
+    "ValidationContract": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ValidationKind"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "targetOutputNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "kind",
+        "targetOutputNames",
+        "parameters",
+        "required"
+      ]
+    },
+    "ValidationKind": {
+      "type": "string",
+      "enum": [
+        "schema",
+        "file",
+        "checksum",
+        "command",
+        "assertion",
+        "ai-review",
+        "human",
+        "visual",
+        "custom"
+      ]
+    },
+    "WorkspaceMode": {
+      "description": "P0 실행 대상은 None·Directory·GitWorktree입니다 (§10).",
+      "type": "string",
+      "enum": [
+        "none",
+        "directory",
+        "git-worktree",
+        "sandbox",
+        "remote"
+      ]
+    },
+    "WorkspaceRequest": {
+      "type": "object",
+      "properties": {
+        "hostId": {
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/WorkspaceMode"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "workspaceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "mode",
+        "hostId",
+        "readOnly"
+      ]
+    }
+  }
+}

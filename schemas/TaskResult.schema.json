@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskResult",
+  "description": "`execution_outcome`이 `Succeeded`여도 Task 완료를 뜻하지 않습니다.",
+  "type": "object",
+  "properties": {
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ArtifactVersionRef"
+      }
+    },
+    "evidenceIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "executionOutcome": {
+      "$ref": "#/$defs/ExecutionOutcome"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "taskRevision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "taskId",
+    "taskRevision",
+    "runId",
+    "executionOutcome",
+    "artifacts",
+    "summary",
+    "unresolved",
+    "evidenceIds"
+  ],
+  "$defs": {
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    },
+    "ExecutionOutcome": {
+      "type": "string",
+      "enum": [
+        "succeeded",
+        "failed",
+        "cancelled",
+        "unknown"
+      ]
+    }
+  }
+}

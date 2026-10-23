@@ -1,0 +1,12 @@
+[package]
+description = "TelosWeaver 공통 계약 타입과 JSON Schema 생성 원본 (Spec §3.4, §4~§13)"
+name = "telos-schema"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"

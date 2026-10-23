@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Capability",
+  "type": "object",
+  "properties": {
+    "checkedAt": {
+      "type": "string"
+    },
+    "evidenceLevel": {
+      "$ref": "#/$defs/EvidenceLevel"
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "providerVersion": {
+      "type": "string"
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "state": {
+      "$ref": "#/$defs/CapabilityState"
+    }
+  },
+  "required": [
+    "state",
+    "providerVersion",
+    "hostId",
+    "checkedAt",
+    "evidenceLevel"
+  ],
+  "$defs": {
+    "CapabilityState": {
+      "type": "string",
+      "enum": [
+        "supported",
+        "unsupported",
+        "unverified"
+      ]
+    },
+    "EvidenceLevel": {
+      "type": "string",
+      "enum": [
+        "documented",
+        "contract-tested",
+        "mock-tested",
+        "environment-tested"
+      ]
+    }
+  }
+}

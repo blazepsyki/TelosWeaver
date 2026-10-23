@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MasterDecision",
+  "description": "공통 외형입니다. 각 `kind`의 Payload는 별도 JSON Schema로 검증합니다.",
+  "type": "object",
+  "properties": {
+    "controllerEpoch": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "decisionId": {
+      "type": "string"
+    },
+    "idempotencyKey": {
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/MasterDecisionKind"
+    },
+    "masterRunId": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "planId": {
+      "type": "string"
+    },
+    "planRevision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "policyRevision": {
+      "type": "string"
+    },
+    "rationale": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "decisionId",
+    "planId",
+    "planRevision",
+    "masterRunId",
+    "controllerEpoch",
+    "idempotencyKey",
+    "kind",
+    "payload",
+    "rationale",
+    "policyRevision"
+  ],
+  "$defs": {
+    "MasterDecisionKind": {
+      "description": "`ProposeCompletion`은 완료 판정 요청일 뿐 검증을 우회하지 않습니다.",
+      "type": "string",
+      "enum": [
+        "create_tasks",
+        "request_run",
+        "answer_action",
+        "request_validation",
+        "request_rework",
+        "request_cancel",
+        "ask_user",
+        "propose_completion"
+      ]
+    }
+  }
+}

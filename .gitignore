@@ -1,3 +1,11 @@
-target/
-logs/
-cache/
+# Rust
+/target/
+
+# VS Code Extension
+node_modules/
+extension/dist/
+extension/src/generated/
+*.vsix
+
+# TelosWeaver 로컬 상태 디렉터리 (Spec §3.3)
+.telos-weaver/

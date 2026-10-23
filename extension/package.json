@@ -1,0 +1,32 @@
+{
+  "name": "telos-weaver",
+  "displayName": "TelosWeaver",
+  "description": "범용 멀티 에이전트 오케스트레이터 UI (Spec §17)",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "telosWeaver.showOutput",
+        "title": "TelosWeaver: Show Output"
+      }
+    ]
+  },
+  "scripts": {
+    "gen:types": "node scripts/gen-types.mjs",
+    "build": "npm run gen:types && tsc -p .",
+    "watch": "tsc -p . --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.100.0",
+    "json-schema-to-typescript": "^16.0.0",
+    "typescript": "^6.0.3"
+  }
+}

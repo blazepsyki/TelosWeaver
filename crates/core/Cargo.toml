@@ -1,0 +1,16 @@
+[package]
+description = "TelosWeaver Core Daemon (Spec §3~§15)"
+name = "telos-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+telos-adapters.workspace = true
+telos-rn-client.workspace = true
+telos-schema.workspace = true
+
+[[bin]]
+name = "telos-weaver"
+path = "src/main.rs"

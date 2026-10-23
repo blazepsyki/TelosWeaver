@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProviderEvent",
+  "type": "object",
+  "properties": {
+    "eventId": {
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/ProviderEventKind"
+    },
+    "nativeSessionId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "nativeTurnId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "occurredAt": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "rawEventRef": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "runId": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "string"
+    },
+    "sequence": {
+      "description": "원본에 순서 정보가 없으면 Adapter가 수신 순서를 부여합니다.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "toolCallId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "eventId",
+    "runId",
+    "sequence",
+    "occurredAt",
+    "schemaVersion",
+    "kind",
+    "payload"
+  ],
+  "$defs": {
+    "ProviderEventKind": {
+      "type": "string",
+      "enum": [
+        "session_started",
+        "text_delta",
+        "tool_started",
+        "tool_completed",
+        "approval_required",
+        "usage",
+        "turn_finished",
+        "process_exited",
+        "error"
+      ]
+    }
+  }
+}
