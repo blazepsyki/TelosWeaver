@@ -3,7 +3,7 @@
 > **프로젝트:** TelosWeaver  
 > **갱신일:** 2026-10-24  
 > **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.3.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
-> **현재 상태:** 배정표 초기화. 실제 작업 배정·계약 동결·통합 게이트 통과를 기록한 상태가 아닙니다.
+> **현재 상태:** 사용자가 PH0-INTEGRATION·PH0-CONTRACT를 배정함. G0 준비 중이며 계약 동결·통합 게이트 통과는 아직 없습니다.
 
 ## 1. 단일 원본과 갱신 주체
 
@@ -15,17 +15,17 @@
 
 | 관리 항목 | 현재 값 |
 |---|---|
-| 대표 저장소 | 미지정 |
-| 통합 담당자 ID | 미배정 |
-| 공통 계약 기준 Commit | 미확정 |
-| 공통 계약 기준 설명 | G0 대기 |
+| 대표 저장소 | `D:\Downloads\Vibe_dev\TelosWeaver`, Branch `main` (원격 없음) |
+| 통합 담당자 ID | `claude-opus-5.5/session-c9336d2c` (2026-10-24 사용자 지정) |
+| 공통 계약 기준 Commit | 미확정 (착수 기준: `fca1669`) |
+| 공통 계약 기준 설명 | G0 준비 중. `fca1669`의 `telos-schema`·`AgentAdapter`는 동결되지 않은 초안이며 다른 작업은 이를 계약 기준으로 사용하지 않습니다. |
 
 ## 2. 배정 상태
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH0-INTEGRATION | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 통합 담당 지정부터 진행 |
-| PH0-CONTRACT | 미배정 | unassigned | 미지정 | 미지정 | 없음 | G0 계약·공통 Stub 시험 경계 확정 |
+| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | 없음 | 배정 기록 완료. 다음: CONTRACT와 G0 범위 확정 |
+| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | reserved | `ph0/contract` / 대표 저장소 작업 트리 | `fca1669` | 없음 | 구현 착수 전. 착수 시 `in-progress`로 갱신 |
 | PH0-HOST | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 공용 런타임·Core API 계약에 의존 |
 | PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | G0 후 Parser/Fixture 병렬 진행 가능 |
 | PH0-CLAUDE | 미배정 | unassigned | 미지정 | 미지정 | 없음 | G0 후 Parser/Fixture 병렬 진행 가능 |
@@ -40,7 +40,7 @@
 
 | 게이트 | 상태 | 근거 |
 |---|---|---|
-| G0 공통 계약 확정 | 대기 | 기준 Commit과 인터페이스·소유권 기록 필요 |
+| G0 공통 계약 확정 | 준비 중 | 담당 배정 완료. 기준 Commit과 인터페이스·소유권 기록 필요 |
 | G1 대표 Provider 실행 | 대기 | 실제 시작·이벤트·완료/실패·취소·결과 경로 필요 |
 | G2 전체 구성 통합 | 대기 | 세 Provider·마스터·RN·Extension 연결 증거 필요 |
 | G3 Phase 0 수용 | 대기 | Spec §19.1 필수 조건과 대상 환경 증거 필요 |
@@ -54,3 +54,11 @@
 | 없음 | 해당 없음 | 등록된 요청 없음 | 해당 없음 | 해당 없음 | 해당 없음 |
 
 요청에는 필요한 타입·메서드·의존성과 호환·시험 계획을 포함합니다. 통합 담당과 공통 계약 담당이 먼저 기준 변경을 통합하고 소비 작업에 전달합니다. 소비 작업에서 임시 공통 타입을 만들거나 같은 파일을 각자 수정하여 우회하지 않습니다.
+
+## 5. 변경 기록
+
+| 일시 (KST) | 기록자 | 변경 | 기준 Commit |
+|---|---|---|---|
+| 2026-10-24 01:05 | `claude-opus-5.5/session-c9336d2c` | 사용자 지정으로 통합 담당 인수. PH0-INTEGRATION `unassigned → in-progress`, PH0-CONTRACT `unassigned → reserved`, G0 `대기 → 준비 중`. 대표 저장소 기록 | `fca1669` |
+
+PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 `in-progress`로 기록합니다. PH0-CONTRACT는 같은 담당자가 `ph0/contract` Branch를 만들고 첫 수정에 들어갈 때 `in-progress`로 바꿉니다. 같은 작업 트리를 쓰는 Writer는 이 담당자 한 명뿐이며 두 작업을 직렬로 진행합니다.
