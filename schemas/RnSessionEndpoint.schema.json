@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SessionEndpoint",
+  "type": "object",
+  "properties": {
+    "address": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "endpoint": {
+      "$ref": "#/$defs/EndpointRef"
+    },
+    "lastActivityAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "presence": {
+      "$ref": "#/$defs/PresenceState"
+    },
+    "workspace": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "endpoint",
+    "presence"
+  ],
+  "$defs": {
+    "EndpointRef": {
+      "description": "사람이 읽는 주소는 영구 Session ID가 아닙니다. 대상은 항상 이 정체성으로 고정합니다 (§12.2).",
+      "type": "object",
+      "properties": {
+        "fingerprint": {
+          "type": "string"
+        },
+        "hostId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostId",
+        "provider",
+        "nativeSessionId",
+        "fingerprint"
+      ]
+    },
+    "PresenceState": {
+      "type": "string",
+      "enum": [
+        "busy",
+        "idle",
+        "offline",
+        "unknown"
+      ]
+    }
+  }
+}

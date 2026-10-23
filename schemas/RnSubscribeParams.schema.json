@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SubscribeParams",
+  "type": "object",
+  "properties": {
+    "cursor": {
+      "description": "이전 구독의 마지막 커서. 없으면 지금부터 받습니다.",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

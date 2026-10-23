@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunStarted",
+  "type": "object",
+  "properties": {
+    "nativeSessionId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "nativeTurnId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "runId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "runId"
+  ]
+}

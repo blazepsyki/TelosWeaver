@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DecisionOutcome",
+  "description": "같은 멱등 키·같은 Payload의 재요청은 처음 기록한 결과를 `replayed: true`로 다시 반환합니다.",
+  "type": "object",
+  "properties": {
+    "decisionId": {
+      "type": "string"
+    },
+    "effects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DecisionEffect"
+      }
+    },
+    "idempotencyKey": {
+      "type": "string"
+    },
+    "recordedAt": {
+      "type": "string"
+    },
+    "rejection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DecisionRejection"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "replayed": {
+      "type": "boolean"
+    },
+    "status": {
+      "$ref": "#/$defs/DecisionStatus"
+    }
+  },
+  "required": [
+    "decisionId",
+    "idempotencyKey",
+    "status",
+    "effects",
+    "replayed",
+    "recordedAt"
+  ],
+  "$defs": {
+    "DecisionEffect": {
+      "description": "집행이 남긴 결과입니다. 요청 접수와 실제 완료를 구분합니다.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string"
+            },
+            "taskRevision": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "task_created"
+            }
+          },
+          "required": [
+            "type",
+            "taskId",
+            "taskRevision"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "runId": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "run_requested"
+            }
+          },
+          "required": [
+            "type",
+            "taskId",
+            "runId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "requestId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "action_answered"
+            }
+          },
+          "required": [
+            "type",
+            "requestId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "runId": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "validation_requested"
+            }
+          },
+          "required": [
+            "type",
+            "taskId",
+            "runId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "rework_requested"
+            }
+          },
+          "required": [
+            "type",
+            "taskId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "cancel_requested"
+            }
+          },
+          "required": [
+            "type",
+            "taskId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "questionId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "user_question_opened"
+            }
+          },
+          "required": [
+            "type",
+            "questionId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "completed": {
+              "type": "boolean"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "completion_evaluated"
+            }
+          },
+          "required": [
+            "type",
+            "taskId",
+            "completed"
+          ]
+        }
+      ]
+    },
+    "DecisionRejection": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/RejectionCode"
+        },
+        "field": {
+          "description": "문제가 된 Payload 필드의 JSON Pointer",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "DecisionStatus": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "rejected"
+      ]
+    },
+    "RejectionCode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "invalid_payload",
+            "stale_controller_epoch",
+            "stale_plan_revision",
+            "stale_policy_revision",
+            "permission_denied",
+            "budget_exceeded",
+            "limit_exceeded",
+            "dependency_cycle",
+            "unknown_task",
+            "unsupported_capability"
+          ]
+        },
+        {
+          "description": "호출자·Run 소유권 확인 실패",
+          "type": "string",
+          "const": "unauthorized_caller"
+        },
+        {
+          "description": "이 단계에서 집행하지 않는 kind",
+          "type": "string",
+          "const": "unsupported_kind"
+        },
+        {
+          "description": "같은 멱등 키에 다른 Payload",
+          "type": "string",
+          "const": "idempotency_conflict"
+        },
+        {
+          "description": "사용자 전용 결정이라 마스터가 집행할 수 없음 (§4.3)",
+          "type": "string",
+          "const": "user_decision_required"
+        }
+      ]
+    }
+  }
+}

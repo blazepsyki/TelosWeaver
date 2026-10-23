@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ApiNotification",
+  "type": "object",
+  "properties": {
+    "method": {
+      "$ref": "#/$defs/ApiNotificationMethod"
+    },
+    "params": true,
+    "protocolVersion": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "protocolVersion",
+    "method",
+    "params"
+  ],
+  "$defs": {
+    "ApiNotificationMethod": {
+      "oneOf": [
+        {
+          "description": "[`RunEventParams`]",
+          "type": "string",
+          "const": "runs.event"
+        },
+        {
+          "description": "[`SubscriptionClosedParams`]",
+          "type": "string",
+          "const": "runs.subscriptionClosed"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RnEvent",
+  "type": "object",
+  "properties": {
+    "cursor": {
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/RnEventKind"
+    },
+    "payload": true,
+    "sequence": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "cursor",
+    "sequence",
+    "kind",
+    "payload"
+  ],
+  "$defs": {
+    "RnEventKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "message",
+            "receipt",
+            "presence"
+          ]
+        },
+        {
+          "description": "커서가 보존 범위를 벗어났습니다. 상태를 다시 조회한 뒤 새로 구독합니다.",
+          "type": "string",
+          "const": "resync_required"
+        }
+      ]
+    }
+  }
+}

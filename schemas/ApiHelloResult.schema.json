@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HelloResult",
+  "type": "object",
+  "properties": {
+    "connectionId": {
+      "type": "string"
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "projectId": {
+      "type": "string"
+    },
+    "protocolVersion": {
+      "type": "string"
+    },
+    "serverVersion": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "serverVersion",
+    "protocolVersion",
+    "projectId",
+    "hostId",
+    "connectionId"
+  ]
+}

@@ -1,0 +1,631 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DecisionPayload",
+  "description": "kind별 Payload의 합. Wire에서는 `MasterDecision::payload`에 태그 없이 들어갑니다.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/CreateTasksPayload"
+    },
+    {
+      "$ref": "#/$defs/RequestRunPayload"
+    },
+    {
+      "$ref": "#/$defs/AnswerActionPayload"
+    },
+    {
+      "$ref": "#/$defs/RequestValidationPayload"
+    },
+    {
+      "$ref": "#/$defs/RequestReworkPayload"
+    },
+    {
+      "$ref": "#/$defs/RequestCancelPayload"
+    },
+    {
+      "$ref": "#/$defs/AskUserPayload"
+    },
+    {
+      "$ref": "#/$defs/ProposeCompletionPayload"
+    }
+  ],
+  "$defs": {
+    "AgentSelection": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "role"
+      ]
+    },
+    "AnswerActionPayload": {
+      "description": "Worker 요청(§4.3)에 대한 마스터의 답변입니다.",
+      "type": "object",
+      "properties": {
+        "answer": {
+          "$ref": "#/$defs/ApprovalAnswer"
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requestId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "requestId",
+        "answer"
+      ]
+    },
+    "ApprovalAnswer": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "deny"
+      ]
+    },
+    "ArtifactKind": {
+      "type": "string",
+      "enum": [
+        "text",
+        "file",
+        "document",
+        "dataset",
+        "code",
+        "diff",
+        "structured"
+      ]
+    },
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    },
+    "AskUserPayload": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "question": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "relatedTaskIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "question",
+        "reason",
+        "options",
+        "relatedTaskIds"
+      ]
+    },
+    "CreateTasksPayload": {
+      "description": "P0 마스터는 제한된 Task 목록과 하위 위임을 생성합니다 (§4.1).",
+      "type": "object",
+      "properties": {
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskSpec"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "tasks"
+      ]
+    },
+    "InputBinding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "ref": {
+              "$ref": "#/$defs/ArtifactVersionRef"
+            },
+            "source": {
+              "type": "string",
+              "const": "artifact"
+            }
+          },
+          "required": [
+            "source",
+            "name",
+            "ref"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "outputName": {
+              "type": "string"
+            },
+            "producerTaskId": {
+              "type": "string"
+            },
+            "producerTaskRevision": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "source": {
+              "type": "string",
+              "const": "task-output"
+            }
+          },
+          "required": [
+            "source",
+            "name",
+            "producerTaskId",
+            "producerTaskRevision",
+            "outputName"
+          ]
+        }
+      ]
+    },
+    "OutputContract": {
+      "type": "object",
+      "properties": {
+        "contentType": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "maxCount": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "minCount": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "description": "Task Revision 안에서 유일합니다.",
+          "type": "string"
+        },
+        "relativePath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "schemaId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "required",
+        "minCount",
+        "maxCount"
+      ]
+    },
+    "ProposeCompletionPayload": {
+      "description": "완료 판정 요청입니다. 검증·승인 조건을 우회하지 않습니다.",
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactVersionRef"
+          }
+        },
+        "runId": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "taskRevision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "taskId",
+        "taskRevision",
+        "runId",
+        "artifacts",
+        "summary"
+      ]
+    },
+    "RequestCancelPayload": {
+      "type": "object",
+      "properties": {
+        "propagateToChildren": {
+          "description": "자손 Task로 취소를 전파할지. 기본 정책은 전파입니다 (§9.3).",
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "taskId",
+        "reason",
+        "propagateToChildren"
+      ]
+    },
+    "RequestReworkPayload": {
+      "type": "object",
+      "properties": {
+        "failedRunId": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "taskRevision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "taskId",
+        "taskRevision",
+        "failedRunId",
+        "reason"
+      ]
+    },
+    "RequestRunPayload": {
+      "type": "object",
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/SessionRequest"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "taskRevision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "taskId",
+        "taskRevision",
+        "session"
+      ]
+    },
+    "RequestValidationPayload": {
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "taskRevision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "validationIds": {
+          "description": "비어 있으면 Task의 모든 필수 Validation Contract를 뜻합니다.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "taskId",
+        "taskRevision",
+        "runId",
+        "validationIds"
+      ]
+    },
+    "SessionMode": {
+      "description": "Spec §8.1 문맥 전략.",
+      "type": "string",
+      "enum": [
+        "fresh",
+        "resume",
+        "native-fork",
+        "capsule"
+      ]
+    },
+    "SessionRequest": {
+      "type": "object",
+      "properties": {
+        "capsuleVersionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mode": {
+          "$ref": "#/$defs/SessionMode"
+        },
+        "sourceSessionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceTurnId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "mode"
+      ]
+    },
+    "TaskSpec": {
+      "type": "object",
+      "properties": {
+        "agent": {
+          "$ref": "#/$defs/AgentSelection"
+        },
+        "budgetProfileId": {
+          "type": "string"
+        },
+        "completionPolicyId": {
+          "type": "string"
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InputBinding"
+          }
+        },
+        "objective": {
+          "type": "string"
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OutputContract"
+          }
+        },
+        "parentTaskId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "permissionProfileId": {
+          "type": "string"
+        },
+        "planId": {
+          "type": "string"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "type": {
+          "$ref": "#/$defs/TaskType"
+        },
+        "validation": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ValidationContract"
+          }
+        },
+        "workspace": {
+          "$ref": "#/$defs/WorkspaceRequest"
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "projectId",
+        "planId",
+        "type",
+        "objective",
+        "constraints",
+        "dependencies",
+        "agent",
+        "workspace",
+        "inputs",
+        "outputs",
+        "validation",
+        "permissionProfileId",
+        "budgetProfileId",
+        "completionPolicyId"
+      ]
+    },
+    "TaskType": {
+      "type": "string",
+      "enum": [
+        "general",
+        "research",
+        "analysis",
+        "document",
+        "coding",
+        "automation",
+        "review",
+        "custom"
+      ]
+    },
+    "ValidationContract": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ValidationKind"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "targetOutputNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "kind",
+        "targetOutputNames",
+        "parameters",
+        "required"
+      ]
+    },
+    "ValidationKind": {
+      "type": "string",
+      "enum": [
+        "schema",
+        "file",
+        "checksum",
+        "command",
+        "assertion",
+        "ai-review",
+        "human",
+        "visual",
+        "custom"
+      ]
+    },
+    "WorkspaceMode": {
+      "description": "P0 실행 대상은 None·Directory·GitWorktree입니다 (§10).",
+      "type": "string",
+      "enum": [
+        "none",
+        "directory",
+        "git-worktree",
+        "sandbox",
+        "remote"
+      ]
+    },
+    "WorkspaceRequest": {
+      "type": "object",
+      "properties": {
+        "hostId": {
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/WorkspaceMode"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "workspaceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "mode",
+        "hostId",
+        "readOnly"
+      ]
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HealthResult",
+  "type": "object",
+  "properties": {
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ComponentHealth"
+      }
+    },
+    "serverVersion": {
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/HealthStatus"
+    }
+  },
+  "required": [
+    "status",
+    "serverVersion",
+    "components"
+  ],
+  "$defs": {
+    "ComponentHealth": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "예: `scheduler`, `persistence`, `rn`, `provider:codex`",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/HealthStatus"
+        }
+      },
+      "required": [
+        "name",
+        "status"
+      ]
+    },
+    "HealthStatus": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "degraded",
+        "unavailable"
+      ]
+    }
+  }
+}

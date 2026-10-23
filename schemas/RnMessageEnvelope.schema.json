@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MessageEnvelope",
+  "description": "`messages.send`의 Envelope (§12.2). 큰 내용은 본문 대신 Artifact로 참조합니다 (§10).",
+  "type": "object",
+  "properties": {
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ArtifactVersionRef"
+      }
+    },
+    "body": true,
+    "bodyType": {
+      "$ref": "#/$defs/MessageBodyType"
+    },
+    "correlationId": {
+      "type": "string"
+    },
+    "expiresAt": {
+      "type": "string"
+    },
+    "idempotencyKey": {
+      "type": "string"
+    },
+    "messageId": {
+      "type": "string"
+    },
+    "recipient": {
+      "$ref": "#/$defs/EndpointRef"
+    },
+    "runId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sender": {
+      "$ref": "#/$defs/EndpointRef"
+    },
+    "taskId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tier": {
+      "$ref": "#/$defs/DeliveryTier"
+    }
+  },
+  "required": [
+    "messageId",
+    "correlationId",
+    "idempotencyKey",
+    "sender",
+    "recipient",
+    "tier",
+    "expiresAt",
+    "bodyType",
+    "body",
+    "artifacts"
+  ],
+  "$defs": {
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    },
+    "DeliveryTier": {
+      "type": "string",
+      "enum": [
+        "push",
+        "turn",
+        "pull"
+      ]
+    },
+    "EndpointRef": {
+      "description": "사람이 읽는 주소는 영구 Session ID가 아닙니다. 대상은 항상 이 정체성으로 고정합니다 (§12.2).",
+      "type": "object",
+      "properties": {
+        "fingerprint": {
+          "type": "string"
+        },
+        "hostId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostId",
+        "provider",
+        "nativeSessionId",
+        "fingerprint"
+      ]
+    },
+    "MessageBodyType": {
+      "type": "string",
+      "enum": [
+        "text",
+        "structured"
+      ]
+    }
+  }
+}

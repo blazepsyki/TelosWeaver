@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunsInspectResult",
+  "type": "object",
+  "properties": {
+    "lastSequence": {
+      "description": "지금까지 기록한 마지막 이벤트 순서. 이벤트가 없으면 0입니다.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "runId": {
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus"
+    }
+  },
+  "required": [
+    "runId",
+    "status",
+    "lastSequence"
+  ],
+  "$defs": {
+    "RunStatus": {
+      "description": "Run 성공은 Task 완료가 아닙니다 (§9.4).",
+      "type": "string",
+      "enum": [
+        "Starting",
+        "Running",
+        "Waiting",
+        "Succeeded",
+        "Failed",
+        "Cancelling",
+        "Cancelled",
+        "Interrupted",
+        "Unknown"
+      ]
+    }
+  }
+}
