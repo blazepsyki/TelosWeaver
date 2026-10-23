@@ -6,8 +6,9 @@
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
 > **상태:** 구현 기준 설계안. 사용자 확정 결정과 이를 구체화한 설계를 포함하며 구현 완료를 뜻하지 않습니다.  
 > **초기 UI:** VS Code Extension  
+> **구현 언어:** Core·Provider Adapter·RN Client·공통 Schema는 Rust, VS Code Extension은 TypeScript  
 > **초기 실행 Provider:** OpenAI Codex, Anthropic Claude Code, Google Antigravity CLI(`agy`)  
-> **기준 자료:** [DEVELOPMENT_v1.2.md](DEVELOPMENT_v1.2.md), [DEVELOPMENT_GAP_ANALYSIS.md](DEVELOPMENT_GAP_ANALYSIS.md)
+> **기준 자료:** [DEVELOPMENT_v1.2.md](archive/DEVELOPMENT_v1.2.md), [DEVELOPMENT_GAP_ANALYSIS.md](archive/DEVELOPMENT_GAP_ANALYSIS.md)
 
 ## 변경 이력
 
@@ -17,6 +18,7 @@
 | v1.1 | 2026-10-22 | 실행과 통신 분리, Reason Network 평가, 세션 정체성·전달 보장 구분 |
 | v1.2 | 2026-10-22 | 범용 Task·Workspace·Artifact·Validation, RN Fork, 세 Provider의 Managed 실행 |
 | **v1.3** | **2026-10-23** | **TelosWeaver 명칭, 마스터 총괄, 구체적인 입출력·승인·상태 계약, 세션 포크·토큰 효율, 지식·템플릿 단계 분리, 기존 코드와 독립된 새 구현** |
+| v1.3.1 | 2026-10-23 | Core 구현 언어를 TypeScript/Node.js에서 Rust로 변경(DEC-05), 계약 타입을 Rust 표기로 전환, Extension 타입 생성 경로 추가 |
 
 ## 목차
 
@@ -59,6 +61,7 @@ TelosWeaver는 서로 다른 AI 에이전트를 사용하여 **목표 확인 →
 | DEC-02 | 지식 재사용과 파일 기반 Workflow 템플릿은 기본 실행 완성 후 첫 확장 단계에 넣습니다. | 기본 기능은 P1, 자동 지식 축적·시각적 편집은 P2입니다. |
 | DEC-03 | 마스터 에이전트가 작업과 실행 정책을 총괄합니다. | 마스터가 판단하고 Core가 권한·예산·상태를 검사하여 집행합니다. |
 | DEC-04 | 기존 코드는 보존하고 새 구현의 제약으로 고려하지 않습니다. | 기존 모듈·설정·로그·TUI/Web의 재사용·호환·이관을 요구하지 않습니다. |
+| DEC-05 | Core는 RN Fork와 같은 Rust로 구현합니다. | Core·Adapter·RN Client·공통 Schema를 Cargo Workspace로 구성합니다. VS Code Extension만 TypeScript이며 공통 타입은 Rust에서 생성합니다. Core와 RN의 프로세스·DB 분리는 유지합니다. |
 
 추가 확정 방향은 세션 포크와 문맥 전달 전략을 토큰 효율 설계에 포함하는 것입니다. 포크 지원 여부와 효율은 Provider별로 검증하며 절감률을 사전에 보장하지 않습니다.
 
@@ -95,7 +98,7 @@ P0는 `none`·`directory`·`git-worktree`와 세 Provider의 신규 Managed 실�
 
 본 문서 작성 과정에서 TelosWeaver Core, RN Fork 빌드, Provider 실행을 검증하지 않았습니다. §7~§8의 외부 인터페이스 설명은 기준 자료와 같은 대화에서 확인한 공식 문서에 근거합니다. 배포 대상 버전의 Schema와 동작은 Phase 0에서 다시 고정합니다.
 
-과거 [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md)의 수치·문제 진단은 현재 구현 사실로 사용하지 않습니다. [영상 설명 요약](우주초월%20AI%20영상%20설명%20요약.md)은 설계 참고 자료이며 독립된 실행 검증 근거가 아닙니다.
+과거 [PROJECT_ANALYSIS.md](archive/PROJECT_ANALYSIS.md)의 수치·문제 진단은 현재 구현 사실로 사용하지 않습니다. [영상 설명 요약](archive/우주초월%20AI%20영상%20설명%20요약.md)은 설계 참고 자료이며 독립된 실행 검증 근거가 아닙니다.
 
 ## 3. 전체 아키텍처와 배포
 
@@ -106,7 +109,7 @@ flowchart TB
     U[사용자] <--> UI[VS Code Extension]
     UI <--> API[Local Core API]
     FUTURE[추후 CLI / Web] -.-> API
-    subgraph CORE[TelosWeaver Core - TypeScript / Node.js]
+    subgraph CORE[TelosWeaver Core - Rust Daemon]
       API <--> MASTER[Master Controller]
       MASTER <--> M[마스터 에이전트]
       MASTER --> POLICY[Decision Validator / Policy]
@@ -151,7 +154,25 @@ Task DAG, 모델 선택, 검증 성공 판정, 사용자 권한과 최종 Task �
 - 로컬 API·Named Pipe/Unix Socket에는 사용자·프로젝트 범위의 접근 제어를 적용합니다. Webview가 RN이나 Provider에 직접 접속하지 않습니다.
 - 새 구현의 실행 파일·상태 디렉터리·서비스 식별자는 `telos-weaver`로 구분합니다. 기존 harness 파일과 상태를 자동 변환하거나 덮어쓰지 않습니다.
 
-현재 저장소의 기존 코드 배치는 새 구현의 목표 구조가 아닙니다. 패키지 구조·서비스 등록 방식은 구현 상세 설계에서 정하되, Core·Extension·RN Client·Provider Adapter·공통 Schema의 의존 방향을 분리합니다.
+현재 저장소의 기존 코드 배치는 새 구현의 목표 구조가 아닙니다. 서비스 등록 방식은 구현 상세 설계에서 정하되, Core·Extension·RN Client·Provider Adapter·공통 Schema의 의존 방향을 분리합니다.
+
+### 3.4 구현 언어와 구성 단위
+
+DEC-05에 따라 Core 측 구성 요소는 Rust Cargo Workspace의 Crate로 나눕니다. Crate 이름은 상세 설계에서 확정하며 아래는 책임 단위입니다.
+
+| 구성 단위 | 언어 | 책임 | 허용 의존 |
+|---|---|---|---|
+| 공통 Schema | Rust | §4~§13의 계약 타입, JSON Schema·TypeScript 타입 생성 원본 | 없음 |
+| Provider Adapter | Rust | §7의 `AgentAdapter` 구현(Codex·Claude·Agy) | 공통 Schema |
+| RN Client | Rust | §12 RN Fork Local RPC 호출 | 공통 Schema |
+| Core | Rust | Core Daemon 실행 파일과 §3.1의 Core 모듈 | 위 세 단위 |
+| VS Code Extension | TypeScript | §17 UI, Local Core API 접속 | 생성된 타입만 사용, Core 코드 직접 의존 금지 |
+
+- Cargo의 Crate 의존 선언으로 방향을 강제합니다. 역방향·순환 의존을 만들지 않습니다.
+- Extension이 쓰는 타입은 공통 Schema에서 생성한 JSON Schema·TypeScript 정의를 사용하며 손으로 복제하지 않습니다. 생성물과 Rust 원본의 불일치는 Contract Test로 검출합니다.
+- Wire 형식은 JSON이며 필드 이름은 camelCase, 열거 값은 본 문서의 문자열 원문을 그대로 사용합니다.
+- 본 문서의 Rust 계약 표기는 설명을 위한 것입니다. 모든 타입에 `Serialize`·`Deserialize`와 JSON Schema 생성 derive가 붙고 구조체 필드는 `#[serde(rename_all = "camelCase")]`로 직렬화한다고 가정하여 반복 속성을 생략합니다. 열거형의 직렬화 규칙만 표기합니다. `Option<T>`는 생략 가능한 필드, `JsonObject`는 `serde_json::Map<String, Value>`, 시각은 RFC 3339 문자열입니다.
+- 같은 언어라는 이유로 Core와 RN Fork를 하나의 프로세스·DB로 합치지 않습니다. RPC 메시지 타입처럼 경계에 놓인 정의는 버전을 명시한 공유 Crate로 둘 수 있습니다.
 
 ## 4. 마스터 에이전트와 결정 집행
 
@@ -167,20 +188,25 @@ Plan별 활성 마스터 제어권은 하나입니다. 재개·교체 시 `contr
 
 ### 4.2 구조화 결정 계약
 
-```typescript
-interface MasterDecision {
-  decisionId: string;
-  planId: string;
-  planRevision: number;
-  masterRunId: string;
-  controllerEpoch: number;
-  idempotencyKey: string;
-  kind: 'create_tasks' | 'request_run' | 'answer_action'
-      | 'request_validation' | 'request_rework' | 'request_cancel'
-      | 'ask_user' | 'propose_completion';
-  payload: Record<string, unknown>;
-  rationale: string;
-  policyRevision: string;
+```rust
+pub struct MasterDecision {
+    pub decision_id: String,
+    pub plan_id: String,
+    pub plan_revision: u32,
+    pub master_run_id: String,
+    pub controller_epoch: u64,
+    pub idempotency_key: String,
+    pub kind: MasterDecisionKind,
+    pub payload: JsonObject,
+    pub rationale: String,
+    pub policy_revision: String,
+}
+
+#[serde(rename_all = "snake_case")]
+pub enum MasterDecisionKind {
+    CreateTasks, RequestRun, AnswerAction,
+    RequestValidation, RequestRework, RequestCancel,
+    AskUser, ProposeCompletion,
 }
 ```
 
@@ -215,101 +241,132 @@ Core 집행 순서는 **호출자·소유권 확인 → Schema·Plan Revision·E
 
 ### 5.2 Task·입출력 계약
 
-```typescript
-type TaskType = 'general' | 'research' | 'analysis' | 'document'
-  | 'coding' | 'automation' | 'review' | 'custom';
-type ArtifactKind = 'text' | 'file' | 'document' | 'dataset'
-  | 'code' | 'diff' | 'structured';
-
-interface ArtifactVersionRef {
-  artifactId: string;
-  versionId: string;
+```rust
+#[serde(rename_all = "lowercase")]
+pub enum TaskType {
+    General, Research, Analysis, Document,
+    Coding, Automation, Review, Custom,
 }
 
-type InputBinding =
-  | { name: string; source: 'artifact'; ref: ArtifactVersionRef }
-  | { name: string; source: 'task-output'; producerTaskId: string;
-      producerTaskRevision: number; outputName: string };
-
-interface OutputContract {
-  id: string;
-  name: string;
-  kind: ArtifactKind;
-  contentType?: string;
-  relativePath?: string;
-  schemaId?: string;
-  required: boolean;
-  minCount: number;
-  maxCount: number;
+#[serde(rename_all = "lowercase")]
+pub enum ArtifactKind {
+    Text, File, Document, Dataset, Code, Diff, Structured,
 }
 
-interface ValidationContract {
-  id: string;
-  revision: number;
-  kind: 'schema' | 'file' | 'checksum' | 'command' | 'assertion'
-      | 'ai-review' | 'human' | 'visual' | 'custom';
-  targetOutputNames: string[];
-  parameters: Record<string, unknown>;
-  required: boolean;
+pub struct ArtifactVersionRef {
+    pub artifact_id: String,
+    pub version_id: String,
 }
 
-interface TaskSpec {
-  id: string;
-  revision: number;
-  projectId: string;
-  planId: string;
-  parentTaskId?: string;
-  type: TaskType;
-  objective: string;
-  constraints: string[];
-  dependencies: string[];
-  agent: { provider: string; model?: string; role: string };
-  workspace: {
-    mode: 'none' | 'directory' | 'git-worktree' | 'sandbox' | 'remote';
-    workspaceId?: string;
-    hostId: string;
-    readOnly: boolean;
-  };
-  inputs: InputBinding[];
-  outputs: OutputContract[];
-  validation: ValidationContract[];
-  permissionProfileId: string;
-  budgetProfileId: string;
-  completionPolicyId: string;
+#[serde(tag = "source", rename_all = "kebab-case")]
+pub enum InputBinding {
+    Artifact { name: String, r#ref: ArtifactVersionRef },
+    TaskOutput {
+        name: String,
+        producer_task_id: String,
+        producer_task_revision: u32,
+        output_name: String,
+    },
+}
+
+pub struct OutputContract {
+    pub id: String,
+    pub name: String,
+    pub kind: ArtifactKind,
+    pub content_type: Option<String>,
+    pub relative_path: Option<String>,
+    pub schema_id: Option<String>,
+    pub required: bool,
+    pub min_count: u32,
+    pub max_count: u32,
+}
+
+#[serde(rename_all = "kebab-case")]
+pub enum ValidationKind {
+    Schema, File, Checksum, Command, Assertion,
+    AiReview, Human, Visual, Custom,
+}
+
+pub struct ValidationContract {
+    pub id: String,
+    pub revision: u32,
+    pub kind: ValidationKind,
+    pub target_output_names: Vec<String>,
+    pub parameters: JsonObject,
+    pub required: bool,
+}
+
+pub struct AgentSelection {
+    pub provider: String,
+    pub model: Option<String>,
+    pub role: String,
+}
+
+#[serde(rename_all = "kebab-case")]
+pub enum WorkspaceMode { None, Directory, GitWorktree, Sandbox, Remote }
+
+pub struct WorkspaceRequest {
+    pub mode: WorkspaceMode,
+    pub workspace_id: Option<String>,
+    pub host_id: String,
+    pub read_only: bool,
+}
+
+pub struct TaskSpec {
+    pub id: String,
+    pub revision: u32,
+    pub project_id: String,
+    pub plan_id: String,
+    pub parent_task_id: Option<String>,
+    pub r#type: TaskType,
+    pub objective: String,
+    pub constraints: Vec<String>,
+    pub dependencies: Vec<String>,
+    pub agent: AgentSelection,
+    pub workspace: WorkspaceRequest,
+    pub inputs: Vec<InputBinding>,
+    pub outputs: Vec<OutputContract>,
+    pub validation: Vec<ValidationContract>,
+    pub permission_profile_id: String,
+    pub budget_profile_id: String,
+    pub completion_policy_id: String,
 }
 ```
 
-위 타입은 설계 계약이며 실제 TypeScript 패키지가 구현되어 있다는 뜻은 아닙니다. 명령·Validator 실행은 Core의 내부 Job으로 수행할 수 있으며 모든 검사에 AI Task를 새로 만들 필요는 없습니다.
+위 타입은 설계 계약이며 실제 Rust Crate가 구현되어 있다는 뜻은 아닙니다. `r#ref`·`r#type`은 Rust 예약어를 피한 표기이며 Wire 이름은 `ref`·`type`입니다. 명령·Validator 실행은 Core의 내부 Job으로 수행할 수 있으며 모든 검사에 AI Task를 새로 만들 필요는 없습니다.
 
 출력 이름은 Task Revision 안에서 유일합니다. `task-output` 입력은 해당 Producer의 완료 결과에서 실제 Artifact Version으로 해석하고 Run 시작 시 고정합니다. 같은 Task ID라는 이유로 다른 Revision·재시도 결과를 혼합하지 않습니다. P0 의존성은 필수 선행 Task의 `Completed`를 요구하며, 다른 결과 조건은 P1 확장 계약으로 분리합니다.
 
 ### 5.3 Artifact Version과 결과
 
-```typescript
-interface ArtifactVersion {
-  artifactId: string;
-  versionId: string;
-  taskId: string;
-  taskRevision: number;
-  runId: string;
-  outputName: string;
-  kind: ArtifactKind;
-  contentType: string;
-  storageUri: string;
-  checksum: string;
-  sourceRevision?: string;
-  createdAt: string;
+```rust
+pub struct ArtifactVersion {
+    pub artifact_id: String,
+    pub version_id: String,
+    pub task_id: String,
+    pub task_revision: u32,
+    pub run_id: String,
+    pub output_name: String,
+    pub kind: ArtifactKind,
+    pub content_type: String,
+    pub storage_uri: String,
+    pub checksum: String,
+    pub source_revision: Option<String>,
+    pub created_at: String,
 }
 
-interface TaskResult {
-  taskId: string;
-  taskRevision: number;
-  runId: string;
-  executionOutcome: 'succeeded' | 'failed' | 'cancelled' | 'unknown';
-  artifacts: ArtifactVersionRef[];
-  summary: string;
-  unresolved: string[];
-  evidenceIds: string[];
+#[serde(rename_all = "lowercase")]
+pub enum ExecutionOutcome { Succeeded, Failed, Cancelled, Unknown }
+
+pub struct TaskResult {
+    pub task_id: String,
+    pub task_revision: u32,
+    pub run_id: String,
+    pub execution_outcome: ExecutionOutcome,
+    pub artifacts: Vec<ArtifactVersionRef>,
+    pub summary: String,
+    pub unresolved: Vec<String>,
+    pub evidence_ids: Vec<String>,
 }
 ```
 
@@ -356,72 +413,106 @@ Capability는 `supported`·`unsupported`·`unverified`와 Provider 버전·Host�
 
 ### 7.2 공통 실행·제어 계약
 
-```typescript
-interface Capability {
-  state: 'supported' | 'unsupported' | 'unverified';
-  providerVersion: string;
-  hostId: string;
-  checkedAt: string;
-  evidenceLevel: 'documented' | 'contract-tested'
-    | 'mock-tested' | 'environment-tested';
-  reason?: string;
+```rust
+#[serde(rename_all = "lowercase")]
+pub enum CapabilityState { Supported, Unsupported, Unverified }
+
+#[serde(rename_all = "kebab-case")]
+pub enum EvidenceLevel { Documented, ContractTested, MockTested, EnvironmentTested }
+
+pub struct Capability {
+    pub state: CapabilityState,
+    pub provider_version: String,
+    pub host_id: String,
+    pub checked_at: String,
+    pub evidence_level: EvidenceLevel,
+    pub reason: Option<String>,
 }
 
-interface SessionRequest {
-  mode: 'fresh' | 'resume' | 'native-fork' | 'capsule';
-  sourceSessionId?: string;
-  sourceTurnId?: string;
-  capsuleVersionId?: string;
+#[serde(rename_all = "kebab-case")]
+pub enum SessionMode { Fresh, Resume, NativeFork, Capsule }
+
+pub struct SessionRequest {
+    pub mode: SessionMode,
+    pub source_session_id: Option<String>,
+    pub source_turn_id: Option<String>,
+    pub capsule_version_id: Option<String>,
 }
 
-interface RunContext {
-  runId: string;
-  taskId: string;
-  taskRevision: number;
-  attempt: number;
-  controllerEpoch: number;
-  hostId: string;
-  workspaceId: string;
-  contextSnapshotId: string;
-  policyRevision: string;
-  idempotencyKey: string;
-  session: SessionRequest;
+pub struct RunContext {
+    pub run_id: String,
+    pub task_id: String,
+    pub task_revision: u32,
+    pub attempt: u32,
+    pub controller_epoch: u64,
+    pub host_id: String,
+    pub workspace_id: String,
+    pub context_snapshot_id: String,
+    pub policy_revision: String,
+    pub idempotency_key: String,
+    pub session: SessionRequest,
 }
 
-interface ProviderEvent {
-  eventId: string;
-  runId: string;
-  sequence: number;
-  occurredAt: string;
-  schemaVersion: string;
-  nativeSessionId?: string;
-  nativeTurnId?: string;
-  toolCallId?: string;
-  kind: 'session_started' | 'text_delta' | 'tool_started'
-    | 'tool_completed' | 'approval_required' | 'usage'
-    | 'turn_finished' | 'process_exited' | 'error';
-  payload: Record<string, unknown>;
-  rawEventRef?: string;
+#[serde(rename_all = "snake_case")]
+pub enum ProviderEventKind {
+    SessionStarted, TextDelta, ToolStarted, ToolCompleted,
+    ApprovalRequired, Usage, TurnFinished, ProcessExited, Error,
 }
 
-interface AgentAdapter {
-  readonly id: string;
-  detect(hostId: string): Promise<Record<string, Capability>>;
-  startRun(task: TaskSpec, context: RunContext): Promise<{
-    runId: string; nativeSessionId?: string; nativeTurnId?: string;
-  }>;
-  events(runId: string, afterSequence: number): AsyncIterable<ProviderEvent>;
-  sendInput(runId: string, inputId: string, text: string): Promise<void>;
-  answerApproval(runId: string, requestId: string,
-    decision: 'allow' | 'deny'): Promise<void>;
-  cancelRun(runId: string): Promise<{ accepted: boolean }>;
-  inspectRun(runId: string): Promise<{
-    status: 'running' | 'finished' | 'interrupted' | 'unknown';
-  }>;
+pub struct ProviderEvent {
+    pub event_id: String,
+    pub run_id: String,
+    pub sequence: u64,
+    pub occurred_at: String,
+    pub schema_version: String,
+    pub native_session_id: Option<String>,
+    pub native_turn_id: Option<String>,
+    pub tool_call_id: Option<String>,
+    pub kind: ProviderEventKind,
+    pub payload: JsonObject,
+    pub raw_event_ref: Option<String>,
+}
+
+pub struct RunStarted {
+    pub run_id: String,
+    pub native_session_id: Option<String>,
+    pub native_turn_id: Option<String>,
+}
+
+#[serde(rename_all = "lowercase")]
+pub enum ApprovalAnswer { Allow, Deny }
+
+#[serde(rename_all = "lowercase")]
+pub enum RunInspection { Running, Finished, Interrupted, Unknown }
+
+pub enum AdapterError {
+    UnsupportedCapability { capability: String, reason: String },
+    // 시작 실패·인증·설정·Protocol Parse 등은 §7.3 분류를 따릅니다.
+}
+
+#[async_trait]
+pub trait AgentAdapter: Send + Sync {
+    fn id(&self) -> &str;
+    async fn detect(&self, host_id: &str)
+        -> Result<HashMap<String, Capability>, AdapterError>;
+    async fn start_run(&self, task: &TaskSpec, context: &RunContext)
+        -> Result<RunStarted, AdapterError>;
+    fn events(&self, run_id: &str, after_sequence: u64)
+        -> BoxStream<'static, Result<ProviderEvent, AdapterError>>;
+    async fn send_input(&self, run_id: &str, input_id: &str, text: &str)
+        -> Result<(), AdapterError>;
+    async fn answer_approval(&self, run_id: &str, request_id: &str,
+        decision: ApprovalAnswer) -> Result<(), AdapterError>;
+    /// 반환값은 취소 요청 접수 여부이며 실제 종료가 아닙니다.
+    async fn cancel_run(&self, run_id: &str) -> Result<bool, AdapterError>;
+    async fn inspect_run(&self, run_id: &str)
+        -> Result<RunInspection, AdapterError>;
 }
 ```
 
-메서드가 존재한다는 것이 기능 지원을 뜻하지는 않습니다. 미지원 제어는 `UnsupportedCapability`를 반환합니다. Run ID는 Core가 발급하며 Adapter가 임의의 다른 Run을 만들지 않습니다. 동일 실행 키의 재요청으로 프로세스를 중복 생성하지 않습니다.
+Core는 여러 Provider를 `Arc<dyn AgentAdapter>`로 다루므로 Trait은 객체 안전해야 합니다. 위 표기는 `async-trait` 방식을 가정하며, 비동기 Trait 구현 방식은 상세 설계에서 확정합니다.
+
+메서드가 존재한다는 것이 기능 지원을 뜻하지는 않습니다. 미지원 제어는 `AdapterError::UnsupportedCapability`를 반환합니다. Run ID는 Core가 발급하며 Adapter가 임의의 다른 Run을 만들지 않습니다. 동일 실행 키의 재요청으로 프로세스를 중복 생성하지 않습니다.
 
 `none` Profile도 논리 Workspace ID를 발급하되 별도 파일 디렉터리는 만들지 않습니다. Adapter에 전달하는 입력은 Snapshot에 바인딩된 Version이며, 사용자 임의 경로를 검증 없이 실행 cwd로 사용하지 않습니다.
 
@@ -771,6 +862,8 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 
 TreeView·OutputChannel·내장 Diff/파일 Editor를 우선 사용합니다. Webview는 표시 계층이며 실행 권한을 갖지 않습니다. 사용자에게 모든 Worker 승인을 직접 처리하게 하지 않고 마스터의 판단과 필요한 개입을 보여줍니다. UI 재연결 시 Snapshot과 이벤트 커서로 상태를 갱신합니다.
 
+Extension은 TypeScript로 구현하며 Rust Core의 코드를 직접 포함하거나 호출하지 않습니다. Local Core API의 요청·응답·이벤트 타입은 §3.4에 따라 공통 Schema에서 생성한 정의를 사용합니다. Extension은 Core Daemon 실행 파일을 찾아 시작·연결·상태 확인만 담당하며 Core 수명을 소유하지 않습니다.
+
 ## 18. 기능 요구사항과 수용 기준
 
 P0는 최초 실사용, P1은 첫 확장과 협업 고도화, P2는 후속 운영 확장입니다. 기존 ID는 가능한 한 유지하고 의미·단계가 변경된 항목은 본 표를 기준으로 합니다. Phase 0은 구현 우선순위와 별개인 기술 검증 단계입니다.
@@ -942,6 +1035,8 @@ P0는 최초 실사용, P1은 첫 확장과 협업 고도화, P2는 후속 운�
 - [ ] 이벤트 구독 전 종료, 잘못된 Stream, 프로세스·자식 종료와 기본 권한 적용을 확인합니다.
 - [ ] Native Resume·Fork를 실험하고 Provider별 증거·제한을 기록합니다. 신규 실행 통과와 별개로 판정합니다.
 - [ ] Core/RN·Adapter Event·MasterDecision의 Schema와 Contract Test를 마련합니다.
+- [ ] Rust Cargo Workspace의 Crate 경계를 고정하고, 공통 Schema에서 JSON Schema·TypeScript 타입을 생성해 Extension에서 쓰는 경로와 불일치 검출 시험을 확인합니다.
+- [ ] Rust Core Daemon의 Windows/Linux Build와 Extension의 실행 파일 탐지·시작·연결을 확인합니다.
 
 **통과 조건:** 세 Provider가 동일한 상위 계약으로 신규 작업의 실행·성공·실패·취소를 보고하고, RN Fork Build와 필수 RPC, 마스터 결정 검증 경로가 재현됩니다. Agy Headless Fork나 기존 IDE Attached 성공은 필수 통과 조건이 아닙니다. 실패한 실험을 지원 기능으로 표시하지 않습니다.
 
@@ -1106,6 +1201,7 @@ sequenceDiagram
 |---|---|
 | 마스터의 잘못된 결정·과도한 위임 | 구조화 Schema, 권한·DAG·예산 검사, Epoch·멱등성 |
 | Provider Protocol·옵션 변경 | Adapter 격리, 버전 고정·Capability·Contract Test |
+| Rust Core와 TypeScript Extension의 타입 불일치 | 공통 Schema 단일 원본, 생성 타입 사용, 생성물 Contract Test |
 | 실행 완료·검증·전달 혼동 | 별도 타입·상태·판정과 음성 시험 |
 | 포크의 문맥 과대·편향·효율 오판 | Fresh/Capsule 대안, 독립 Review, 전체 사용량·품질 측정 |
 | 주소 재사용·지연 이벤트 | Native ID·Host·Fingerprint, Run/Epoch·TTL 확인 |
@@ -1146,8 +1242,8 @@ sequenceDiagram
 
 ### 22.3 참고 자료와 증거 범위
 
-- [v1.2 기준 설계](DEVELOPMENT_v1.2.md), [보완 분석과 확정 결정](DEVELOPMENT_GAP_ANALYSIS.md): 제품 결정과 요구사항 통합의 기준입니다.
-- [프로젝트 분석](PROJECT_ANALYSIS.md), [영상 설명 요약](우주초월%20AI%20영상%20설명%20요약.md): 과거 분석·아이디어 참고이며 현재 구현·성능을 증명하지 않습니다.
+- [v1.2 기준 설계](archive/DEVELOPMENT_v1.2.md), [보완 분석과 확정 결정](archive/DEVELOPMENT_GAP_ANALYSIS.md): 제품 결정과 요구사항 통합의 기준입니다.
+- [프로젝트 분석](archive/PROJECT_ANALYSIS.md), [영상 설명 요약](archive/우주초월%20AI%20영상%20설명%20요약.md): 과거 분석·아이디어 참고이며 현재 구현·성능을 증명하지 않습니다.
 - [Reason Network](https://github.com/reason-machines/reason-network), [DESIGN.md](https://github.com/reason-machines/reason-network/blob/main/DESIGN.md), [Cargo.toml](https://github.com/reason-machines/reason-network/blob/main/Cargo.toml): Fork 검토 대상입니다. 본 문서에서 최신 릴리스나 현재 소스의 동작을 새로 확정하지 않습니다.
 - [Codex App Server](https://learn.chatgpt.com/docs/app-server), [Claude Code CLI reference](https://code.claude.com/docs/en/cli-reference), [Agy Headless](https://www.antigravity.google/docs/cli/headless/), [Agy 대화 관리](https://antigravity.google/docs/cli/conversations): Managed·세션·분기 계약의 공식 참고 자료이며 배포 버전에서 다시 검증합니다.
 - [OpenAI Prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching): 캐시와 세션 재사용의 구분에 사용합니다. 다른 Provider나 CLI 구독의 과금으로 일반화하지 않습니다.
