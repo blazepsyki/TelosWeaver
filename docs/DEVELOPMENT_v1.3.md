@@ -1,8 +1,9 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.3)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.3  
+> **문서 버전:** 1.3 (개정 1.3.2)  
 > **작성일:** 2026-10-23  
+> **수정일:** 2026-10-24  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
 > **상태:** 구현 기준 설계안. 사용자 확정 결정과 이를 구체화한 설계를 포함하며 구현 완료를 뜻하지 않습니다.  
 > **초기 UI:** VS Code Extension  
@@ -19,6 +20,7 @@
 | v1.2 | 2026-10-22 | 범용 Task·Workspace·Artifact·Validation, RN Fork, 세 Provider의 Managed 실행 |
 | **v1.3** | **2026-10-23** | **TelosWeaver 명칭, 마스터 총괄, 구체적인 입출력·승인·상태 계약, 세션 포크·토큰 효율, 지식·템플릿 단계 분리, 기존 코드와 독립된 새 구현** |
 | v1.3.1 | 2026-10-23 | Core 구현 언어를 TypeScript/Node.js에서 Rust로 변경(DEC-05), 계약 타입을 Rust 표기로 전환, Extension 타입 생성 경로 추가, 기존 harness 코드 삭제 반영(DEC-04) |
+| v1.3.2 | 2026-10-24 | Phase 0 병렬 구현의 작업 ID·수정 경로·공통 파일 소유권·계약 동결·배정·통합 게이트·검증 증거를 구체화 |
 
 ## 목차
 
@@ -40,7 +42,7 @@
 16. 지식 재사용·Workflow 템플릿·후속 자동화
 17. VS Code 사용자 인터페이스
 18. 기능 요구사항과 수용 기준
-19. 개발 단계와 통과 조건
+19. 개발 단계와 통과 조건, Phase 0 병렬 구현 규칙(§19.5)
 20. PoC 및 제품 수용 시나리오
 21. 대표 실행 흐름
 22. 위험·추적성·참고 자료
@@ -173,6 +175,8 @@ DEC-05에 따라 Core 측 구성 요소는 Rust Cargo Workspace의 Crate로 나�
 - Wire 형식은 JSON이며 필드 이름은 camelCase, 열거 값은 본 문서의 문자열 원문을 그대로 사용합니다.
 - 본 문서의 Rust 계약 표기는 설명을 위한 것입니다. 모든 타입에 `Serialize`·`Deserialize`와 JSON Schema 생성 derive가 붙고 구조체 필드는 `#[serde(rename_all = "camelCase")]`로 직렬화한다고 가정하여 반복 속성을 생략합니다. 열거형의 직렬화 규칙만 표기합니다. `Option<T>`는 생략 가능한 필드, `JsonObject`는 `serde_json::Map<String, Value>`, 시각은 RFC 3339 문자열입니다.
 - 같은 언어라는 이유로 Core와 RN Fork를 하나의 프로세스·DB로 합치지 않습니다. RPC 메시지 타입처럼 경계에 놓인 정의는 버전을 명시한 공유 Crate로 둘 수 있습니다.
+
+Phase 0의 실제 작업 분할과 파일 수정 권한은 §19.5를 따릅니다. 위 표의 논리적 책임이 Crate 전체를 여러 에이전트가 동시에 수정해도 된다는 의미는 아닙니다.
 
 ## 4. 마스터 에이전트와 결정 집행
 
@@ -1027,6 +1031,8 @@ P0는 최초 실사용, P1은 첫 확장과 협업 고도화, P2는 후속 운�
 
 ### 19.1 Phase 0 — 기술 기반 검증
 
+Phase 0은 §19.5의 작업 묶음으로 나누어 병렬 구현할 수 있습니다. 착수 전에 통합 담당·계약 기준·수정 경로를 확정합니다. 아래 체크리스트는 제품 기술 검증의 목표이며 개별 에이전트의 파일 소유권 목록은 아닙니다.
+
 - [ ] 세 Provider의 탐지·버전·신규 Managed 실행·스트림·완료·실패·취소를 확인합니다.
 - [ ] 마스터 후보가 구조화 결정을 반환하고 Core가 잘못된 결정·중복·권한 초과를 거부하는 최소 경로를 확인합니다.
 - [ ] Agy의 Turn 직렬화·도구 거부·Exit Code와 결과 차이를 확인합니다.
@@ -1077,6 +1083,152 @@ P0 통과는 §18의 모든 P0 항목과 혼합 단계 항목의 P0 부분을 �
 - [ ] 템플릿 추출·시각 편집, 자동 지식 축적, 사용량·성공률 분석 UI와 다른 Client를 추가합니다.
 
 **통과 조건:** P0/P1의 권한·산출물 Version·검증·중복 방지·복구 경계를 유지하며 범위를 확장합니다. P2 기능 부재가 파일·CLI 중심 제품의 기본 실행을 막지 않습니다.
+
+### 19.5 Phase 0 병렬 구현 — 작업 분할과 소유권
+
+#### 19.5.1 적용 범위와 작업 선택
+
+이 절은 **TelosWeaver를 개발하는 에이전트의 작업 분담 규칙**입니다. 제품이 실행 중 Task를 병렬 스케줄링하는 P1 기능과 구분합니다. 작업 ID의 `PH0`는 기술 검증 단계 Phase 0을 뜻하며 MVP 우선순위 `P0`와 다릅니다.
+
+에이전트는 이 절에서 작업 ID를 선택하고, [작업 배정표](phase-0/WORK_ALLOCATION.md)의 단일 통합 담당을 통해 소유권을 확정한 뒤 구현을 시작합니다. 작업 범위·선행 계약은 Spec이 원본이고, 배정표는 담당자·Branch/Worktree·상태·기준 Commit의 운영 기록입니다. 배정표만으로 Spec 범위를 변경하지 않습니다.
+
+각 활성 작업은 담당자 한 명을 갖습니다. 한 담당자가 여러 작업 ID를 맡을 수 있지만 한 작업 ID에 여러 Writer를 배정하지 않습니다. 일부를 다시 나누려면 경로와 계약을 먼저 분리하여 통합 담당이 배정표에 기록합니다. 배정이 불명확하면 자료 확인·설계 검토까지 수행하고 해당 파일 쓰기에는 진입하지 않습니다.
+
+#### 19.5.2 G0 — 공통 계약 확정
+
+`PH0-INTEGRATION`과 `PH0-CONTRACT`가 먼저 다음 계약과 변경 기준 Commit을 확정합니다. 공통 타입의 초안이 이미 있다는 이유만으로 G0를 통과한 것으로 보지 않습니다.
+
+| 계약 | G0에서 정할 최소 내용 | 사용 작업 |
+|---|---|---|
+| Adapter 실행 | RunContext·TaskSpec, Run ID 발급 주체, 시작 멱등성, 시작 결과와 오류 분류 | HOST, 세 Provider, MASTER |
+| 이벤트·취소 | ProviderEvent 순서·원본 연결·재구독, Turn/프로세스 종료, 취소 접수/종료 확인 | HOST, 세 Provider, INTEGRATION |
+| 공용 프로세스 경계 | stdin/stdout/stderr·종료·자식 회수·OS 차이·오류를 처리할 공용 모듈의 공개 인터페이스 | HOST, 세 Provider |
+| 마스터 결정 | 지원 kind와 Payload Schema, 검증 입력 Snapshot, 권한·Epoch·멱등 검사 및 반환 결과 | CONTRACT, MASTER, HOST |
+| Local Core API | 초기 연결·Health·버전·Run 시작/이벤트/취소에 필요한 요청·응답·오류·접근 범위 | CONTRACT, HOST, EXT |
+| RN RPC | 버전·메서드·Envelope·Receipt·오류·구독 커서, Core와 RN의 독립성 | CONTRACT, RN, INTEGRATION |
+| 생성·시험 | Rust→JSON Schema→TypeScript 생성, 공통 Fixture·테스트 지원 인터페이스, 증거 형식 | 전체 작업 |
+
+G0 완료 시 공통 인터페이스와 최소 컴파일 가능한 등록 경로를 기준 Commit에 포함합니다. 아직 구현되지 않은 경로는 명시적인 Stub으로 둘 수 있으며 가용 기능으로 표시하지 않습니다. 초기 Stub 파일 등록은 G0 준비 작업이고, 동결 이후에는 아래 소유권을 적용합니다.
+
+기존 `crates/adapters/tests/unimplemented.rs`는 세 Provider 모두의 미구현 상태를 가정합니다. `PH0-CONTRACT`가 G0에서 이를 명시적인 미지원 테스트 대역의 계약 시험으로 분리합니다. 이후 Provider가 기능을 구현했다고 공통 테스트가 실패하거나, Provider 담당자가 각자 같은 테스트 파일을 고치게 만들지 않습니다.
+
+공용 프로세스 코드는 `crates/adapters/src/runtime/`에 둡니다. 이 모듈은 기계적인 프로세스 I/O·수명·종료 수단을 제공하고 Task 정책·DAG·최종 완료를 소유하지 않습니다. Core의 `execution`은 이 기능을 이용하는 Adapter를 감독합니다. 같은 OS 프로세스 제어를 Provider별로 복제하지 않습니다.
+
+#### 19.5.3 작업 묶음과 독점 수정 경로
+
+모든 경로는 저장소 루트 기준입니다. `**`는 해당 경로 아래를 포함합니다. 아래 허용 범위에서 §19.5.4의 공통 파일 예외를 제외합니다. 읽기는 다른 작업 영역에도 허용합니다.
+
+| 작업 ID | 책임·산출물 | 독점 수정 경로 | 선행 조건 |
+|---|---|---|---|
+| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitmodules, README.md, CLAUDE.md, docs/DEVELOPMENT_v1.3.md, docs/phase-0/WORK_ALLOCATION.md | 최초 지정, G0 준비부터 담당 |
+| PH0-CONTRACT | 공통 Rust 계약·Payload Schema·생성 원본·Wire/Schema 시험, Adapter Trait·공통 오류 | crates/schema/**, schemas/**, crates/adapters/src/lib.rs, crates/adapters/src/unimplemented.rs, crates/adapters/tests/unimplemented.rs | INTEGRATION과 G0 확정 |
+| PH0-HOST | 공용 프로세스 I/O·취소·자식 회수, 최소 Core API·Supervisor와 Fixture 경로 | crates/adapters/src/runtime/**, crates/adapters/tests/runtime_*.rs, crates/adapters/tests/support/runtime/**, crates/adapters/tests/fixtures/runtime/**, crates/core/src/api/**, crates/core/src/execution/**, crates/core/tests/host_*.rs, crates/core/tests/fixtures/host/** | G0, 공용 런타임·API 계약 |
+| PH0-CODEX | Codex App Server 접속·신규 실행·이벤트 매핑·오류·취소, Resume/Fork 실험 | crates/adapters/src/codex.rs, crates/adapters/src/codex/**, crates/adapters/tests/codex_*.rs, crates/adapters/tests/fixtures/codex/** | G0, HOST 공개 인터페이스 |
+| PH0-CLAUDE | Claude Print/Stream 실행·Session/Turn 연결·오류·취소, Resume/Fork 실험 | crates/adapters/src/claude.rs, crates/adapters/src/claude/**, crates/adapters/tests/claude_*.rs, crates/adapters/tests/fixtures/claude/** | G0, HOST 공개 인터페이스 |
+| PH0-AGY | Agy Headless·NDJSON·Turn 직렬화·소프트 거부·취소, 재개/분기 판정 | crates/adapters/src/agy.rs, crates/adapters/src/agy/**, crates/adapters/tests/agy_*.rs, crates/adapters/tests/fixtures/agy/** | G0, HOST 공개 인터페이스 |
+| PH0-MASTER | 최소 마스터 호출·결정 회수, kind별 검증·권한/Epoch/멱등 거부와 결과 통지 | crates/core/src/master/**, crates/core/src/policy/**, crates/core/tests/master_*.rs, crates/core/tests/policy_*.rs, crates/core/tests/fixtures/master/**, crates/core/tests/fixtures/policy/** | G0, CONTRACT 타입·HOST API |
+| PH0-RN | RN Fork 도입·고정 리비전·빌드·Local RPC와 Client 실제 통신·시험 | rn-fork/**, crates/rn-client/** | G0 RPC 계약, Fork 도입 방식·기준 SHA 기록 |
+| PH0-EXT | Core 실행 파일 탐지·시작·연결·Health/상태 표시, 생성 타입 사용 | extension/** | G0 Local API, 생성된 Schema; 실제 연결은 HOST 통합 후 |
+
+각 작업은 추가로 `docs/phase-0/evidence/<작업 ID>/**`에 자신의 한국어 검증 기록을 작성할 수 있습니다. 출력 파일명은 `README.md` 등 영문을 사용합니다. 다른 작업의 증거를 대신 수정하지 않습니다. 통합 담당은 자기 증거 경로에 전체 판정을 기록합니다.
+
+표에 없는 파일·새 Crate·새 공유 테스트 경로가 필요하면 변경 요청으로 처리합니다. 기존 작업 ID 이름과 유사하다는 이유로 새로운 경로를 독점하지 않습니다.
+
+#### 19.5.4 공통 파일과 중복 구현 방지
+
+다음 규칙은 넓은 경로의 소유권보다 우선합니다.
+
+1. **모든 Rust Cargo.toml과 루트 Cargo.lock은 PH0-INTEGRATION만 수정합니다.** 각 담당자는 의존 패키지·기능·필요 이유를 요청하고 통합 담당이 별도 Commit으로 반영합니다. extension/package.json·package-lock.json은 PH0-EXT가 소유합니다.
+2. **공통 Schema·Adapter Trait·공통 오류는 PH0-CONTRACT만 변경합니다.** Provider 담당자는 임시 필드·별도 공통 타입·독자적인 이벤트 외형을 만들지 않습니다. Provider 원본 DTO는 자기 모듈에 두고 고정 계약으로 변환합니다.
+3. **모듈 등록을 구분합니다.** crates/schema/src/lib.rs와 crates/adapters/src/lib.rs는 CONTRACT, crates/core/src/lib.rs·main.rs는 INTEGRATION, crates/rn-client/src/lib.rs는 RN, Extension 진입점은 EXT가 소유합니다. 다른 담당자는 등록 Patch를 요청합니다.
+4. **공용 런타임은 HOST만 구현합니다.** Provider는 CLI별 인자·Protocol·DTO·이벤트 의미 매핑을 담당합니다. Task 정책·멱등 결정의 최종 판정은 MASTER/Core에 두고 Adapter는 자신의 시작 키와 프로세스 중복을 방지합니다.
+5. **RN 경계를 유지합니다.** RN 담당자가 Core의 Scheduler나 정책을 만들지 않고, HOST/EXT 담당자가 RN Daemon을 다시 구현하지 않습니다. .gitmodules·공유 Crate·루트 설정이 필요하면 통합 담당을 거칩니다.
+6. **생성물은 손으로 편집하지 않습니다.** schemas/의 원본 변경은 CONTRACT, extension/src/generated/는 EXT의 생성 명령으로 갱신합니다. 빌드 중 생성은 자기 Worktree에서만 수행하고 생성 스크립트로 다른 Worktree의 파일을 지우지 않습니다.
+7. **전체 포맷·Lock 갱신·Spec 수정은 통합 담당이 직렬로 적용합니다.** 작업자는 자기 변경 파일만 포맷하고 관계없는 모듈을 정리하지 않습니다. `cargo test --workspace --locked` 등 변경 없는 검사는 실행할 수 있습니다.
+
+아키텍처의 동작 의미를 바꾸는 변경은 사용자의 기존 Spec 변경 합의 원칙을 따릅니다. 고정 계약 안의 등록·의존성·배정 조정은 통합 담당이 처리합니다. 작업 분담을 이유로 사용자에게 매 파일 수정을 확인받을 필요는 없습니다.
+
+#### 19.5.5 작업 배정과 계약 변경 절차
+
+- 최초 통합 담당은 사용자 또는 이미 지정된 진행 담당이 한 명 지정합니다. 서로 독립적으로 실행된 에이전트가 모두 통합 담당을 자임하지 않습니다.
+- 배정표는 **대표 저장소의 단일 원본**을 통합 담당만 직렬 갱신합니다. 다른 Worktree나 Clone의 복사본은 소유권 확정 수단이 아닙니다. 에이전트는 작업 ID를 요청하고 확정된 담당·범위·기준 Commit을 확인한 뒤 시작합니다.
+- 담당·Branch·Worktree·기준 Commit·계약 기준·상태를 기록합니다. 상태는 `unassigned → reserved → in-progress → review → integrated → verified`이며 `blocked`는 기존 담당을 유지합니다. 대기 중인 작업을 다른 에이전트가 가져가지 않습니다.
+- 작업자는 서로 다른 Branch/Worktree를 사용합니다. 같은 작업 트리에 동시에 쓰는 경우 독점 경로 배정을 더 작은 단위로 먼저 확정해야 하며 공통 파일 규칙은 동일합니다. Worktree 분리만으로 논리적 중복 구현이 해결되지는 않습니다.
+- 계약 변경 요청에는 작업 ID, 필요한 필드/메서드·의존성, 이유, 영향 작업, 호환·시험 계획을 남깁니다. 통합 담당과 CONTRACT가 공통 변경을 먼저 적용하고 새 기준 Commit을 배포합니다. 영향 작업이 갱신한 뒤 진행하며, 소비자가 먼저 임시 계약을 배포하지 않습니다.
+- 담당 변경은 미완 Patch·시험·남은 문제를 인계하고 배정표를 갱신합니다. 충돌은 임의 덮어쓰기·Reset으로 해결하지 않습니다.
+
+#### 19.5.6 의존 관계와 병렬 진행 순서
+
+```mermaid
+flowchart LR
+    C[PH0-CONTRACT / G0] --> H[PH0-HOST]
+    C --> M[PH0-MASTER]
+    C --> R[PH0-RN]
+    C --> E[PH0-EXT]
+    H --> X[PH0-CODEX]
+    H --> L[PH0-CLAUDE]
+    H --> A[PH0-AGY]
+    X --> I[PH0-INTEGRATION]
+    L --> I
+    A --> I
+    M --> I
+    R --> I
+    E --> I
+    H --> I
+```
+
+화살표는 실제 연결·최종 통합에 필요한 의존성입니다. G0 이후에는 Provider별 Parser·Fixture 시험을 HOST 구현과 병렬로 진행하고, MASTER와 EXT도 고정 API의 테스트 대역으로 개발할 수 있습니다. 테스트 대역을 실제 Provider/RN/API 구현이나 실환경 성공으로 표시하지 않습니다.
+
+통합 담당은 대표 Provider 하나의 최소 경로를 먼저 연결해 계약을 확인합니다. 기본 대표는 Codex이며 환경상 다른 Provider를 먼저 쓰면 이유를 배정표에 기록합니다. 다른 두 Provider의 구현을 대표 경로 통과까지 전부 대기시키지는 않습니다. RN·MASTER·EXT도 독립 개발을 지속할 수 있습니다.
+
+인원이 적으면 INTEGRATION+CONTRACT, HOST+EXT, 세 Provider, MASTER, RN처럼 묶을 수 있습니다. 세 명으로 진행하면 ① INTEGRATION+CONTRACT+MASTER, ② HOST+세 Provider, ③ RN+EXT로 배치할 수 있습니다. 인원 수가 바뀌어도 파일 소유권과 통합 게이트는 유지합니다.
+
+#### 19.5.7 작업별 완료·제외 범위
+
+| 작업 ID | 최소 완료 결과·대응 시험 | 이 작업에 포함하지 않는 범위 |
+|---|---|---|
+| PH0-CONTRACT | Rust/Wire/Schema 일치, 결정 Payload·Local API 계약, 공통 실패 Fixture, G0 기준 기록 | Core 정책 실행·Provider 프로세스·UI 구현 |
+| PH0-HOST | 프로세스 I/O·구독 전 종료·이벤트 보존·취소/자식 회수·최소 API의 로컬 시험, PROV-03/08의 공용 기반 | CLI별 Protocol 매핑, 완성된 Scheduler·SQLite·MCP·Workspace Manager |
+| PH0-CODEX | PROV-01~04/06~09를 Codex 환경에서 검증, PROV-05·FORK-POC-01~02 실험 결과 | 공통 Trait·OS 런타임 변경, Claude/Agy, 기존 IDE Attached |
+| PH0-CLAUDE | 동일 공통 시험을 Claude 환경에서 검증, Resume/Fork 실험 | 공통 Trait·OS 런타임 변경, Codex/Agy, 기존 IDE Attached |
+| PH0-AGY | 동일 공통 시험과 Turn 직렬화·Tool 거부·Exit Code/결과 차이 검증, 재개/Fork 지원 판정 | 미검증 Headless Fork 보장, 기존 IDE 제어, 타 Provider |
+| PH0-MASTER | 실제 마스터 후보의 구조화 결정 회수, 유효/잘못된 Payload·권한·Epoch·중복 거부, 허용 결정의 실행 결과 연결 | 전체 DAG Planner·예산 엔진·지식·템플릿·독립 리뷰 루프 |
+| PH0-RN | 고정 Upstream/Fork, Windows/Linux Build, Health/Version/Discovery와 통제된 Message 왕복·오류/중복 계약 | Core DB·Scheduler, P1 Attached 안정화·P2 원격 P2P |
+| PH0-EXT | 생성 타입 기반 Core 탐지·시작·Health 연결, 오류 표시, Extension 종료 후 Core 수명 분리 | Task Board·전체 마스터 대화 UI·Artifact Explorer 등 P0 완성 UI |
+| PH0-INTEGRATION | Crate·생성 경로·공통 등록 통합, 실제 Provider·RN·마스터·Extension 연결, 환경 증거와 G0~G3 판정 | 개별 담당 영역의 무단 재구현, 미실행 시험 통과 처리 |
+
+PROV 범위는 해당 Provider의 실제 지원 상태와 환경을 기록하는 의미입니다. Resume/Fork 실험 실패 자체는 신규 Managed 실행의 실패와 구분합니다. Phase 0에서 구현한 최소 API·검증기는 P0에서 확장할 기반이며 P0 전체 구현 완료를 뜻하지 않습니다.
+
+#### 19.5.8 통합 게이트와 증거
+
+| 게이트 | 진입·완료 조건 | 판정 주체 |
+|---|---|---|
+| G0 계약 기준 | 배정·공통 인터페이스·시험 경계·최소 Stub 등록을 확정하고 기준 Commit 기록 | INTEGRATION, CONTRACT 확인 |
+| G1 대표 실행 | 공용 런타임 + 대표 Provider가 시작→이벤트→완료/실패→취소→결과를 실제 경로로 재현 | INTEGRATION, HOST·대표 Provider 확인 |
+| G2 구성 통합 | 세 Provider·마스터 검증·RN RPC·Extension 연결 및 공통 Contract/생성 시험 통합 | INTEGRATION, 각 담당 확인 |
+| G3 Phase 0 수용 | §19.1의 모든 필수 조건과 Windows/Linux·Remote SSH 해당 환경 증거, 미지원 기능 판정 확보 | INTEGRATION이 근거를 모아 보고 |
+
+개별 작업이 `integrated`가 되어도 G3 통과 전 Phase 0 전체 완료를 선언하지 않습니다. G3의 환경 조건은 Spec이 정한 대상 범위이며 모든 Provider를 모든 OS 조합에서 검증했다는 식으로 확대하지 않습니다. 실행하지 못한 필수 환경은 미검증으로 남기고 게이트 통과를 보류합니다.
+
+각 `docs/phase-0/evidence/<작업 ID>/README.md`에는 다음을 기록합니다.
+
+- 작업 ID·담당·기준/결과 Commit·계약 기준과 실제 수정 파일 목록
+- 구현한 기능, 명시적 Stub·미지원·미검증·남은 문제
+- 실행한 명령, 날짜, OS/Host, CLI·Extension·RN 버전과 설정 범위
+- 기대 결과·실제 결과·종료 상태, 로그·Fixture·Artifact 위치
+- Contract·Mock·실환경 시험 구분, 실패·거부·취소·재연결 등 반례 결과
+- 공통 파일·의존성·후속 작업에 필요한 변경 요청과 인계 내용
+
+소스 파일 존재, Trait 구현, 빌드 성공만으로 실행 PoC 통과를 기록하지 않습니다. 공통 검사는 변경 영향에 맞춰 실행하며, 최종 통합에서는 `cargo test --workspace --locked`, `cargo clippy --workspace --all-targets --locked`, 포맷 검사, Extension 타입 생성·빌드와 대상 실환경 시험을 확인합니다. 이 절 추가는 작업 배정이나 시험 실행 완료를 뜻하지 않습니다.
+
+#### 19.5.9 에이전트 착수·인계 체크리스트
+
+1. 현재 Spec의 결정·§3.4·담당 작업 ID·§19.1/§20의 대응 시험을 읽습니다. 표에서 HOST 등 짧은 표기는 같은 `PH0-` 작업 ID를 뜻합니다.
+2. 대표 저장소 배정표에서 중복 담당이 없는지 확인하고, 통합 담당이 담당자·수정 범위·Branch/Worktree·계약 기준을 기록한 뒤 시작합니다.
+3. 자기 Worktree의 기존 변경과 기준 Commit을 확인합니다. 계약 기준과 다르면 먼저 갱신하고, G0 미통과 상태에서 독자적인 공통 계약을 확정하지 않습니다.
+4. 허용 경로의 코드·전용 시험·자기 증거만 수정합니다. 다른 담당 영역이나 공통 파일 변경은 요청으로 전달합니다.
+5. 완료 요청에는 변경 파일·Commit·실행한 시험·미구현/미검증·남은 계약 요청을 제공합니다. `git diff --name-only`와 결과 Commit의 파일 목록을 확인하여 무관한 변경이 섞이지 않게 합니다.
+6. 통합 담당이 경로 소유권·계약·시험을 확인한 뒤 순차 통합합니다. 통합 기준의 재검증 전에는 `verified`로 표시하지 않고, 남은 실패는 담당과 재개 조건을 유지하여 인계합니다.
 
 ## 20. PoC 및 제품 수용 시나리오
 
