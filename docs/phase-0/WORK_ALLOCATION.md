@@ -3,7 +3,7 @@
 > **프로젝트:** TelosWeaver  
 > **갱신일:** 2026-10-24  
 > **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.3.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
-> **현재 상태:** 사용자가 PH0-INTEGRATION·PH0-CONTRACT를 배정함. G0 준비 중이며 계약 동결·통합 게이트 통과는 아직 없습니다.
+> **현재 상태:** G0 통과(계약 기준 `ae31eb2`). 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
 
 ## 1. 단일 원본과 갱신 주체
 
@@ -17,22 +17,22 @@
 |---|---|
 | 대표 저장소 | `D:\Downloads\Vibe_dev\TelosWeaver`, Branch `main` (원격 없음) |
 | 통합 담당자 ID | `claude-opus-5.5/session-c9336d2c` (2026-10-24 사용자 지정) |
-| 공통 계약 기준 Commit | 미확정 (착수 기준: `fca1669`) |
-| 공통 계약 기준 설명 | G0 준비 중. `fca1669`의 `telos-schema`·`AgentAdapter`는 동결되지 않은 초안이며 다른 작업은 이를 계약 기준으로 사용하지 않습니다. |
+| 공통 계약 기준 Commit | `ae31eb2` (2026-10-24 G0 확정) |
+| 공통 계약 기준 설명 | §5의 7개 계약. 변경은 §4 변경 요청으로만 처리합니다. 판정 근거: `evidence/PH0-INTEGRATION/README.md` |
 
 ## 2. 배정 상태
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | 없음 | G0 준비 완료(`556e62f`). CONTRACT 통합 후 G0 확정 |
-| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | in-progress | `ph0/contract` / `D:\worktree\TelosWeaver\ph0-contract` | `556e62f` | 없음 | §5 계약 작성 중. G0 확정 전 초안 |
-| PH0-HOST | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 공용 런타임·Core API 계약에 의존 |
-| PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | G0 후 Parser/Fixture 병렬 진행 가능 |
-| PH0-CLAUDE | 미배정 | unassigned | 미지정 | 미지정 | 없음 | G0 후 Parser/Fixture 병렬 진행 가능 |
-| PH0-AGY | 미배정 | unassigned | 미지정 | 미지정 | 없음 | G0 후 Parser/Fixture 병렬 진행 가능 |
-| PH0-MASTER | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 결정 Payload·검증 입출력 계약에 의존 |
-| PH0-RN | 미배정 | unassigned | 미지정 | 미지정 | 없음 | Fork 도입 방식·기준 SHA·RPC 계약 기록 |
-| PH0-EXT | 미배정 | unassigned | 미지정 | 미지정 | 없음 | G0 후 고정 API 테스트 대역으로 진행 가능 |
+| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0) | G0 통과. 다음: 배정 요청 처리, G1(HOST + Codex) 통합 |
+| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | verified | `ph0/contract` / Worktree 정리됨 | `556e62f` | `fd0b206` (통합 `cc142cf`) | G0 계약 완료. 이후 계약 변경은 §4 요청으로 처리 |
+| PH0-HOST | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. `telos_adapters::runtime`·`telos_schema::api` 구현 |
+| PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용. G1 대표 Provider |
+| PH0-CLAUDE | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
+| PH0-AGY | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
+| PH0-MASTER | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. `DecisionPayload`·`DecisionContext`·`DecisionOutcome`과 공통 실패 Fixture 사용 |
+| PH0-RN | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Fork 도입 방식·기준 SHA 기록, `telos_schema::rn` 계약 구현 |
+| PH0-EXT | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 생성 타입과 `telos_schema::api` 문서 계약으로 테스트 대역 개발 |
 
 상태는 `unassigned → reserved → in-progress → review → integrated → verified`를 사용합니다. `blocked`는 기존 담당자를 유지하며 차단 사유·필요한 계약·재개 조건을 기록합니다. 통합 전 `verified`로 표시하지 않습니다. 개별 `verified`는 Phase 0 전체 통과와 다릅니다.
 
@@ -40,7 +40,7 @@
 
 | 게이트 | 상태 | 근거 |
 |---|---|---|
-| G0 공통 계약 확정 | 준비 중 | 담당 배정 완료. 기준 Commit과 인터페이스·소유권 기록 필요 |
+| G0 공통 계약 확정 | 통과 (2026-10-24) | 기준 Commit `ae31eb2`, `evidence/PH0-INTEGRATION/README.md` §1. 같은 담당자의 자기 검토임을 기록 |
 | G1 대표 Provider 실행 | 대기 | 실제 시작·이벤트·완료/실패·취소·결과 경로 필요 |
 | G2 전체 구성 통합 | 대기 | 세 Provider·마스터·RN·Extension 연결 증거 필요 |
 | G3 Phase 0 수용 | 대기 | Spec §19.1 필수 조건과 대상 환경 증거 필요 |
@@ -51,13 +51,13 @@
 
 | 요청 ID | 요청 작업 | 변경 대상·이유 | 영향 작업 | 처리 주체 | 상태·결과 Commit |
 |---|---|---|---|---|---|
-| 없음 | 해당 없음 | 등록된 요청 없음 | 해당 없음 | 해당 없음 | 해당 없음 |
+| REQ-001 | PH0-INTEGRATION | `.gitattributes` 신설(LF 고정). `core.autocrlf=true` 환경의 새 Worktree가 CRLF로 체크아웃되어 생성물이 내용 변경 없이 수정으로 표시됨. 현재 Spec §19.5.3에 소유 작업이 없어 Spec에 INTEGRATION 경로로 추가 필요 | 전체 | 사용자 확인 후 INTEGRATION | 대기 |
 
 요청에는 필요한 타입·메서드·의존성과 호환·시험 계획을 포함합니다. 통합 담당과 공통 계약 담당이 먼저 기준 변경을 통합하고 소비 작업에 전달합니다. 소비 작업에서 임시 공통 타입을 만들거나 같은 파일을 각자 수정하여 우회하지 않습니다.
 
 ## 5. G0 계약 범위와 등록 경로
 
-Spec §19.5.2의 계약을 아래 위치에 정의합니다. G0 확정 전에는 모두 초안이며, 확정 후 변경은 §4의 변경 요청으로만 처리합니다.
+Spec §19.5.2의 계약을 아래 위치에 정의했으며 `ae31eb2`로 확정했습니다. 이후 변경은 §4의 변경 요청으로만 처리합니다.
 
 | 계약 | 정의 위치 | 작성 | 사용 작업 |
 |---|---|---|---|
@@ -69,13 +69,14 @@ Spec §19.5.2의 계약을 아래 위치에 정의합니다. G0 확정 전에는
 | RN RPC | `telos_schema::rn`, `telos-rn-client`가 재노출 | CONTRACT 정의, INTEGRATION 등록 | RN, INTEGRATION |
 | 생성·시험 | `schemas/*.schema.json`, `telos_schema::fixtures`(`fixtures` feature), `telos_adapters::UnsupportedAdapter` 시험 대역, 증거 형식 `evidence/PH0-INTEGRATION/EVIDENCE_TEMPLATE.md` | CONTRACT, INTEGRATION | 전체 |
 
-G0 준비에서 등록한 Stub 경로입니다. 등록된 파일은 이후 해당 작업의 독점 경로이며 G0 확정 전까지는 등록 내용 외의 구현을 넣지 않습니다.
+G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작업의 독점 경로입니다.
 
 | 경로 | 이후 소유 | 내용 |
 |---|---|---|
 | `crates/adapters/src/runtime/mod.rs` | HOST | 공용 프로세스 런타임 공개 인터페이스, `UnimplementedRuntime` |
 | `crates/core/src/api/mod.rs`, `crates/core/src/execution/mod.rs` | HOST | 모듈 문서만 |
 | `crates/core/src/master/mod.rs`, `crates/core/src/policy/mod.rs` | MASTER | 모듈 문서만 |
+| `crates/rn-client/src/lib.rs` | RN | `telos_schema::rn` 재노출 |
 
 의존성 버전은 루트 `Cargo.toml`의 `[workspace.dependencies]`에서만 정합니다.
 
@@ -86,5 +87,6 @@ G0 준비에서 등록한 Stub 경로입니다. 등록된 파일은 이후 해�
 | 2026-10-24 01:05 | `claude-opus-5.5/session-c9336d2c` | 사용자 지정으로 통합 담당 인수. PH0-INTEGRATION `unassigned → in-progress`, PH0-CONTRACT `unassigned → reserved`, G0 `대기 → 준비 중`. 대표 저장소 기록 | `fca1669` |
 | 2026-10-24 01:23 | `claude-opus-5.5/session-c9336d2c` | G0 준비: 의존성 버전을 `[workspace.dependencies]`로 일원화, `telos-schema` `fixtures` feature 추가, §5의 Stub 경로 등록, G0 계약 범위 기록 | `4b67618` |
 | 2026-10-24 01:24 | `claude-opus-5.5/session-c9336d2c` | PH0-CONTRACT `reserved → in-progress`. Worktree `D:\worktree\TelosWeaver\ph0-contract`, Branch `ph0/contract` 생성 | `556e62f` |
+| 2026-10-24 01:34 | `claude-opus-5.5/session-c9336d2c` | `ph0/contract`(`fd0b206`)를 `cc142cf`로 통합, RN Client 재노출 등록(`ae31eb2`), `main`에서 재검증. PH0-CONTRACT `in-progress → verified`, G0 `준비 중 → 통과`, 기준 Commit `ae31eb2` 확정. 나머지 작업 인계 갱신, REQ-001 등록, Worktree 정리 | `ae31eb2` |
 
-PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 `in-progress`로 기록합니다. 두 작업의 담당자는 같지만 PH0-INTEGRATION은 대표 저장소 `main`, PH0-CONTRACT는 별도 Worktree의 `ph0/contract`에서 진행하며 Writer는 각 작업 트리에 한 명입니다.
+PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
