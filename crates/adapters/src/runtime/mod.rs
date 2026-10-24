@@ -30,6 +30,9 @@ use std::{ffi::OsString, fmt, path::PathBuf, time::Duration};
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 
+mod native;
+pub use native::NativeRuntime;
+
 /// 실행할 명령. 사용자 임의 경로를 검증 없이 cwd로 쓰지 않습니다 (§7.2). 경로 검증은 호출자 책임입니다.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandSpec {

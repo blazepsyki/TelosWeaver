@@ -10,12 +10,25 @@ publish.workspace = true
 telos-adapters.workspace = true
 telos-rn-client.workspace = true
 telos-schema.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+getrandom.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["net", "io-util", "sync", "rt-multi-thread", "time", "macros", "signal"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Threading", "Win32_Storage_FileSystem"] }
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
 
 [[bin]]
 name = "telos-weaver"
 path = "src/main.rs"
 
 [dev-dependencies]
+telos-schema = { workspace = true, features = ["fixtures"] }
 async-trait.workspace = true
 futures.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "sync"] }

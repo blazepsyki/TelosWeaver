@@ -10,7 +10,17 @@ publish.workspace = true
 async-trait.workspace = true
 futures.workspace = true
 telos-schema.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+semver.workspace = true
+tokio = { workspace = true, features = ["rt", "sync", "time"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_System_Pipes"] }
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
 
 [dev-dependencies]
 telos-schema = { workspace = true, features = ["fixtures"] }
-tokio = { workspace = true, features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

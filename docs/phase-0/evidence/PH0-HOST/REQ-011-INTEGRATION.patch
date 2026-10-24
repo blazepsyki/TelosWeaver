@@ -1,0 +1,167 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index 5acd927..d877f21 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -21,3 +21,8 @@ serde = { version = "1.0.229", features = ["derive"] }
+ serde_json = "1.0.154"
+ sha2 = "0.11.0"
+ tokio = "1.54.1"
++
++getrandom = "0.4.3"
++libc = "0.2.191"
++semver = "1.0.28"
++windows-sys = "0.61.2"
+diff --git a/crates/adapters/Cargo.toml b/crates/adapters/Cargo.toml
+index 1758309..a1ff1f8 100644
+--- a/crates/adapters/Cargo.toml
++++ b/crates/adapters/Cargo.toml
+@@ -10,7 +10,17 @@ publish.workspace = true
+ async-trait.workspace = true
+ futures.workspace = true
+ telos-schema.workspace = true
++serde_json.workspace = true
++sha2.workspace = true
++semver.workspace = true
++tokio = { workspace = true, features = ["rt", "sync", "time"] }
++
++[target.'cfg(windows)'.dependencies]
++windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_System_Pipes"] }
++
++[target.'cfg(unix)'.dependencies]
++libc.workspace = true
+
+ [dev-dependencies]
+ telos-schema = { workspace = true, features = ["fixtures"] }
+-tokio = { workspace = true, features = ["macros", "rt"] }
++tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+diff --git a/crates/core/Cargo.toml b/crates/core/Cargo.toml
+index d873493..503d8dd 100644
+--- a/crates/core/Cargo.toml
++++ b/crates/core/Cargo.toml
+@@ -10,12 +10,25 @@ publish.workspace = true
+ telos-adapters.workspace = true
+ telos-rn-client.workspace = true
+ telos-schema.workspace = true
++async-trait.workspace = true
++futures.workspace = true
++getrandom.workspace = true
++serde.workspace = true
++serde_json.workspace = true
++tokio = { workspace = true, features = ["net", "io-util", "sync", "rt-multi-thread", "time", "macros", "signal"] }
++
++[target.'cfg(windows)'.dependencies]
++windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Threading", "Win32_Storage_FileSystem"] }
++
++[target.'cfg(unix)'.dependencies]
++libc.workspace = true
+
+ [[bin]]
+ name = "telos-weaver"
+ path = "src/main.rs"
+
+ [dev-dependencies]
++telos-schema = { workspace = true, features = ["fixtures"] }
+ async-trait.workspace = true
+ futures.workspace = true
+ tokio = { workspace = true, features = ["macros", "rt", "sync"] }
+diff --git a/crates/core/src/main.rs b/crates/core/src/main.rs
+index 2d33750..c42f6f8 100644
+--- a/crates/core/src/main.rs
++++ b/crates/core/src/main.rs
+@@ -1,16 +1,88 @@
+-//! TelosWeaver Core Daemon 진입점. Local Core API와 Scheduler는 아직 구현되지 않았습니다.
++//! Minimal Local API entrypoint proposal for REQ-011 (Spec §3.3, §19.5).
++use std::{collections::HashMap, path::PathBuf, process::ExitCode, sync::Arc};
++use telos_core::{
++    api::{ApiServer, ApiServerConfig},
++    execution::{DenyRuns, ExecutionSupervisor},
++};
+
+-use std::process::ExitCode;
+-
+-fn main() -> ExitCode {
+-    match std::env::args().nth(1).as_deref() {
++#[tokio::main]
++async fn main() -> ExitCode {
++    match run().await {
++        Ok(()) => ExitCode::SUCCESS,
++        Err(message) => {
++            eprintln!("telos-weaver: {message}");
++            ExitCode::FAILURE
++        }
++    }
++}
++async fn run() -> Result<(), String> {
++    let mut args = std::env::args_os().skip(1);
++    match args.next().as_deref().and_then(|arg| arg.to_str()) {
+         Some("--version" | "-V") => {
+             println!("{} {}", telos_core::SERVICE_ID, env!("CARGO_PKG_VERSION"));
+-            ExitCode::SUCCESS
++            return Ok(());
+         }
++        Some("serve") => {}
+         _ => {
+-            eprintln!("{}: daemon is not implemented yet", telos_core::SERVICE_ID);
+-            ExitCode::FAILURE
++            return Err(
++                "usage: telos-weaver serve --project-root <path> --project-id <id> --host-id <id>"
++                    .into(),
++            );
++        }
++    }
++    let mut options = HashMap::new();
++    while let Some(flag) = args.next() {
++        let flag = flag.to_str().ok_or("option name must be UTF-8")?;
++        if !["--project-root", "--project-id", "--host-id"].contains(&flag) {
++            return Err("unknown option".into());
+         }
++        let value = args.next().ok_or("missing option value")?;
++        if options.insert(flag.to_owned(), value).is_some() {
++            return Err("duplicate option".into());
++        }
++    }
++    let project_root = PathBuf::from(
++        options
++            .remove("--project-root")
++            .ok_or("project root is required")?,
++    );
++    let project_id = options
++        .remove("--project-id")
++        .and_then(|value| value.into_string().ok())
++        .filter(|value| !value.is_empty())
++        .ok_or("project ID is required")?;
++    let host_id = options
++        .remove("--host-id")
++        .and_then(|value| value.into_string().ok())
++        .filter(|value| !value.is_empty())
++        .ok_or("host ID is required")?;
++    // Policy and snapshot services are not configured here. No Run is authorized.
++    let execution = Arc::new(ExecutionSupervisor::new(
++        project_id,
++        host_id,
++        vec![],
++        Arc::new(DenyRuns),
++    ));
++    let server = ApiServer::start(ApiServerConfig::new(project_root), execution)
++        .await
++        .map_err(|_| "Local API startup failed")?;
++    println!(
++        "{}: Local API ready (execution unavailable)",
++        telos_core::SERVICE_ID
++    );
++    #[cfg(unix)]
++    {
++        let mut terminate =
++            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
++                .map_err(|_| "shutdown signal setup failed")?;
++        tokio::select! {result=tokio::signal::ctrl_c()=>result.map_err(|_|"shutdown signal failed")?,_=terminate.recv()=>{}}
+     }
++    #[cfg(windows)]
++    tokio::signal::ctrl_c()
++        .await
++        .map_err(|_| "shutdown signal failed")?;
++    server
++        .shutdown()
++        .await
++        .map_err(|_| "Local API shutdown failed".into())
+ }
