@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.4)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.4  
+> **문서 버전:** 1.4 (개정 1.4.1)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-24  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -28,6 +28,7 @@
 | v1.3.7 | 2026-10-24 | §7.5에 Antigravity 데이터 디렉터리 검증을 추가. 관찰 결과, `--app_data_dir=antigravity` 가설, AGY-DATA-01~05, 순서, 판정·반영 방법을 PH0-AGY 작업으로 지정 |
 | v1.3.8 | 2026-10-24 | 배정표 수정 범위 완화(§19.5.5, §19.5.9): 담당 에이전트가 자기 작업 행·변경 요청 제출·변경 기록을 직접 갱신하고, 기준·게이트·판정·`verified` 전환은 통합 담당이 유지. 배정표 수정은 `main` 단독 커밋 |
 | **v1.4** | **2026-10-24** | **v1.3.1~1.3.8 정리: Rust Core(DEC-05)와 기존 코드 삭제(DEC-04), Phase 0 병렬 구현 절차(작업 ID·독점 경로·게이트·증거·Worktree·배정표 수정 범위), LF 고정과 WSL 기반 Linux·Remote SSH Host, VS Code 확장 CLI 탐지(DEC-06, 버전 비의존 규칙·Antigravity 데이터 디렉터리 검증). REQ-010 탐지 계약 위치를 §7.5에 연결** |
+| v1.4.1 | 2026-10-24 | INTEGRATION 경로에 `crates/core/src/integration/**` 추가(§19.5.3): G1~G3 통합 구성(운영자 설정 기반 Phase 0 실행 승인, Provider 탐지·구성, Daemon 종료 시 활성 Run 정리). 정식 정책은 MASTER(`core/policy`)가 대체 |
 
 ## 목차
 
@@ -1188,7 +1189,7 @@ G0 완료 시 공통 인터페이스와 최소 컴파일 가능한 등록 경로
 
 | 작업 ID | 책임·산출물 | 독점 수정 경로 | 선행 조건 |
 |---|---|---|---|
-| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, AGENTS.md, CLAUDE.md, docs/DEVELOPMENT_v1.4.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md | 최초 지정, G0 준비부터 담당 |
+| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/src/integration/**, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, AGENTS.md, CLAUDE.md, docs/DEVELOPMENT_v1.4.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md | 최초 지정, G0 준비부터 담당 |
 | PH0-CONTRACT | 공통 Rust 계약·Payload Schema·생성 원본·Wire/Schema 시험, Adapter Trait·공통 오류 | crates/schema/**, schemas/**, crates/adapters/src/lib.rs, crates/adapters/src/unimplemented.rs, crates/adapters/tests/unimplemented.rs | INTEGRATION과 G0 확정 |
 | PH0-HOST | 공용 프로세스 I/O·취소·자식 회수, VS Code 확장 CLI 공통 탐색, 최소 Core API·Supervisor와 Fixture 경로 | crates/adapters/src/runtime/**, crates/adapters/src/discovery/**, crates/adapters/tests/runtime_*.rs, crates/adapters/tests/discovery_*.rs, crates/adapters/tests/support/runtime/**, crates/adapters/tests/fixtures/runtime/**, crates/core/src/api/**, crates/core/src/execution/**, crates/core/tests/host_*.rs, crates/core/tests/fixtures/host/** | G0, 공용 런타임·API 계약 |
 | PH0-CODEX | Codex App Server 접속·신규 실행·이벤트 매핑·오류·취소, Resume/Fork 실험 | crates/adapters/src/codex.rs, crates/adapters/src/codex/**, crates/adapters/tests/codex_*.rs, crates/adapters/tests/fixtures/codex/** | G0, HOST 공개 인터페이스 |
