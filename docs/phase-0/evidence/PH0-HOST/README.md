@@ -4,14 +4,16 @@
 |---|---|
 | 작업 ID·담당 | PH0-HOST · Codex / `PH0-HOST-20261024` |
 | 갱신·검증일 | 2026-10-24, Windows 로컬 |
-| 현재 상태 | in-progress. 사용자 요청 1~3(최신 main 반영·REQ-010 엔진 연결·공개 API 시험 전환) 구현·검증 완료, 후속 통합 대기. 4번 Linux·Remote SSH 검증은 사용자 지시로 대기 |
+| 현재 상태 | in-progress. 기존 요청 1~3은 main 통합 완료(`b0a58b4`). 후속 G1 HOST 확인·REQ-013 ③ 구현·검증 완료 제출. Linux·Remote SSH는 사용자 지시로 대기 |
 | Branch / Worktree | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` |
-| 이번 기준 | `2ac1497` (최신 main·후속 착수 기록), Spec v1.4, 공통 계약 `271e7fd` |
-| 이번 코드 Commit | `e844791` |
+| 이번 기준 | `5b5e64f` 및 착수 `eef86ba`, Spec 개정 1.4.3, 공통 계약 `271e7fd`. §1~§6은 이전 `2ac1497` 기준 REQ-010 연결 이력 |
+| 이번 코드 Commit | `d13a1fc` (G1 검토·REQ-013 ③), 이전 REQ-010 연결 `e844791`(통합 `b0a58b4`) |
 | 이전 결과 | 구현 `159617e`·`53ad1de`, 인계 `6bb943e`, main 1차 통합·REQ-011 `d8e8725` |
 | 기준 문서 | [Spec](../../../DEVELOPMENT_v1.4.md), [대표 배정표](../../WORK_ALLOCATION.md), [CONTRACT 인계 §6.3](../PH0-CONTRACT/README.md#63-host-인계-엔진-연결) |
 
-이번 제출은 기존 탐색 엔진을 확정된 REQ-010 계약에 연결한 결과입니다. 대표 저장소의 의존성·진입점 통합과 계약 확정을 반영해 HOST Branch를 `main`까지 fast-forward한 뒤 작업했습니다. G1~G3 판정이나 PH0-HOST 전체 verified 전환은 하지 않습니다.
+현재 제출은 [G1 HOST 확인·REQ-013 ③ 처리 결과](G1_HOST_REVIEW.md)를 따릅니다. 아래 §1~§6은 이전 REQ-010 연결 당시의 기록이며, 당시 테스트 수와 미완료 표기를 현재 상태로 사용하지 않습니다.
+
+이전 제출은 기존 탐색 엔진을 확정된 REQ-010 계약에 연결한 결과입니다. 대표 저장소의 의존성·진입점 통합과 계약 확정을 반영해 HOST Branch를 `main`까지 fast-forward한 뒤 작업했습니다. G1~G3 판정이나 PH0-HOST 전체 verified 전환은 하지 않습니다.
 
 ## 1. 이번 수정 파일과 소유권
 
@@ -106,3 +108,12 @@ Cargo.toml·Cargo.lock·Schema·Provider별 모듈·Core 진입점은 이번에 
 ### REQ-011 실행 의존성과 Daemon 진입점 연결
 
 `d8e8725`에서 완료되었습니다. 통합 담당자가 libc를 0.2.190으로 정한 기준을 유지했고 이번에는 Cargo·진입점을 변경하지 않았습니다. 기존 최소 진입점의 실행 승인·활성 Run 종료 연결은 MASTER·Provider·INTEGRATION의 후속 작업입니다.
+
+## 7. G1 HOST 확인·REQ-013 ③ 후속 결과
+
+- 코드 `d13a1fc`: undefined 메타데이터를 universal과 동일하게 처리하고, 취소 수락이 실제 완료 결과·종료 불명을 덮어쓰지 않도록 실행 감독을 수정했습니다.
+- 기존 Windows G1 실행 관찰을 코드와 대조하고 HOST 로컬 시험으로 수명·상태 처리를 확인했습니다. 실제 Claude G1 5종을 이번에 다시 실행한 것은 아닙니다.
+- 현재 Branch 검증: 탐색 19개·실행 감독 6개·Windows 런타임 11개, Workspace 123개 통과(실환경 24개 기본 제외), 엄격 Clippy·fmt 통과.
+- 실제 Antigravity 1.9.0/CLI 1.4.7의 --version 탐지에서 resolution=metadata와 플랫폼 필드 생략을 확인했습니다. 모델 호출·세션 생성은 없습니다.
+- INTEGRATION 소유 G1 시험의 약한 상태·취소 검사를 강화할 REQ-015를 제출합니다. G1 게이트와 REQ-013 완료 판정은 통합 담당이 반영합니다.
+- 상세 근거·재현·한계·변경 요청은 [G1_HOST_REVIEW.md](G1_HOST_REVIEW.md)를 따릅니다. Linux·Remote SSH는 계속 대기합니다.

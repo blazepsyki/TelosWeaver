@@ -1,4 +1,6 @@
-# PH0-HOST 탐색 계약 연결 인계
+# PH0-HOST 인계 기록
+
+현재 후속 제출: 코드 `d13a1fc`, G1 HOST 확인·REQ-013 ③ 처리 및 REQ-015 요청은 [G1_HOST_REVIEW.md](G1_HOST_REVIEW.md)를 따릅니다. 아래 §1~§4는 `b0a58b4`로 통합된 REQ-010 연결 당시 인계이며 현재의 미완료 목록이 아닙니다.
 
 > 2026-10-24 · Codex / PH0-HOST-20261024 · `ph0/host` · 코드 `e844791` · 기준 `2ac1497` · 계약 `271e7fd`
 
