@@ -10,8 +10,8 @@ Phase 0 G3에 필요한 Linux 실행 Host와 단일 Remote SSH 실행 Host를 �
 
 | 항목 | 결정 |
 |---|---|
-| 배포판 | Ubuntu 24.04 LTS (`Ubuntu-24.04`) |
-| Host ID | `wsl-ubuntu-2404` (Windows 로컬은 `windows-local`). 증거·설정에서 두 Host를 섞지 않습니다 (SAFE-10, RN-POC-11) |
+| 배포판 | Ubuntu 26.04 LTS (`Ubuntu-26.04`) |
+| Host ID | `wsl-ubuntu-2604` (Windows 로컬은 `windows-local`). 증거·설정에서 두 Host를 섞지 않습니다 (SAFE-10, RN-POC-11) |
 | 작업 위치 | WSL 내부 ext4의 `~/src/TelosWeaver`. `/mnt/d/...`에서 빌드·실행하지 않습니다 |
 | 저장소 지위 | 검증용 Clone입니다. 대표 저장소가 아니며 배정표를 수정하지 않습니다 |
 | Remote SSH | WSL 안의 OpenSSH 서버, `127.0.0.1:2222`, 공개키 인증만 허용 |
@@ -24,7 +24,7 @@ Phase 0 G3에 필요한 Linux 실행 Host와 단일 Remote SSH 실행 Host를 �
 ### 2.1 배포판 설치 (Windows PowerShell)
 
 ```powershell
-wsl --install -d Ubuntu-24.04
+wsl --install -d Ubuntu-26.04
 wsl -l -v                      # VERSION 2인지 확인
 ```
 
@@ -78,7 +78,7 @@ KbdInteractiveAuthentication no
 PubkeyAuthentication yes
 EOF
 sudo systemctl daemon-reload
-sudo systemctl restart ssh.socket ssh   # Ubuntu 24.04는 socket 활성화를 사용합니다
+sudo systemctl restart ssh.socket ssh   # socket 활성화 사용 여부는 `systemctl status ssh.socket`으로 확인해 기록합니다
 ss -ltn | grep 2222                     # 127.0.0.1:2222 대기 확인
 ```
 
@@ -88,7 +88,7 @@ ss -ltn | grep 2222                     # 127.0.0.1:2222 대기 확인
 
 ```powershell
 ssh-keygen -t ed25519 -f $HOME\.ssh\telos_wsl_ed25519 -C "telos-wsl"
-Get-Content $HOME\.ssh\telos_wsl_ed25519.pub | wsl -d Ubuntu-24.04 -- sh -c "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+Get-Content $HOME\.ssh\telos_wsl_ed25519.pub | wsl -d Ubuntu-26.04 -- sh -c "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
 Add-Content $HOME\.ssh\config "`nHost telos-wsl`n  HostName 127.0.0.1`n  Port 2222`n  User <user>`n  IdentityFile ~/.ssh/telos_wsl_ed25519`n  IdentitiesOnly yes"
 ssh telos-wsl uname -a
 ```
@@ -120,7 +120,7 @@ cd ~/src/TelosWeaver && git fetch origin && git checkout --detach <대상 Commit
 ```
 
 - Linux에서만 필요한 수정은 WSL Clone에서 해당 작업의 Branch(예: `ph0/host-linux`)에 커밋합니다. 담당자는 자기 작업의 독점 경로만 수정합니다.
-- Windows에서 가져올 때: `git fetch \\wsl.localhost\Ubuntu-24.04\home\<user>\src\TelosWeaver <Branch>` (필요하면 Windows에서도 `safe.directory`에 이 경로를 추가합니다).
+- Windows에서 가져올 때: `git fetch \\wsl.localhost\Ubuntu-26.04\home\<user>\src\TelosWeaver <Branch>` (필요하면 Windows에서도 `safe.directory`에 이 경로를 추가합니다).
 - WSL Clone에서 `main`에 직접 통합하지 않습니다. 통합은 대표 저장소의 PH0-INTEGRATION이 합니다.
 
 ## 4. 검증 실행
@@ -130,7 +130,7 @@ cd ~/src/TelosWeaver && git fetch origin && git checkout --detach <대상 Commit
 모든 증거에 아래 출력을 붙입니다.
 
 ```bash
-echo "host_id=wsl-ubuntu-2404"; uname -r; . /etc/os-release && echo "$PRETTY_NAME"
+echo "host_id=wsl-ubuntu-2604"; uname -r; . /etc/os-release && echo "$PRETTY_NAME"
 rustc -V; cargo -V; node -v; npm -v; git -C ~/src/TelosWeaver rev-parse --short HEAD
 ```
 
@@ -162,11 +162,11 @@ git status --short    # 생성물 외 변경이 없어야 합니다
 1. Windows VS Code → Remote-SSH `telos-wsl` 접속. Extension은 원격 Extension Host에서 실행하고 Core·CLI·Workspace는 WSL에 있는지 확인합니다.
 2. Run 진행 중 SSH 단절: Windows에서 해당 `ssh` 프로세스를 종료하거나 WSL에서 `sudo systemctl stop ssh.socket ssh`를 실행합니다.
 3. 재접속 후 원격 Core의 실제 Run 상태를 조회하고 중복 실행이 없는지 확인합니다.
-4. Host 전체 유실은 `wsl --terminate Ubuntu-24.04`로 재현하며 SSH 단절과 구분해 기록합니다.
+4. Host 전체 유실은 `wsl --terminate Ubuntu-26.04`로 재현하며 SSH 단절과 구분해 기록합니다.
 
 ## 5. 증거 기록 규칙
 
-- 각 작업의 `evidence/<작업 ID>/README.md` 시험 표에 OS/Host 열을 `wsl-ubuntu-2404`로 적고 Windows 결과와 행을 나눕니다.
+- 각 작업의 `evidence/<작업 ID>/README.md` 시험 표에 OS/Host 열을 `wsl-ubuntu-2604`로 적고 Windows 결과와 행을 나눕니다.
 - 실제 CLI·프로세스로 실행한 시험만 `environment-tested`로 적습니다.
 - PH0-INTEGRATION은 G3 판정 시 Windows·WSL(Linux)·Remote SSH 증거를 모아 `evidence/PH0-INTEGRATION/README.md`에 정리합니다.
 
@@ -180,5 +180,5 @@ git status --short    # 생성물 외 변경이 없어야 합니다
 ## 7. 유지·정리
 
 - Toolchain 버전을 바꾸면 Windows와 WSL을 함께 맞추고 이 문서 §1을 갱신합니다.
-- 배포판 백업: `wsl --export Ubuntu-24.04 D:\worktree\backup\ubuntu-2404.tar` (Syncthing 대상 밖에 둡니다).
+- 배포판 백업: `wsl --export Ubuntu-26.04 D:\worktree\backup\ubuntu-2604.tar` (Syncthing 대상 밖에 둡니다).
 - 다시 구성할 때는 §2부터 반복합니다.
