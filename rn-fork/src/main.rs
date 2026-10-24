@@ -11,7 +11,6 @@ mod hook;
 mod invite;
 mod ipc;
 mod mcp;
-mod migrate;
 mod net;
 mod paths;
 mod proof;
@@ -39,9 +38,6 @@ pub const AGENT_NAME: &str = "reason-network";
 /// The name this engine used before it was Reason Network: `setup` takes out what this binary wired in under it, and
 /// `paths` moves the state it kept under it.
 pub const LEGACY_NAME: &str = "tincan";
-
-/// Where releases are published: a standalone install and its updates come from here.
-pub const REPO: &str = "reason-machines/reason-network";
 
 /// Whether the Reason CLI installed this binary (in `~/.reason/bin`): then it sets up and updates with the CLI, and
 /// people type `reason network`.
@@ -73,31 +69,6 @@ impl std::fmt::Display for Engine {
             _ => f.write_str(AGENT_NAME),
         }
     }
-}
-
-/// The one line that installs this engine on its own (without signing in to Reason) and runs `reason-network <args>`: for
-/// macOS and Linux, and for Windows.
-pub fn install_lines(args: &str) -> [String; 2] {
-    let base = format!("https://github.com/{REPO}/releases/latest/download");
-    [
-        format!("curl -fsSL {base}/install.sh | sh -s -- {args}"),
-        format!("powershell -c \"& ([scriptblock]::Create((irm {base}/install.ps1))) {args}\""),
-    ]
-}
-
-/// The install script, run without questions, installing into `dir`.
-pub fn installer(dir: &std::path::Path) -> std::process::Command {
-    let base = format!("https://github.com/{REPO}/releases/latest/download");
-    let mut cmd;
-    if cfg!(windows) {
-        cmd = std::process::Command::new("powershell");
-        cmd.args(["-NoProfile", "-NonInteractive", "-Command", &format!("irm {base}/install.ps1 | iex")]);
-    } else {
-        cmd = std::process::Command::new("sh");
-        cmd.arg("-c").arg(format!("s=\"$(curl -fsSL {base}/install.sh)\" && printf '%s\\n' \"$s\" | sh"));
-    }
-    cmd.env("REASON_NETWORK_BIN_DIR", dir).env("REASON_NETWORK_NO_PROMPT", "1");
-    cmd
 }
 
 /// The team link: Reason Network's join page, carrying the `ticket`.
@@ -168,7 +139,7 @@ enum Cmd {
         /// Your name in the team (default: $USER)
         #[arg(long = "as")]
         person: Option<String>,
-        /// Don't configure agents or install the background service
+        /// Don't configure agents
         #[arg(long)]
         no_setup: bool,
         /// Your own iroh relay, from the start (see `relay`)
@@ -255,22 +226,17 @@ enum Cmd {
         #[arg(long)]
         all: bool,
     },
-    /// Wire Reason Network into the agents on this machine and install the background service
+    /// Wire Reason Network into the agents on this machine
     Setup {
         /// Show what would change without changing anything
         #[arg(long)]
         dry_run: bool,
-        /// Undo: remove Reason Network from every agent and remove the service
+        /// Undo: remove Reason Network from every agent
         #[arg(long)]
         remove: bool,
-        /// Don't install the background service
-        #[arg(long)]
-        no_service: bool,
     },
     /// Check that everything is working
     Doctor,
-    /// Update to the latest release (with the Reason CLI, `reason update` does it)
-    Upgrade,
     /// Called by agents' hooks
     #[command(hide = true)]
     Hook {
@@ -283,9 +249,9 @@ enum Cmd {
         #[arg(long)]
         doing: Option<String>,
     },
-    /// Run the daemon in the foreground (normally started on demand or by the service)
+    /// Run the daemon in the foreground (normally started on demand)
     Daemon {
-        /// Wait for a running daemon to exit instead of quitting (for service managers, and Windows' logon entry)
+        /// Wait for a running daemon to exit instead of quitting, and show the menu bar icon (macOS)
         #[arg(long)]
         service: bool,
     },
@@ -303,14 +269,13 @@ enum Cmd {
     },
     /// Run the MCP server on stdio (what agents launch)
     Mcp,
-    /// The menu bar icon (macOS; the background service starts it)
+    /// The menu bar icon (macOS; `daemon --service` starts it)
     #[command(hide = true)]
     Tray,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    migrate::as_ours();
     let cmd = Cli::parse().cmd;
     paths::migrate();
     match cmd {
@@ -507,7 +472,7 @@ async fn cli(cmd: Cmd) -> Result<()> {
             println!("Whoever pastes this line to their coding agent joins the team. `{CLI} link --new` replaces it.");
         }
         Cmd::Invite { me: false, code: false, .. } => Box::pin(cli(Cmd::Link { new: false, json: false })).await?,
-        Cmd::Setup { dry_run: false, remove: false, no_service: false } if wizard::interactive() => {
+        Cmd::Setup { dry_run: false, remove: false } if wizard::interactive() => {
             wizard::guided(wizard::setup_agents()).await?
         }
         Cmd::Init { team, person, no_setup, relay, proof, json } => {
@@ -518,14 +483,14 @@ async fn cli(cmd: Cmd) -> Result<()> {
             let t: TeamInfo = link.call(req).await?;
             wait_exit(daemon_pid()).await;
             if json {
-                let agents = if no_setup { None } else { Some(setup::quietly().await?) };
+                let agents = if no_setup { None } else { Some(setup::quietly()?) };
                 println!("{}", shown(&serde_json::to_string_pretty(&team_json(&Link::new(None), agents).await?)?));
                 return Ok(());
             }
             println!("Created team {}. You are {} on {}.", t.name, t.person, t.machine);
             if !no_setup {
                 println!();
-                setup::run(false, false, false).await?;
+                setup::run(false, false)?;
             }
             let l: LinkInfo = Link::new(None).call(Request::Link { new: false }).await?;
             println!("\nInvite people with this line:\n{}", invite_line(&l.url));
@@ -535,13 +500,13 @@ async fn cli(cmd: Cmd) -> Result<()> {
             let req = Request::Join { ticket: invite, person: default_person(person), proof };
             let t: TeamInfo = link.call(req).await?;
             wait_exit(daemon_pid()).await;
-            let agents = if no_setup || !json { None } else { Some(setup::quietly().await?) };
+            let agents = if no_setup || !json { None } else { Some(setup::quietly()?) };
             if !json {
                 println!("Joined team {} as {} on {}.", shown(&t.name), t.person, t.machine);
             }
             if !no_setup && !json {
                 println!();
-                setup::run(false, false, false).await?;
+                setup::run(false, false)?;
             }
             // Give the new daemon a moment to reach teammates, then show them.
             let fresh = Link::new(None);
@@ -568,19 +533,13 @@ async fn cli(cmd: Cmd) -> Result<()> {
             let i: InviteInfo = link.call(Request::Invite { me, hours: hours.clamp(1, 24 * 30) }).await?;
             let who = if me { "another machine of yours" } else { "a teammate" };
             println!("One-time code for {who}: {}\n", i.code);
-            let [unix, windows] = install_lines(&i.code);
             if !me {
                 println!(
                     "To invite people, the invite line is better: `{CLI} link` gives it (Join the Reason Network: <link>).\n"
                 );
             }
             println!(
-                "With the code, they run this, which installs the Reason Network engine and joins (their name unverified):\n"
-            );
-            println!("  {unix}\n");
-            println!("On Windows, in PowerShell:\n\n  {windows}\n");
-            println!(
-                "(or `{AGENT_NAME} join {}` if it's installed). Works once, within {}h, while this machine is online.",
+                "With the engine installed, they run `{AGENT_NAME} join {}` (their name unverified). Works once, within {}h, while this machine is online.",
                 i.code, i.hours
             );
             println!("If this machine will be offline, use the long form instead: {AGENT_NAME} join {}", i.ticket);
@@ -667,24 +626,8 @@ async fn cli(cmd: Cmd) -> Result<()> {
             let n: usize = link.call(Request::Settle { ids, release: false }).await?;
             println!("Dropped {n}.");
         }
-        Cmd::Setup { dry_run, remove, no_service } => setup::run(dry_run, remove, no_service).await?,
+        Cmd::Setup { dry_run, remove } => setup::run(dry_run, remove)?,
         Cmd::Doctor => setup::doctor().await?,
-        Cmd::Upgrade => {
-            if managed() {
-                bail!("the network engine updates with the reason CLI: update reason, then run `{CLI} setup`");
-            }
-            let dir = util::current_exe()?.parent().map(|d| d.to_path_buf()).unwrap_or_default();
-            let exe = dir.join(format!("{AGENT_NAME}{}", std::env::consts::EXE_SUFFIX));
-            let waiting = migrate::waiting(&exe);
-            if !installer(&dir).status()?.success() {
-                bail!("upgrade failed");
-            }
-            if waiting {
-                migrate::keep_waiting_copy(&exe);
-            }
-            stop_daemon().await;
-            println!("The daemon restarted on the new version. Restart agent sessions to update their tools.");
-        }
         Cmd::Stop => {
             if !stop_daemon().await {
                 println!("The daemon is not running.");

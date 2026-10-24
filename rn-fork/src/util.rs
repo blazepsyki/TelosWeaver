@@ -263,11 +263,6 @@ pub fn printable(s: &str) -> String {
     s.chars().filter(|c| !c.is_control() || *c == '\n' || *c == '\t').collect()
 }
 
-/// A build run from a source tree (`target/…`): it never updates itself or moves anything over.
-pub fn from_source() -> bool {
-    current_exe().is_ok_and(|p| p.components().any(|c| c.as_os_str() == "target"))
-}
-
 /// This program's path. After an update replaces the file, Linux reports the old one as `<path> (deleted)`; the
 /// new binary is at `<path>`. (Windows, where the update moves the old one aside, reports `<path>` as it was.)
 pub fn current_exe() -> std::io::Result<std::path::PathBuf> {

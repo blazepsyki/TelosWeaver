@@ -5,7 +5,7 @@ use crate::{
     AGENT_NAME, CLI,
     client::Link,
     config::{Config, Policy},
-    install_lines, invite,
+    invite,
     proto::*,
     render, setup, util,
 };
@@ -155,7 +155,7 @@ pub async fn onboard(
     Ok(())
 }
 
-/// Every agent found, the background service, the default preferences; then says what it did.
+/// Every agent found, the default preferences; then says what it did.
 async fn set_up_agents_with_defaults() -> Result<()> {
     let exe = setup::exe()?;
     let found = setup::detect(&exe);
@@ -163,14 +163,11 @@ async fn set_up_agents_with_defaults() -> Result<()> {
     let sp = spinner();
     sp.start("Setting up your agents...");
     crate::stop_daemon().await;
-    let out = setup::apply(&exe, &ids, &[], Some(true), false).await;
+    let out = setup::apply(&exe, &ids, &[], false);
     sp.stop(match out.agents.as_slice() {
         [] => "No coding agents found on this machine (yet)".to_string(),
         names => format!("Set up {}", and_list(names)),
     });
-    if out.service == Some(true) {
-        log::success("Runs in the background, from login")?;
-    }
     for n in &out.notes {
         log::warning(n)?;
     }
@@ -186,7 +183,7 @@ fn and_list(items: &[&str]) -> String {
     }
 }
 
-/// Which agents are on Reason Network, the background service, and how teammates' messages are handled.
+/// Which agents are on Reason Network, and how teammates' messages are handled.
 pub async fn agents_and_preferences() -> Result<()> {
     let exe = setup::exe()?;
     let found = setup::detect(&exe);
@@ -205,9 +202,6 @@ pub async fn agents_and_preferences() -> Result<()> {
         }
         pick.interact()?
     };
-    let service = confirm("Keep Reason Network running in the background, so teammates can always reach you?")
-        .initial_value(true)
-        .interact()?;
     let mut cfg = Config::load_strict().map_err(|e| anyhow!("fix {} first: {e}", crate::paths::config().display()))?;
     cfg.inbound.default = select("When a teammate's agent messages one of yours")
         .item(Policy::Accept, "Deliver it", "recommended")
@@ -217,18 +211,14 @@ pub async fn agents_and_preferences() -> Result<()> {
     cfg.share_paths = confirm("Show teammates your full working directories? (otherwise just the folder name)")
         .initial_value(cfg.share_paths)
         .interact()?;
-    if cfg!(target_os = "macos") && service {
-        cfg.tray = confirm("Show Reason in the menu bar?").initial_value(cfg.tray).interact()?;
-    }
     cfg.save()?;
 
     let remove: Vec<&str> = found.iter().filter(|f| f.wired && !chosen.contains(&f.id)).map(|f| f.id).collect();
     let sp = spinner();
     sp.start("Setting up...");
-    // The daemon reads its config at start: restart it (the service manager or the next command brings it back).
+    // The daemon reads its config at start: restart it (the next command brings it back).
     crate::stop_daemon().await;
-    let service = if service { Some(true) } else { setup::service_installed().then_some(false) };
-    let out = setup::apply(&exe, &chosen, &remove, service, false).await;
+    let out = setup::apply(&exe, &chosen, &remove, false);
     sp.stop("Done");
     for l in &out.lines {
         log::success(l)?;
@@ -259,12 +249,11 @@ pub async fn show_link(new: bool) -> Result<String> {
 /// A one-time code (for reading out loud, or for another machine of yours).
 pub async fn show_code(me: bool) -> Result<()> {
     let i: InviteInfo = Link::new(None).call(Request::Invite { me, hours: 24 }).await?;
-    let [unix, windows] = install_lines(&i.code);
     let who = if me { "your other machine" } else { "your teammate" };
     note(
         format!("Invite code: {}", i.code),
         format!(
-            "On {who}: {unix}\n(on Windows: {windows})\n(or `{AGENT_NAME} join {}` if it's there already)\nWorks once, within {}h, while this machine is online.",
+            "On {who}, with the engine installed: `{AGENT_NAME} join {}`\nWorks once, within {}h, while this machine is online.",
             i.code, i.hours
         ),
     )?;

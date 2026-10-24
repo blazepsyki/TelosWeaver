@@ -233,13 +233,7 @@ async fn connect_or_start(start: bool) -> Result<ipc::Stream> {
     // One is running (it may be starting or restarting): wait for it rather than start another.
     let mut child = None;
     if running_daemon().is_none() {
-        // With the background service installed, the service starts it, so there is only ever its daemon.
-        let by_service = crate::setup::service_installed()
-            && crate::paths::env_var_os("NO_SERVICE").is_none()
-            && crate::setup::start_service();
-        if !by_service {
-            child = Some(start_daemon(false)?);
-        }
+        child = Some(start_daemon(false)?);
     }
     let failed = || anyhow!("could not start the network daemon; see {}", paths::log().display());
     let mut connected = None;

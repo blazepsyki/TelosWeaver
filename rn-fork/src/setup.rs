@@ -1,6 +1,6 @@
-//! `setup`: wires Reason Network into every agent on this machine (MCP server, plus hooks where the agent has them) and
-//! installs the daemon as a login service. `setup --remove` undoes it. Every file it edits
-//! is backed up once, as `<file>.bak-reason`. Also `doctor`.
+//! `setup`: wires Reason Network into every agent on this machine (MCP server, plus hooks where the agent has them).
+//! `setup --remove` undoes it. Every file it edits is backed up once, as `<file>.bak-reason`. Also `doctor`.
+//! (TelosWeaver fork: no login service; the daemon starts when a command needs it.)
 //!
 //! Earlier builds wired agents in under `LEGACY_NAME`. Each step here also takes out what this binary's path put
 //! there under that name, so an update moves an agent over and leaves nothing behind; another program of that name
@@ -15,25 +15,6 @@ use std::{
 };
 
 mod zcode;
-
-/// The service's name. A non-default `REASON_NETWORK_HOME` gets its own, so a second instance (or a test) can never
-/// replace the real one.
-fn service_name() -> String {
-    service_label("com.reasonmachines.network")
-}
-
-/// The upstream engine's service name, which this binary ran under before.
-#[cfg(unix)]
-fn legacy_service_name() -> String {
-    service_label("dev.tincan.daemon")
-}
-
-fn service_label(base: &str) -> String {
-    match crate::paths::env_var("HOME") {
-        Ok(h) => format!("{base}.{}", &blake3::hash(h.as_bytes()).to_hex()[..8]),
-        Err(_) => base.into(),
-    }
-}
 
 /// What happened to one agent.
 struct Report {
@@ -835,342 +816,6 @@ fn reason(_exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
     Ok(Some(r))
 }
 
-// ---- background service ----
-
-#[cfg(unix)]
-pub fn service_installed() -> bool {
-    service_path().exists()
-}
-
-/// Asks the service manager to start the daemon now (rather than a stray one of our own, which would hold the
-/// lock and leave the service's daemon waiting, without its menu bar icon). True if it accepted.
-#[cfg(unix)]
-pub fn start_service() -> bool {
-    let out = if cfg!(target_os = "macos") {
-        let uid = unsafe { libc::getuid() };
-        Command::new("launchctl")
-            .args(["kickstart", &format!("gui/{uid}/{}", service_name())])
-            .stdin(std::process::Stdio::null())
-            .output()
-    } else {
-        Command::new("systemctl")
-            .args(["--user", "start", &format!("{}.service", service_name())])
-            .stdin(std::process::Stdio::null())
-            .output()
-    };
-    out.is_ok_and(|o| o.status.success())
-}
-
-#[cfg(unix)]
-fn service_path() -> PathBuf {
-    service_path_for(&service_name())
-}
-
-#[cfg(unix)]
-fn service_path_for(name: &str) -> PathBuf {
-    if cfg!(target_os = "macos") {
-        home().join(format!("Library/LaunchAgents/{name}.plist"))
-    } else {
-        home().join(format!(".config/systemd/user/{name}.service"))
-    }
-}
-
-/// Stops and removes the login service this binary (or the tincan it replaced) ran under with the upstream engine's
-/// name. True if there was one.
-#[cfg(unix)]
-fn remove_legacy_service(exe: &Path, dry: bool) -> bool {
-    if dry {
-        return legacy_service(exe);
-    }
-    let had = unregister_legacy_service(exe);
-    if had {
-        stop_legacy_service();
-    }
-    had
-}
-
-/// Whether that service is registered here, for this binary or the tincan it replaced.
-#[cfg(unix)]
-pub fn legacy_service(exe: &Path) -> bool {
-    std::fs::read_to_string(service_path_for(&legacy_service_name())).is_ok_and(|t| ours(&t, exe))
-}
-
-/// Takes that service off the login items without stopping it: it may be what runs this very process. True if there
-/// was one.
-#[cfg(unix)]
-pub fn unregister_legacy_service(exe: &Path) -> bool {
-    let name = legacy_service_name();
-    let path = service_path_for(&name);
-    if !legacy_service(exe) {
-        return false;
-    }
-    let systemctl =
-        |args: &[&str]| Command::new("systemctl").arg("--user").args(args).stdin(std::process::Stdio::null()).output();
-    if !cfg!(target_os = "macos") {
-        let _ = systemctl(&["disable", &format!("{name}.service")]);
-    }
-    let _ = std::fs::remove_file(&path);
-    if !cfg!(target_os = "macos") {
-        let _ = systemctl(&["daemon-reload"]);
-    }
-    true
-}
-
-/// Stops that service, unregistered or not.
-#[cfg(unix)]
-pub fn stop_legacy_service() {
-    let name = legacy_service_name();
-    let _ = if cfg!(target_os = "macos") {
-        let uid = unsafe { libc::getuid() };
-        Command::new("launchctl")
-            .args(["bootout", &format!("gui/{uid}/{name}")])
-            .stdin(std::process::Stdio::null())
-            .output()
-    } else {
-        Command::new("systemctl")
-            .args(["--user", "stop", &format!("{name}.service")])
-            .stdin(std::process::Stdio::null())
-            .output()
-    };
-}
-
-/// A PATH for the daemon that includes where agents usually live (it runs `codex queue`).
-#[cfg(unix)]
-fn service_path_env() -> String {
-    let h = home().display().to_string();
-    format!(
-        "{h}/.local/bin:{h}/.bun/bin:{h}/.npm-global/bin:{h}/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
-    )
-}
-
-#[cfg(unix)]
-async fn service(exe: &Path, remove: bool, dry: bool) -> Result<String> {
-    install_service(exe, remove, dry, true).await
-}
-
-/// Installs ours from the daemon the legacy service runs, leaving that service and daemon (itself) alone: it ends when
-/// the legacy service is stopped, and ours takes over.
-#[cfg(unix)]
-pub async fn install_service_from_daemon(exe: &Path) -> Result<String> {
-    install_service(exe, false, false, false).await
-}
-
-#[cfg(unix)]
-async fn install_service(exe: &Path, remove: bool, dry: bool, stop: bool) -> Result<String> {
-    let path = service_path();
-    let uid = unsafe { libc::getuid() };
-    let engine_home = crate::paths::env_var("HOME").ok();
-    // The Reason CLI that set this up, so the daemon runs that one's relay rather than whatever `reason` is on its PATH.
-    let reason_bin = crate::paths::env_var("REASON_BIN").ok().filter(|b| !b.is_empty() && crate::managed());
-    let legacy = stop && remove_legacy_service(exe, dry);
-    if cfg!(target_os = "macos") {
-        let target = format!("gui/{uid}/{}", service_name());
-        if remove {
-            if !dry {
-                let _ =
-                    Command::new("launchctl").args(["bootout", &target]).stdin(std::process::Stdio::null()).output();
-                let _ = std::fs::remove_file(&path);
-            }
-            return Ok("removed the login service".into());
-        }
-        let home_env = engine_home
-            .map(|h| format!("\n    <key>REASON_NETWORK_HOME</key><string>{}</string>", xml(&h)))
-            .unwrap_or_default()
-            + &reason_bin
-                .map(|b| format!("\n    <key>REASON_NETWORK_REASON_BIN</key><string>{}</string>", xml(&b)))
-                .unwrap_or_default();
-        let plist = format!(
-            r#"<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>{}</string>
-  <key>ProgramArguments</key>
-  <array><string>{}</string><string>daemon</string><string>--service</string></array>
-  <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><true/>
-  <key>StandardErrorPath</key><string>{}</string>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>PATH</key><string>{}</string>{home_env}
-  </dict>
-</dict>
-</plist>
-"#,
-            xml(&service_name()),
-            xml(&exe.display().to_string()),
-            xml(&paths::log().display().to_string()),
-            xml(&service_path_env()),
-        );
-        let did = write_file(&path, &plist, dry)? || legacy;
-        let loaded = Command::new("launchctl")
-            .args(["print", &target])
-            .stdin(std::process::Stdio::null())
-            .output()
-            .is_ok_and(|o| o.status.success());
-        if !dry && (did || !loaded) {
-            let _ = Command::new("launchctl").args(["bootout", &target]).stdin(std::process::Stdio::null()).output();
-            if stop {
-                crate::stop_daemon().await;
-            }
-            let out = Command::new("launchctl")
-                .args(["bootstrap", &format!("gui/{uid}")])
-                .arg(&path)
-                .stdin(std::process::Stdio::null())
-                .output()?;
-            if !out.status.success() {
-                return Err(anyhow!("launchctl bootstrap: {}", String::from_utf8_lossy(&out.stderr).trim()));
-            }
-        }
-        Ok(if did || !loaded {
-            "installed the login service (launchd)".into()
-        } else {
-            "login service already running".into()
-        })
-    } else {
-        if remove {
-            if !dry {
-                let _ = Command::new("systemctl")
-                    .args(["--user", "disable", "--now", &format!("{}.service", service_name())])
-                    .stdin(std::process::Stdio::null())
-                    .output();
-                let _ = std::fs::remove_file(&path);
-            }
-            return Ok("removed the login service".into());
-        }
-        // Containers and WSL often have no user systemd: say so plainly, and leave no unit behind.
-        let user_systemd = Command::new("systemctl")
-            .args(["--user", "show-environment"])
-            .stdin(std::process::Stdio::null())
-            .output()
-            .is_ok_and(|o| o.status.success());
-        if !user_systemd {
-            return Err(anyhow!("systemctl --user isn't available here"));
-        }
-        // systemd expands `%` specifiers and reads `\` and `"` as escapes inside a quoted value.
-        let value = |v: &str| v.replace('%', "%%").replace('\\', "\\\\").replace('"', "\\\"");
-        let home_env =
-            engine_home.map(|h| format!("Environment=\"REASON_NETWORK_HOME={}\"\n", value(&h))).unwrap_or_default()
-                + &reason_bin
-                    .map(|b| format!("Environment=\"REASON_NETWORK_REASON_BIN={}\"\n", value(&b)))
-                    .unwrap_or_default();
-        let unit = format!(
-            "[Unit]\nDescription=Reason Network daemon\n\n[Service]\nExecStart={} daemon --service\nRestart=always\nRestartSec=3\nEnvironment=\"PATH={}\"\n{home_env}StandardError=append:{}\n\n[Install]\nWantedBy=default.target\n",
-            shell_cmd(exe, "").trim_end().replace('%', "%%"),
-            value(&service_path_env()),
-            paths::log().display().to_string().replace('%', "%%")
-        );
-        let did = write_file(&path, &unit, dry)? || legacy;
-        if !dry {
-            paths::ensure_home()?;
-            if stop {
-                crate::stop_daemon().await;
-            }
-            Command::new("systemctl").args(["--user", "daemon-reload"]).stdin(std::process::Stdio::null()).output()?;
-            let out = Command::new("systemctl")
-                .args(["--user", "enable", "--now", &format!("{}.service", service_name())])
-                .stdin(std::process::Stdio::null())
-                .output()?;
-            if !out.status.success() {
-                let _ = std::fs::remove_file(&path);
-                return Err(anyhow!("systemctl: {}", String::from_utf8_lossy(&out.stderr).trim()));
-            }
-            // Keep running after logout (servers, SSH boxes). Best effort: some systems want a password.
-            if let Ok(user) = std::env::var("USER") {
-                let _ =
-                    Command::new("loginctl").args(["enable-linger", &user]).stdin(std::process::Stdio::null()).output();
-            }
-        }
-        Ok(if did { "installed the login service (systemd --user)".into() } else { "login service already set".into() })
-    }
-}
-
-#[cfg(unix)]
-fn xml(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
-}
-
-// Without admin, Windows has no service for us: the daemon starts at logon from the user's Run key, and when it
-// restarts it starts the next one itself (see `Daemon::restart_soon`).
-
-#[cfg(windows)]
-const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
-
-#[cfg(windows)]
-pub fn service_installed() -> bool {
-    run_entry().is_some()
-}
-
-/// There is no service manager to ask: the caller starts the daemon.
-#[cfg(windows)]
-pub fn start_service() -> bool {
-    false
-}
-
-/// Our Run entry, as `reg query` shows it.
-#[cfg(windows)]
-fn run_entry() -> Option<String> {
-    let out = Command::new("reg")
-        .args(["query", RUN_KEY, "/v", &service_name()])
-        .stdin(std::process::Stdio::null())
-        .output()
-        .ok()?;
-    out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
-}
-
-/// The Run entry a standalone tincan install made, if it still starts this binary or the tincan it replaced.
-#[cfg(windows)]
-pub fn legacy_run_entry(exe: &Path) -> bool {
-    Command::new("reg")
-        .args(["query", RUN_KEY, "/v", "dev.tincan.daemon"])
-        .stdin(std::process::Stdio::null())
-        .output()
-        .is_ok_and(|o| o.status.success() && ours(&String::from_utf8_lossy(&o.stdout), exe))
-}
-
-/// Moves that Run entry over to this binary (ours first, then the old one goes).
-#[cfg(windows)]
-pub fn move_legacy_run_entry(exe: &Path) {
-    let reg = |args: &[&str]| Command::new("reg").args(args).stdin(std::process::Stdio::null()).output();
-    if legacy_run_entry(exe) {
-        let command = format!("\"{}\" daemon --service", exe.display());
-        if reg(&["add", RUN_KEY, "/v", &service_name(), "/d", &command, "/f"]).is_ok_and(|o| o.status.success()) {
-            let _ = reg(&["delete", RUN_KEY, "/v", "dev.tincan.daemon", "/f"]);
-        }
-    }
-}
-
-#[cfg(windows)]
-async fn service(exe: &Path, remove: bool, dry: bool) -> Result<String> {
-    let reg = |args: &[&str]| Command::new("reg").args(args).stdin(std::process::Stdio::null()).output();
-    if remove {
-        if !dry {
-            let _ = reg(&["delete", RUN_KEY, "/v", &service_name(), "/f"]);
-            crate::stop_daemon().await;
-        }
-        return Ok("removed the login service".into());
-    }
-    // Windows starts it with its command line and nothing else.
-    if crate::paths::env_var_os("HOME").is_some() {
-        return Err(anyhow!("a logon entry can't set REASON_NETWORK_HOME"));
-    }
-    let command = format!("\"{}\" daemon --service", exe.display());
-    let did = !run_entry().is_some_and(|v| contains(&v, &command));
-    if !dry {
-        if did {
-            let out = reg(&["add", RUN_KEY, "/v", &service_name(), "/d", &command, "/f"])?;
-            if !out.status.success() {
-                return Err(anyhow!("reg add: {}", String::from_utf8_lossy(&out.stderr).trim()));
-            }
-        }
-        // Running now, as from logon: a daemon that is running starts it as it stops.
-        if !crate::stop_daemon().await {
-            crate::client::start_daemon(true)?;
-        }
-    }
-    Ok(if did { "installed the login service (Run key)".into() } else { "login service already set".into() })
-}
-
 type AgentFn = fn(&Path, bool, bool) -> Result<Option<Report>>;
 
 struct Agent {
@@ -1310,29 +955,6 @@ const AGENTS: [Agent; 11] = [
     },
 ];
 
-/// The agents wired to the tincan binary beside `exe`, which move over to it.
-pub fn legacy_wiring(exe: &Path) -> Vec<&'static str> {
-    let old = legacy_exe(exe);
-    let wired = |a: &Agent| match a.id {
-        "claude" => agent::find_bin("claude").is_some_and(|b| {
-            Command::new(b)
-                .args(["mcp", "get", LEGACY_NAME])
-                .stdin(std::process::Stdio::null())
-                .output()
-                .is_ok_and(|o| o.status.success() && ours(&String::from_utf8_lossy(&o.stdout), exe))
-        }),
-        "opencode" => std::fs::read_to_string(opencode_home().join(format!("plugins/{LEGACY_NAME}.ts")))
-            .is_ok_and(|t| ours(&t, exe)),
-        "pi" => {
-            std::fs::read_to_string(pi_home().join(format!("extensions/{LEGACY_NAME}.ts"))).is_ok_and(|t| ours(&t, exe))
-        }
-        // Its setting moved over with the state; nothing of it names the tincan binary.
-        "reason" => false,
-        _ => (a.wired)(&old),
-    };
-    AGENTS.iter().filter(|a| (a.installed)() && wired(a)).map(|a| a.id).collect()
-}
-
 /// An agent found on this machine.
 pub struct Found {
     pub id: &'static str,
@@ -1349,19 +971,17 @@ pub fn detect(exe: &Path) -> Vec<Found> {
         .collect()
 }
 
-/// What `apply` did: a line per agent (and the service), and things the user should know.
+/// What `apply` did: a line per agent, and things the user should know.
 #[derive(Default)]
 pub struct Applied {
     pub lines: Vec<String>,
     pub notes: Vec<String>,
-    /// The agents set up (or removed) without trouble, and whether the service is installed now.
+    /// The agents set up (or removed) without trouble.
     pub agents: Vec<&'static str>,
-    pub service: Option<bool>,
 }
 
-/// Wires Reason Network into the `install` agents and out of the `remove` ones; installs (`Some(true)`) or removes
-/// (`Some(false)`) the login service.
-pub async fn apply(exe: &Path, install: &[&str], remove: &[&str], service: Option<bool>, dry: bool) -> Applied {
+/// Wires Reason Network into the `install` agents and out of the `remove` ones.
+pub fn apply(exe: &Path, install: &[&str], remove: &[&str], dry: bool) -> Applied {
     let mut out = Applied::default();
     for a in &AGENTS {
         let removing = remove.contains(&a.id);
@@ -1381,27 +1001,11 @@ pub async fn apply(exe: &Path, install: &[&str], remove: &[&str], service: Optio
             }
         }
     }
-    if let Some(on) = service {
-        if crate::paths::env_var_os("NO_SERVICE").is_some() {
-            out.lines.push("service: skipped (REASON_NETWORK_NO_SERVICE is set)".into());
-            return out;
-        }
-        match self::service(exe, !on, dry).await {
-            Ok(s) => {
-                out.lines.push(format!("service: {s}"));
-                out.service = Some(on);
-            }
-            Err(e) => {
-                out.notes
-                    .push(format!("Not running in the background: {e:#}; Reason Network starts it when you use it."));
-            }
-        }
-    }
     out
 }
 
 /// Non-interactive setup: every agent found (or, with `remove`, every agent wired).
-pub async fn run(dry: bool, remove: bool, no_service: bool) -> Result<()> {
+pub fn run(dry: bool, remove: bool) -> Result<()> {
     let exe = exe()?;
     let found = detect(&exe);
     let verb = if dry {
@@ -1419,7 +1023,7 @@ pub async fn run(dry: bool, remove: bool, no_service: bool) -> Result<()> {
     }
     let ids: Vec<&str> = found.iter().map(|f| f.id).collect();
     let (install, removing): (&[&str], &[&str]) = if remove { (&[], &ids) } else { (&ids, &[]) };
-    let out = apply(&exe, install, removing, (!no_service).then_some(!remove), dry).await;
+    let out = apply(&exe, install, removing, dry);
     for l in &out.lines {
         println!("  {l}");
     }
@@ -1433,10 +1037,10 @@ pub async fn run(dry: bool, remove: bool, no_service: bool) -> Result<()> {
 }
 
 /// Setup without the report, for `--json`: the agents it set up.
-pub async fn quietly() -> Result<Vec<&'static str>> {
+pub fn quietly() -> Result<Vec<&'static str>> {
     let exe = exe()?;
     let ids: Vec<&str> = detect(&exe).iter().map(|f| f.id).collect();
-    Ok(apply(&exe, &ids, &[], Some(true), false).await.agents)
+    Ok(apply(&exe, &ids, &[], false).agents)
 }
 
 /// Read-only checks, one line each.
@@ -1486,12 +1090,6 @@ pub async fn doctor() -> Result<()> {
         let why = if v == "off" { "not a full path" } else { "\"off\" is the only setting so far" };
         println!("  ! folders: \"{k}\" = \"{v}\" is ignored: {why}");
     }
-    let svc = service_installed();
-    println!(
-        "{} login service: {}",
-        if svc { "✓" } else { "-" },
-        if svc { "installed".into() } else { format!("not installed (`{CLI} setup`)") }
-    );
     for f in detect(&exe) {
         if f.wired {
             println!("✓ {}: wired up", f.name);

@@ -36,11 +36,19 @@ checks so removed paths are not reintroduced. Full upstream merges and the upstr
 | # | TelosWeaver task | Change | Files |
 |---|---|---|---|
 | — | PH0-RN-01 | Imported unmodified upstream `v0.12.11`; added this file | `TELOSWEAVER.md` |
+| 1 | PH0-RN-02 | Removed the update loop and the `upgrade` command (download-and-run installer) | `src/daemon/update.rs` (deleted), `src/daemon/mod.rs`, `src/main.rs` |
+| 2 | PH0-RN-02 | Removed self-replacement / tincan move-over at start (`migrate`) | `src/migrate.rs` (deleted), `src/main.rs`, `src/daemon/mod.rs`, `src/setup.rs` (`legacy_wiring`), `src/util.rs` (`from_source`) |
+| 3 | PH0-RN-02 | Removed install scripts and their test; invite output shows the code and `join` only (no install command) | `install.sh`, `install.ps1`, `tests/install_script.rs` (deleted), `src/main.rs` (`install_lines`, `installer`, `REPO`), `src/wizard.rs` |
+| 4 | PH0-RN-02 | Removed `auto_update` (an old config key is ignored when read) | `src/config.rs` |
+| 5 | PH0-RN-02 | Removed login-service registration (launchd / systemd `--user` / Windows Run key): `setup` has no `--no-service`, `doctor` has no service line, clients always start the daemon on demand, the tray runs only under `daemon --service` started by hand | `src/setup.rs`, `src/client.rs`, `src/daemon/mod.rs`, `src/wizard.rs`, `src/main.rs`, `src/config.rs`, `src/tray.rs` |
+| 6 | PH0-RN-02 | Old-peer refusal text no longer points to `reason update` | `src/daemon/mail.rs` |
+
+Upstream `README.md`, `DESIGN.md` and `tests/e2e/*.py` still describe upstream behavior (install scripts, service);
+they are rewritten or dropped with the rename in PH0-RN-04.
 
 Planned (see `docs/phase-0/evidence/PH0-RN/RN-00/README.md` in the TelosWeaver repository):
 
-- PH0-RN-02: remove `src/daemon/update.rs`, `src/migrate.rs`, `install.sh`, `install.ps1`, `tests/install_script.rs`,
-  `installer()` / `install_lines()`, `auto_update`, and login-service registration in `src/setup.rs`.
 - PH0-RN-03: remove `src/daemon/reason.rs`, `managed()`, `cfg.reason`, the `reason` agent; remove `src/proof.rs`,
   `Request::Proof`, the `proof` / `endpoint` commands, verified names, and the `ring` dependency.
-- PH0-RN-04: rename binary / state / MCP server / environment variables; fetch the relay list only when in a team.
+- PH0-RN-04: rename binary / state / MCP server / environment variables; fetch the relay list only when in a team;
+  remove the tincan legacy handling (`LEGACY_NAME`); make `init` / `join` stop wiring agents unless `setup` is run.
