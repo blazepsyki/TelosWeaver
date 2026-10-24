@@ -16,8 +16,6 @@ pub struct Config {
     pub lan: bool,
     /// Show the menu bar icon (macOS, while a `daemon --service` runs).
     pub tray: bool,
-    /// List your live Reason sessions and deliver to them (`reason session list`/`send`).
-    pub reason: bool,
     /// The UDP port teammates reach this machine on directly, e.g. `41641` for a firewall or router rule. None: a
     /// random one each start. Taken by something else, a random one is used.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -63,7 +61,6 @@ impl Default for Config {
             share_unmanaged: false,
             lan: true,
             tray: true,
-            reason: false,
             port: None,
             inbound: Inbound::default(),
             folders: BTreeMap::new(),

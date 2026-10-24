@@ -6,7 +6,7 @@
 //! there under that name, so an update moves an agent over and leaves nothing behind; another program of that name
 //! (at another path) keeps its wiring.
 
-use crate::{AGENT_NAME, CLI, LEGACY_NAME, agent, client::Link, config::Config, paths, proto::*, render};
+use crate::{AGENT_NAME, CLI, LEGACY_NAME, agent, client::Link, paths, proto::*, render};
 use anyhow::{Context, Result, anyhow};
 use serde_json::{Map, Value, json};
 use std::{
@@ -794,28 +794,6 @@ fn dsh(exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
     Ok(Some(r))
 }
 
-// ---- Reason ----
-
-/// Reason's agent runs in its cloud: nothing to install there. The daemon lists your live Reason sessions and
-/// delivers with `reason session send`; they reply with the reason CLI.
-fn reason(_exe: &Path, remove: bool, dry: bool) -> Result<Option<Report>> {
-    if agent::find_bin("reason").is_none() {
-        return Ok(None);
-    }
-    let mut r = Report { agent: "Reason", lines: Vec::new(), notes: Vec::new() };
-    let mut cfg = Config::load_strict()?;
-    if cfg.reason != remove {
-        r.lines.push("already set".into());
-    } else {
-        if !dry {
-            cfg.reason = !remove;
-            cfg.save()?;
-        }
-        r.lines.push(if remove { "stopped listing Reason sessions" } else { "lists your live Reason sessions" }.into());
-    }
-    Ok(Some(r))
-}
-
 type AgentFn = fn(&Path, bool, bool) -> Result<Option<Report>>;
 
 struct Agent {
@@ -849,7 +827,7 @@ fn me(exe: &Path) -> String {
     s[1..s.len() - 1].to_string()
 }
 
-const AGENTS: [Agent; 11] = [
+const AGENTS: [Agent; 10] = [
     Agent {
         id: "claude",
         name: "Claude Code",
@@ -945,14 +923,6 @@ const AGENTS: [Agent; 11] = [
         wired: |exe| std::fs::read_to_string(dsh_patch()).is_ok_and(|t| dsh_wired(&t, exe)),
         apply: dsh,
     },
-    Agent {
-        id: "reason",
-        name: "Reason",
-        hint: "messages arrive after its current turn",
-        installed: || agent::find_bin("reason").is_some(),
-        wired: |_| Config::load().reason,
-        apply: reason,
-    },
 ];
 
 /// An agent found on this machine.
@@ -1018,7 +988,7 @@ pub fn run(dry: bool, remove: bool) -> Result<()> {
     println!("{verb} ({}):", crate::util::tilde(&exe.display().to_string()));
     if found.is_empty() && !remove {
         println!(
-            "  no supported agents found (Claude Code, Codex, Grok CLI, Cursor, ZCode Desktop, Gemini CLI, Copilot CLI, opencode, pi, DeepSeek Harness, Reason)"
+            "  no supported agents found (Claude Code, Codex, Grok CLI, Cursor, ZCode Desktop, Gemini CLI, Copilot CLI, opencode, pi, DeepSeek Harness)"
         );
     }
     let ids: Vec<&str> = found.iter().map(|f| f.id).collect();

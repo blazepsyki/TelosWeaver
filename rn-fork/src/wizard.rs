@@ -84,7 +84,7 @@ pub async fn onboard(
         let sp = spinner();
         sp.start("Creating the team...");
         let t: TeamInfo = link
-            .call(Request::CreateTeam { name, person, relay: None, proof: None })
+            .call(Request::CreateTeam { name, person, relay: None })
             .await
             .inspect_err(|e| sp.error(crate::shown(&format!("{e:#}"))))?;
         crate::wait_exit(crate::daemon_pid()).await;
@@ -101,10 +101,7 @@ pub async fn onboard(
             };
             let sp = spinner();
             sp.start("Joining...");
-            match link
-                .call::<TeamInfo>(Request::Join { ticket: text.clone(), person: person.clone(), proof: None })
-                .await
-            {
+            match link.call::<TeamInfo>(Request::Join { ticket: text.clone(), person: person.clone() }).await {
                 Ok(t) => {
                     crate::wait_exit(crate::daemon_pid()).await;
                     sp.stop(crate::shown(&format!("Joined team {} as {} on {}.", t.name, t.person, t.machine)));
@@ -189,7 +186,7 @@ pub async fn agents_and_preferences() -> Result<()> {
     let found = setup::detect(&exe);
     let chosen: Vec<&str> = if found.is_empty() {
         log::warning(format!(
-            "No coding agents found here (Claude Code, Codex, Grok CLI, Cursor, ZCode Desktop, Gemini CLI, Copilot CLI, opencode, pi, DeepSeek Harness, Reason). Install one, then run `{CLI} setup`."
+            "No coding agents found here (Claude Code, Codex, Grok CLI, Cursor, ZCode Desktop, Gemini CLI, Copilot CLI, opencode, pi, DeepSeek Harness). Install one, then run `{CLI} setup`."
         ))?;
         Vec::new()
     } else {

@@ -42,13 +42,18 @@ checks so removed paths are not reintroduced. Full upstream merges and the upstr
 | 4 | PH0-RN-02 | Removed `auto_update` (an old config key is ignored when read) | `src/config.rs` |
 | 5 | PH0-RN-02 | Removed login-service registration (launchd / systemd `--user` / Windows Run key): `setup` has no `--no-service`, `doctor` has no service line, clients always start the daemon on demand, the tray runs only under `daemon --service` started by hand | `src/setup.rs`, `src/client.rs`, `src/daemon/mod.rs`, `src/wizard.rs`, `src/main.rs`, `src/config.rs`, `src/tray.rs` |
 | 6 | PH0-RN-02 | Old-peer refusal text no longer points to `reason update` | `src/daemon/mail.rs` |
+| 7 | PH0-RN-03 | Removed the Reason CLI session sync and delivery (`reason session list` / `send`), the `__relay` child, and its push backoff | `src/daemon/reason.rs` (deleted), `src/daemon/mod.rs`, `src/daemon/mail.rs`, `src/daemon/sessions.rs` |
+| 8 | PH0-RN-03 | Removed the `reason` agent (detection, label, setup entry) and `cfg.reason` (an old config key is ignored when read) | `src/agent.rs`, `src/setup.rs`, `src/config.rs`, `src/render.rs` (`for_agent` loses its `agent` parameter), `src/wizard.rs` |
+| 9 | PH0-RN-03 | Removed the CLI-managed install mode (`managed()`): `CLI` and `ENGINE` are always `reason-network` | `src/main.rs`, `src/mcp.rs` |
+| 10 | PH0-RN-03 | Removed Reason sign-in proofs: `proof` / `endpoint` commands, `Request::Proof`, `proof` on `CreateTeam` / `Join` and on the join protocol (`JoinRequest.proof`, `owner_only`), team-state `attestations`, verified names (`MachineInfo.verified`, `has_proof`), the same-account join path (`same_account_needs_owner`). Names in a team are unverified; joining is by invite code or team link only | `src/main.rs`, `src/proto.rs`, `src/client.rs`, `src/daemon/mod.rs`, `src/daemon/teamops.rs`, `src/team.rs`, `src/net.rs`, `src/render.rs`, `src/wizard.rs` |
+| 11 | PH0-RN-03 | Split the JWS check that the relay list uses out of `proof.rs` into `signed.rs` (same pinned key, same rules); the test keys moved to `src/testdata/signer.pk8` / `forger.pk8`. `ring` stays for it | `src/proof.rs` → `src/signed.rs`, `src/relays.rs`, `src/testdata/*` |
+| 12 | PH0-RN-03 | Agent skill text no longer sends users to sign in on reasonmachines.com; comments no longer name the Reason CLI | `src/skill.md`, `src/proto.rs`, `src/daemon/mail.rs` |
 
-Upstream `README.md`, `DESIGN.md` and `tests/e2e/*.py` still describe upstream behavior (install scripts, service);
-they are rewritten or dropped with the rename in PH0-RN-04.
+Upstream `README.md`, `DESIGN.md` and `tests/e2e/*.py` still describe upstream behavior (install scripts, service,
+sign-in proofs; `tests/e2e/proofs.py` also holds the relay-list signing helpers the other scripts import); they are
+rewritten or dropped with the rename in PH0-RN-04.
 
 Planned (see `docs/phase-0/evidence/PH0-RN/RN-00/README.md` in the TelosWeaver repository):
 
-- PH0-RN-03: remove `src/daemon/reason.rs`, `managed()`, `cfg.reason`, the `reason` agent; remove `src/proof.rs`,
-  `Request::Proof`, the `proof` / `endpoint` commands, verified names, and the `ring` dependency.
 - PH0-RN-04: rename binary / state / MCP server / environment variables; fetch the relay list only when in a team;
   remove the tincan legacy handling (`LEGACY_NAME`); make `init` / `join` stop wiring agents unless `setup` is run.

@@ -83,13 +83,6 @@ pub struct JoinRequest {
     pub secret: String,
     pub person: String,
     pub machine: String,
-    /// The joiner's Reason sign-in proof. Builds before proofs ignore it.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub proof: Option<String>,
-    /// Let another computer of the account holding the name in only from one of that person's machines (see
-    /// `TeamState::redeem`).
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub owner_only: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -574,11 +567,9 @@ async fn read_frame<T: DeserializeOwned>(recv: &mut RecvStream) -> Result<T> {
 /// How long a join waits on each machine on the link.
 const JOIN_WAIT: Duration = Duration::from_secs(if cfg!(test) { 2 } else { 25 });
 
-/// How a join went: the team and the machine that let this one in, or why not; and whether a machine on the link
-/// couldn't be reached (it may yet be, shortly).
+/// How a join went: the team and the machine that let this one in, or why not.
 pub struct Joined {
     pub result: Result<(TeamState, EndpointId)>,
-    pub unreachable: bool,
 }
 
 /// Joins a team: asks each machine in turn (the ticket's, or the one an invite code points at) to let us in. Never
@@ -589,8 +580,6 @@ pub async fn join(endpoint: &Endpoint, relays: &[RelayUrl], peers: &[EndpointAdd
     let skipped_me = peers.len() < named;
     // Why the last machine asked didn't answer.
     let mut last = None;
-    let mut refused = Refusals::default();
-    let mut unreachable = false;
     for addr in peers {
         let attempt = || async {
             let conn = endpoint.connect(addr.clone(), JOIN_ALPN).await?;
@@ -613,19 +602,16 @@ pub async fn join(endpoint: &Endpoint, relays: &[RelayUrl], peers: &[EndpointAdd
             }
         };
         match reply {
-            Ok(Ok(JoinReply::Ok { state })) => return Joined { result: Ok((*state, addr.id)), unreachable },
+            Ok(Ok(JoinReply::Ok { state })) => return Joined { result: Ok((*state, addr.id)) },
+            // A refusal is final: another machine would say the same. The other machine's words, for a terminal: no
+            // escape codes or line breaks.
             Ok(Ok(JoinReply::Err { error })) => {
-                // The other machine's words, for a terminal: no escape codes or line breaks.
-                if let Err(e) = refused.add(req, error.replace(char::is_control, " ")) {
-                    return Joined { result: Err(e), unreachable };
-                }
+                return Joined { result: Err(anyhow!(error.replace(char::is_control, " "))) };
             }
             Ok(Err(e)) => {
-                unreachable = true;
                 last = Some(e);
             }
             Err(_) => {
-                unreachable = true;
                 last = Some(match off_relay(endpoint, relays) {
                     // Not that they're offline: this computer got nowhere. (No "closed" in these: see `unreached`.)
                     Some(why) => anyhow!("this computer couldn't reach a relay ({why})"),
@@ -635,39 +621,19 @@ pub async fn join(endpoint: &Endpoint, relays: &[RelayUrl], peers: &[EndpointAdd
             }
         }
     }
-    let e = match (refused.0, last) {
-        (Some(r), _) => anyhow!(r),
+    let e = match last {
         // Asked of a teammate: a link names at most the machine that made it (this one) and two others.
-        (None, Some(_)) if skipped_me => anyhow!(
+        Some(_) if skipped_me => anyhow!(
             "none of the other machines on this link answered (are they online?), and this computer can't let itself \
              in: ask an online teammate for a fresh link"
         ),
-        (None, Some(e)) => e,
-        (None, None) if skipped_me => {
+        Some(e) => e,
+        None if skipped_me => {
             anyhow!("this link names only this computer, which can't let itself in: ask a teammate for a fresh link")
         }
-        (None, None) => anyhow!("the invite lists no machines"),
+        None => anyhow!("the invite lists no machines"),
     };
-    Joined { result: Err(e), unreachable }
-}
-
-/// What the machines asked so far refused a join with. A refusal is final: another machine would say the same. Except
-/// for a joiner with a sign-in proof: a machine may not be one of the person's own (`SAME_ACCOUNT`), or may be an older
-/// one that knows nothing of proofs (and says the name is taken), while one further down the link can still let it in.
-#[derive(Default)]
-struct Refusals(Option<String>);
-
-impl Refusals {
-    fn add(&mut self, req: &JoinRequest, error: String) -> Result<()> {
-        if req.proof.is_none() {
-            bail!(error);
-        }
-        // Told once that it's the same account, the joiner keeps that (not an older machine's "taken").
-        if self.0.as_ref().is_none_or(|r| !r.contains(crate::team::SAME_ACCOUNT)) {
-            self.0 = Some(error);
-        }
-        Ok(())
-    }
+    Joined { result: Err(e) }
 }
 
 /// What `w` is for `peer`: team state with the team link and invites only for a machine that is an active member in that
@@ -1319,69 +1285,30 @@ mod tests {
         assert!(matches!(for_peer(&ack, &b.public()), Wire::Ack { .. }));
     }
 
-    #[test]
-    fn a_joiner_with_a_proof_asks_on_past_a_refusal() {
-        let req = |proof: Option<&str>, owner_only| JoinRequest {
-            team: String::new(),
-            secret: String::new(),
-            person: "alex".into(),
-            machine: "mini".into(),
-            proof: proof.map(String::from),
-            owner_only,
-        };
-        let taken = "'alex' is already in this team; join with another name (--as)";
-        let same = "only one of alex's own computers lets this one in as alex (same_account_needs_owner)";
-        // Without a proof, the first refusal is the answer.
-        assert!(Refusals::default().add(&req(None, false), taken.into()).is_err());
-        // With one, in either pass (the second asks without owner_only), an older machine's "taken" isn't final: a
-        // machine of this build further down the link may let it in.
-        for owner_only in [true, false] {
-            let mut r = Refusals::default();
-            r.add(&req(Some("jws"), owner_only), taken.into()).unwrap();
-            r.add(&req(Some("jws"), owner_only), same.into()).unwrap();
-            r.add(&req(Some("jws"), owner_only), taken.into()).unwrap();
-            assert_eq!(r.0.as_deref(), Some(same), "the same account, once known, is what it says in the end");
-        }
-    }
-
     #[tokio::test]
     async fn a_link_naming_only_this_machine_says_so() {
         let key = SecretKey::generate();
         let endpoint = bind(key.clone(), Some("https://relay.example.com"), false, None).await.unwrap().endpoint;
-        let req = JoinRequest {
-            team: String::new(),
-            secret: String::new(),
-            person: "alex".into(),
-            machine: "mini".into(),
-            proof: None,
-            owner_only: false,
-        };
+        let req =
+            JoinRequest { team: String::new(), secret: String::new(), person: "alex".into(), machine: "mini".into() };
         let joined = join(&endpoint, &[], &[EndpointAddr::new(key.public())], &req).await;
         endpoint.close().await;
         let e = joined.result.err().unwrap().to_string();
         assert!(e.contains("names only this computer"), "{e}");
-        assert!(!joined.unreachable);
     }
 
     #[tokio::test]
     async fn a_link_naming_this_machine_and_offline_ones_says_to_ask_an_online_teammate() {
         let key = SecretKey::generate();
         let endpoint = bind(key.clone(), Some("https://relay.example.com"), false, None).await.unwrap().endpoint;
-        let req = JoinRequest {
-            team: String::new(),
-            secret: String::new(),
-            person: "alex".into(),
-            machine: "mini".into(),
-            proof: None,
-            owner_only: false,
-        };
+        let req =
+            JoinRequest { team: String::new(), secret: String::new(), person: "alex".into(), machine: "mini".into() };
         let peers = [EndpointAddr::new(key.public()), EndpointAddr::new(SecretKey::generate().public())];
         let joined = join(&endpoint, &[], &peers, &req).await;
         endpoint.close().await;
         let e = joined.result.err().unwrap().to_string();
         assert!(e.contains("can't let itself in") && e.contains("ask an online teammate for a fresh link"), "{e}");
         assert!(!e.contains("made the invite"), "{e}");
-        assert!(joined.unreachable);
     }
 
     #[tokio::test]
