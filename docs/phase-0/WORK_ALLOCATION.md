@@ -3,7 +3,7 @@
 > **프로젝트:** TelosWeaver  
 > **갱신일:** 2026-10-24  
 > **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.4.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
-> **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `ba97e7b`). PH0-HOST 1차 구현을 `d8e8725`로 통합했고(REQ-011 포함), REQ-010 탐지 계약을 `271e7fd`로 추가했습니다. HOST 탐지 엔진 연결(`b0a58b4`)과 PH0-CLAUDE Adapter(`41139e0`, `10abcc1`)를 통합했습니다. 다음은 Core 연결로 G1을 판정하는 것입니다. 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
+> **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `ba97e7b`). PH0-HOST 1차 구현을 `d8e8725`로 통합했고(REQ-011 포함), REQ-010 탐지 계약을 `271e7fd`로 추가했습니다. HOST 탐지 엔진 연결(`b0a58b4`)과 PH0-CLAUDE Adapter(`41139e0`, `10abcc1`)를 통합했습니다. G1 Core 연결을 `d3130c1`로 통합하고 실제 Claude 실행으로 G1을 판정했습니다(HOST 확인 대기). 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G2·G3는 대기입니다.
 
 ## 1. 단일 원본과 갱신 주체
 
@@ -32,9 +32,9 @@
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `ba97e7b` (G0 개정 1), `271e7fd` (REQ-010) | HOST 1차 통합·REQ-011(`d8e8725`), REQ-010 계약(`271e7fd`)·엔진 연결(`b0a58b4`), CLAUDE 통합(`10abcc1`). 다음: G1 Core 연결(신뢰된 `RunAuthorizer`, `ClaudeLaunchResolver`, 탐지 결과로 Adapter 구성), WSL 구성(사용자 수행 필요) |
+| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `ba97e7b` (G0 개정 1), `271e7fd` (REQ-010) | HOST 1차 통합·REQ-011(`d8e8725`), REQ-010 계약(`271e7fd`)·엔진 연결(`b0a58b4`), CLAUDE 통합(`10abcc1`), G1 Core 연결(`a810700`, 통합 `d3130c1`). 다음: G1 HOST 확인 반영, 나머지 Provider·MASTER·RN·EXT 통합(G2), WSL 구성(사용자 수행 필요) |
 | PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | verified | `ph0/contract` / Worktree 정리됨 | `0094720` | 1차 `fd0b206`, 개정 1 `98177db` (통합 `ba97e7b`), REQ-010 `4e29f20` (통합 `271e7fd`) | 이후 계약 변경은 §4 요청으로 처리 |
-| PH0-HOST | `Codex / PH0-HOST-20261024` | in-progress | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` | 후속 기준 `2ac1497` (Spec v1.4), 계약 `271e7fd` | 1차 `6bb943e` (통합 `d8e8725`), 후속 `77a925f` (코드 `e844791`, 통합 `b0a58b4`) | 사용자 요청 1~3 완료·통합: REQ-010 공개 엔진 연결, 공개 API 시험 17개. [검증·인계](evidence/PH0-HOST/README.md). 통합 후 실제 확장에서 Claude CLI 탐지 확인(PH0-CLAUDE PROV-01). 전달: 탐지 경로가 `\\?\C:\...` 형식으로 나옴(표시·비교 정규화 검토). 남은 일: WSL Linux·Remote SSH 실행 검증(사용자 지시로 대기) |
+| PH0-HOST | `Codex / PH0-HOST-20261024` | in-progress | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` | 후속 기준 `2ac1497` (Spec v1.4), 계약 `271e7fd` | 1차 `6bb943e` (통합 `d8e8725`), 후속 `77a925f` (코드 `e844791`, 통합 `b0a58b4`) | 사용자 요청 1~3 완료·통합: REQ-010 공개 엔진 연결, 공개 API 시험 17개. [검증·인계](evidence/PH0-HOST/README.md). 통합 후 실제 확장에서 Claude CLI 탐지 확인(PH0-CLAUDE PROV-01). 전달: 탐지 경로가 `\\?\C:\...` 형식으로 나옴(표시·비교 정규화 검토). **G1 확인 요청:** [INTEGRATION 증거 §7](evidence/PH0-INTEGRATION/README.md#7-g1-대표-실행)의 G1 판정을 HOST 관점(런타임 취소·자식 회수, 실행 감독 상태, 정상 종료 유예 동안 정상 종료되지 않은 점)에서 확인해 주십시오. 남은 일: WSL Linux·Remote SSH 실행 검증(사용자 지시로 대기) |
 | PH0-CODEX | `Codex / PH0-CODEX-20261024` | reserved | `ph0/codex` / `D:\worktree\TelosWeaver\ph0-codex` | `75ba56e` (Spec v1.4 개정 1.4.1), 계약 `271e7fd` | 없음 (구현 전) | 사용자 직접 배정으로 예약. 범위: 확장 CLI 규칙·App Server 접속·Thread/Turn 이벤트·오류·취소·Resume/Fork 시험. 준비 기록은 ph0/codex Branch의 evidence/PH0-CODEX/README.md. 실계정 시험 범위·모델/추론 강도·시험 세션 정리 방식 결정 대기. G1 대표 Claude와 기존 HOST·Linux 대기 상태 유지 |
 | PH0-CLAUDE | `claude-opus-5.5/session-c9336d2c` | integrated | `ph0/claude` / `D:\worktree\TelosWeaver\ph0-claude` | `0b5b34f`, 계약 `271e7fd` | `2142e05`·`18fcf77` (통합 `41139e0`·`10abcc1`) | G1 대표 Provider(§6). [검증 기록](evidence/PH0-CLAUDE/README.md): Mock 13개, 실환경 6개(haiku) 통과 — PROV-01~08, Resume·Fork 동작 확인. 남은 일: G1 Core 연결, 시험 세션 Archive(§5 목록), Linux 검증 |
 | PH0-AGY | `gemini-4-argon/session-9e6137eb` | in-progress | `ph0/agy` / `D:\worktree\TelosWeaver\ph0-agy` | `0b5b34f`, 계약 `271e7fd` | 없음 | 사용자 착수 지시. 실행 파일은 `google.google-antigravity` 확장이 관리하는 `~/.gemini/bin/agy`(Spec §7.5). 순서: AGY-DATA-01~05 실환경 검증(확장 활성 상태, Flash 계열 경량 모델·`--effort low`·일회용 임시 폴더·테스트 세션 정리) → `cli_rule`·NDJSON Parser·Fixture → HOST `NativeRuntime` 실제 실행(PROV-01~04·06~09, 재개/분기 판정) |
@@ -49,7 +49,7 @@
 | 게이트 | 상태 | 근거 |
 |---|---|---|
 | G0 공통 계약 확정 | 통과 (2026-10-24), 개정 1 반영 | 1차 `ae31eb2`. 독립 검토 REQ-002~009 처리 후 기준 `ba97e7b`. 근거: `evidence/PH0-INTEGRATION/README.md` §1, `G0_REVISION_1.md` §4 |
-| G1 대표 Provider 실행 | 대기 | 대표 Provider는 Claude(§6). 실제 시작·이벤트·완료/실패·취소·결과 경로와 신뢰된 `RunAuthorizer` 연결 필요 |
+| G1 대표 Provider 실행 | 통과 판정 (2026-10-24, INTEGRATION·CLAUDE), HOST 확인 대기 | 대표 Provider Claude(§6). Local API → 운영자 정책 승인 → 확장 CLI 탐지 → Claude Adapter → 공용 런타임 경로로 시작·이벤트·완료·실패·취소·결과 파일·Daemon 종료 정리를 실제 실행(`d3130c1`, 실환경 5개). 근거: `evidence/PH0-INTEGRATION/README.md` §7 |
 | G2 전체 구성 통합 | 대기 | 세 Provider·마스터·RN·Extension 연결 증거 필요 |
 | G3 Phase 0 수용 | 대기 | Spec §19.1 필수 조건과 대상 환경 증거 필요. Linux·Remote SSH Host는 [WSL 절차](WSL_LINUX_HOST.md)로 확보 예정(미구성) |
 
@@ -144,5 +144,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 17:42 | `claude-opus-5.5/session-c9336d2c` | `ph0/claude`(`2142e05`)를 `41139e0`, `ph0/host`(`77a925f`)를 `b0a58b4`, 탐지 실환경 시험(`18fcf77`)을 `10abcc1`로 통합. `main`에서 85개 통과(실환경 6개 무시), clippy·fmt. REQ-010 완료, PH0-CLAUDE `in-progress → integrated`. G1은 Core 연결 후 판정 | `10abcc1` |
 | 2026-10-24 17:54 | `claude-opus-5.5/session-c9336d2c` | G1 Core 연결 착수(INTEGRATION). Worktree `D:\worktree\TelosWeaver\ph0-integration`, Branch `ph0/integration-g1`. 범위: 운영자 설정 기반 `RunAuthorizer`(Phase 0, 정식 정책은 MASTER), `ClaudeLaunchResolver` Core 구현, 탐지 결과로 Claude Adapter 구성, Daemon 종료 시 활성 Run 취소·종료 확인, Local API 경유 G1 실환경 시험. Spec v1.4.1로 `crates/core/src/integration/**` 등록 | `63b6758` |
 | 2026-10-24 (시각 미기록) | `Codex / PH0-CODEX-20261024` | 사용자 직접 배정으로 PH0-CODEX `unassigned → reserved`. 전용 Branch/Worktree와 기준 기록. 현재 설치된 Codex CLI의 버전·App Server 도움말만 확인했으며 코드 구현·실계정 모델 호출은 시작하지 않음. 실환경 시험 조건과 준비 사항을 정리하고 G1 대표·HOST·게이트 판정은 유지 | `75ba56e` (준비 기준), `271e7fd` (계약) |
+| 2026-10-24 18:03 | `claude-opus-5.5/session-c9336d2c` | G1 Core 연결 `ph0/integration-g1`(`a810700`)을 `d3130c1`로 통합. `main`에서 91개 통과(실환경 11개 무시), clippy·fmt. G1 실환경 5개(haiku) 통과로 G1 `대기 → 통과 판정(HOST 확인 대기)`. HOST 행에 확인 요청 기록 | `d3130c1` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
