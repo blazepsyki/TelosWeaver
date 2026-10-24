@@ -52,8 +52,18 @@
 | 요청 ID | 요청 작업 | 변경 대상·이유 | 영향 작업 | 처리 주체 | 상태·결과 Commit |
 |---|---|---|---|---|---|
 | REQ-001 | PH0-INTEGRATION | `.gitattributes` 신설(LF 고정). `core.autocrlf=true` 환경의 새 Worktree가 CRLF로 체크아웃되어 생성물이 내용 변경 없이 수정으로 표시됨. 현재 Spec §19.5.3에 소유 작업이 없어 Spec에 INTEGRATION 경로로 추가 필요 | 전체 | 사용자 확인 후 INTEGRATION | 완료. 사용자가 LF로 결정, `.gitattributes` 추가·Spec v1.3.4에 경로 등록. Index 내용 변경 없음 |
+| REQ-002 | G0 독립 검토 / PH0-HOST | 공용 ProcessHandle의 대기·입력·취소 동시성 및 wait 취소 안전성 계약 확정 | HOST, CODEX, CLAUDE, AGY, INTEGRATION | INTEGRATION 조정·HOST 처리, CONTRACT 확인 | 검토 대기. [상세 요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-002-대기입력취소의-동시성-계약) |
+| REQ-003 | G0 독립 검토 / PH0-HOST | 출력 스트림의 I/O 오류·긴 Protocol 줄·버퍼 초과를 명시적 실패/복구로 연결 | HOST, 세 Provider, INTEGRATION | INTEGRATION 조정·HOST 처리, CONTRACT 확인 | 검토 대기. [상세 요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-003-출력-오류와-상한-초과-처리) |
+| REQ-004 | G0 독립 검토 / PH0-CONTRACT | DecisionOutcome의 승인/거부·사유·효과 불변조건과 모순된 공통 시험 수정 | CONTRACT, MASTER, HOST, EXT | CONTRACT 처리·INTEGRATION 통합, MASTER 확인 | 검토 대기. [상세 요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-004-decisionoutcome의-불변조건) |
+| REQ-005 | G0 독립 검토 / PH0-CONTRACT | HelloParams 및 원시 인증 요청의 Debug·로그 경로에서 토큰 원문 보호 | CONTRACT, HOST, EXT | CONTRACT 처리·INTEGRATION 통합, HOST·EXT 확인 | 검토 대기. [상세 요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-005-인증-토큰의-debug로그-보호) |
+| REQ-006 | G0 독립 검토 / PH0-CONTRACT | Run 이벤트의 시작 실패·지속형 프로세스·취소·유실·종료 불명 경계 확정 | CONTRACT, HOST, 세 Provider, EXT | CONTRACT·HOST 협의·INTEGRATION 통합 | 검토 대기. [상세 요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-006-run-이벤트-종료-규칙) |
+| REQ-007 | G0 독립 검토 / PH0-CONTRACT | Local API 주소·상태 디렉터리·토큰 수명·1 MiB 프레임 경계와 상호운용 시험 명세 | CONTRACT, HOST, EXT, INTEGRATION | CONTRACT·HOST·EXT 협의·INTEGRATION 통합 | 검토 대기. [상세 요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-007-local-api-주소인증프레임-규칙) |
+| REQ-008 | G0 독립 검토 / PH0-CONTRACT | DecisionContext의 최소 목록 검사와 실제 권한 검사의 경계·신뢰된 조회 계약 명시 | CONTRACT, MASTER, HOST | CONTRACT·MASTER 협의·INTEGRATION 통합 | 검토 대기. [상세 요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-008-decisioncontext의-권한-검사-범위) |
+| REQ-009 | G0 독립 검토 / PH0-CONTRACT | 알 수 없는 Payload 필드의 최상위/중첩 허용 정책과 Schema·Parser·Fixture 일치 | CONTRACT, MASTER, HOST | CONTRACT 처리·INTEGRATION 통합, MASTER 확인 | 검토 대기. [상세 요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-009-중첩-payload의-알-수-없는-필드) |
 
 요청에는 필요한 타입·메서드·의존성과 호환·시험 계획을 포함합니다. 통합 담당과 공통 계약 담당이 먼저 기준 변경을 통합하고 소비 작업에 전달합니다. 소비 작업에서 임시 공통 타입을 만들거나 같은 파일을 각자 수정하여 우회하지 않습니다.
+
+REQ-002~009는 사용자 요청에 따른 독립 검토의 제출안이며 채택·반려·구현 완료를 뜻하지 않습니다. 요청자와 확인 사실·설계 제안·호환·시험 계획은 [G0 독립 검토 변경 요청서](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md)에 기록합니다. 기존 담당 배정·G0 판정·계약 기준 `ae31eb2`는 유지하고, 통합 담당이 요청을 판정한 뒤 필요한 계약 변경과 기준 Commit 갱신을 직렬로 처리합니다.
 
 ## 5. G0 계약 범위와 등록 경로
 
@@ -100,5 +110,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 12:25 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정 반영: REQ-001 완료(LF 고정 `.gitattributes`), Linux·Remote SSH Host WSL 절차 수립, CI 보류. §6 환경·운영 결정 추가. Spec v1.3.4로 경로 등록. 공통 계약 변경 없음 | `ae31eb2` |
 | 2026-10-24 12:29 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정: WSL 배포판을 Ubuntu 24.04에서 26.04(`Ubuntu-26.04`)로 변경, Host ID `wsl-ubuntu-2604`. 배포판 미설치 상태 유지 | `ae31eb2` |
 | 2026-10-24 12:32 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정: WSL 구성 시점을 PH0-HOST 공용 런타임 구현 착수 시(늦어도 G2 전)로 지정. G0 계약은 다른 에이전트가 검토 중이며 결과는 §4 변경 요청으로 받음 | `ae31eb2` |
+| 2026-10-24 (시각 미기록) | `Codex / G0-REVIEW-20261024` | 사용자 요청으로 G0 독립 검토의 REQ-002~009 등록안·상세 요청서 작성. 별도 검토 Branch에서 제출하며 대표 저장소 반영·채택·구현·기준 변경은 기존 통합 담당이 처리 | `ae31eb2` (검토 대상), `e56eb2d` (제출안 기반) |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
