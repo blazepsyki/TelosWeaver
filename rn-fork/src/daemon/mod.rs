@@ -6,7 +6,6 @@ mod ask;
 mod directory;
 mod mail;
 mod notify;
-mod reason;
 mod sessions;
 mod teamops;
 
@@ -63,12 +62,6 @@ pub async fn run(service: bool) -> Result<()> {
     if daemon.cfg.tray() && service {
         tokio::spawn(tray());
     }
-    if daemon.cfg.reason {
-        tokio::spawn(daemon.clone().reason_loop());
-    }
-    if crate::managed() {
-        tokio::spawn(daemon.clone().relay_loop());
-    }
     tokio::spawn(daemon.clone().relays_loop());
     loop {
         let stream = listener.accept().await?;
@@ -123,8 +116,6 @@ pub struct Daemon {
     started: i64,
     /// Whether the log says presence names only some of the names kept here.
     capped: std::sync::atomic::AtomicBool,
-    /// Until when Reason sessions are listed without `--fields`, which the installed `reason` refused.
-    plain_until: Mutex<Option<Instant>>,
 }
 
 struct Inner {
@@ -165,8 +156,6 @@ struct Live {
     push_failed: bool,
     /// The agent's transcript (from its hooks), which says what the session is doing.
     transcript: Option<std::path::PathBuf>,
-    /// A push that failed is retried from this time on, after waiting this long (doubling up to 30 min).
-    retry: Option<(Instant, Duration)>,
     /// Bumped to end this session's `check_inbox` wait (its client gave up on it).
     stop_gen: u64,
     /// Its MCP connection pushes into it (it registered as `push`, knowing the agent's inbox). Claude Code's only.
@@ -230,7 +219,6 @@ impl Daemon {
             shown: Mutex::new(HashMap::new()),
             asks: Mutex::new(HashMap::new()),
             started: util::now_ms(),
-            plain_until: Mutex::new(None),
             capped: Default::default(),
         })
     }
@@ -338,11 +326,8 @@ impl Daemon {
             }
             Request::Hook(h) => json!(self.hook(h).await?),
             Request::Attach { agent, cwd } => json!(self.attach(&agent, &cwd)?),
-            Request::CreateTeam { name, person, relay, proof } => {
-                json!(self.create_team(&name, &person, relay, proof).await?)
-            }
-            Request::Join { ticket, person, proof } => json!(self.join_team(&ticket, &person, proof).await?),
-            Request::Proof { jws } => json!(self.attach_proof(&jws)?),
+            Request::CreateTeam { name, person, relay } => json!(self.create_team(&name, &person, relay).await?),
+            Request::Join { ticket, person } => json!(self.join_team(&ticket, &person).await?),
             Request::Invite { me, hours } => json!(self.invite(me, hours).await?),
             Request::Team => json!(self.team_info()?),
             Request::Link { new } => json!(self.link(new).await?),

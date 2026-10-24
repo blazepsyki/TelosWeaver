@@ -75,8 +75,8 @@ pub struct HookCall {
     #[serde(default)]
     pub doing: Option<String>,
     /// One of the person's own mailboxes, kept for good: a name they gave with `reason network listen --as` (the
-    /// terminal always is one). Other `cli` sessions, such as the Reason CLI's one-off ask sessions, are sessions like
-    /// any other. Older clients leave it out.
+    /// terminal always is one). Other `cli` sessions, such as one-off ask sessions, are sessions like any other.
+    /// Older clients leave it out.
     #[serde(default)]
     pub keep: bool,
     /// The session's name, for sessions that pick one (`reason network listen --as`).
@@ -174,19 +174,10 @@ pub enum Request {
         person: String,
         #[serde(default)]
         relay: Option<String>,
-        /// A Reason sign-in proof for this machine: then the name is the proof's.
-        #[serde(default)]
-        proof: Option<String>,
     },
     Join {
         ticket: String,
         person: String,
-        #[serde(default)]
-        proof: Option<String>,
-    },
-    /// Attach or refresh this machine's Reason sign-in proof.
-    Proof {
-        jws: String,
     },
     Invite {
         #[serde(default)]
@@ -252,7 +243,7 @@ pub struct Reply {
     pub result: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
-    /// For a failure the Reason CLI handles: `name_taken` or `same_account_needs_owner` (see [`error_code`]).
+    /// For a failure a client acts on: `name_taken` (see [`error_code`]).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub code: Option<String>,
 }
@@ -269,16 +260,9 @@ impl Reply {
 }
 
 /// The failures a client acts on, by what the message says (as every build says it, a joiner hears an inviting machine's
-/// own words): `same_account_needs_owner` when one of the person's own computers should let this one in, `name_taken`
-/// when the name is someone else's in the team.
+/// own words): `name_taken` when the name is someone else's in the team.
 pub fn error_code(error: &str) -> Option<&'static str> {
-    if error.contains(crate::team::SAME_ACCOUNT) {
-        Some(crate::team::SAME_ACCOUNT)
-    } else if error.contains("is already in this team") {
-        Some("name_taken")
-    } else {
-        None
-    }
+    error.contains("is already in this team").then_some("name_taken")
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -373,18 +357,11 @@ pub struct MachineInfo {
     pub link: Option<String>,
     pub rtt_ms: Option<u64>,
     pub last_seen: Option<i64>,
-    /// The person is verified (it's per person, the same on each of their machines): a machine of theirs carries a
-    /// Reason sign-in proof for their name, good now.
-    #[serde(default)]
-    pub verified: bool,
-    /// This machine carries such a proof itself.
-    #[serde(default)]
-    pub has_proof: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TeamInfo {
-    /// The team's id, 32 hex digits (the Reason CLI and connector route by it).
+    /// The team's id, 32 hex digits (clients route by it).
     #[serde(default, rename = "team_id")]
     pub id: String,
     pub name: String,
@@ -541,17 +518,15 @@ mod tests {
     }
 
     #[test]
-    fn error_replies_carry_a_code_the_reason_cli_acts_on() {
+    fn error_replies_carry_a_code_a_client_acts_on() {
         let reply = |m: &str| serde_json::to_value(Reply::err(7, anyhow::anyhow!(m.to_string()))).unwrap();
         assert_eq!(
             reply("'alex' is already in this team; join with another name (--as)"),
             serde_json::json!({"id": 7, "ok": false, "error": "'alex' is already in this team; join with another name (--as)",
                                "code": "name_taken"})
         );
-        let same = "only one of alex's own computers lets this one in as alex (same_account_needs_owner)";
-        assert_eq!(reply(same)["code"], "same_account_needs_owner");
         // Anything else, and every success, has none.
-        assert_eq!(reply("this sign-in proof expired; sign in again").get("code"), None);
+        assert_eq!(reply("this invite expired; ask for a new one").get("code"), None);
         assert_eq!(serde_json::to_value(Reply::ok(7, serde_json::json!(1))).unwrap().get("code"), None);
     }
 }

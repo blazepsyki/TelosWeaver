@@ -3,9 +3,9 @@
 //! each other; iroh dials a peer through the peer's home relay).
 //!
 //! The list steers every such machine's relay traffic. That traffic is end-to-end encrypted, but a list of someone
-//! else's relays could cut machines off or show who talks to whom, so it is taken only signed with Reason's proof key
-//! (`typ` `reason-network-relays`, its own `iss`: neither a sign-in proof nor anything else signed with that key passes
-//! for one) and fetched only over HTTPS from [`URL`], following no redirect. Any fault rejects the whole list, and so
+//! else's relays could cut machines off or show who talks to whom, so it is taken only signed with Reason's key
+//! (`typ` `reason-network-relays`, its own `iss`: nothing else signed with that key passes for one; see
+//! [`crate::signed`]) and fetched only over HTTPS from [`URL`], following no redirect. Any fault rejects the whole list, and so
 //! does one issued before the list this machine has (no rolling back to an older one).
 //!
 //! The last good list is kept in the state folder (`relays.json`, the document as served) and used from then on, even
@@ -71,7 +71,7 @@ fn parse(doc: &[u8], now: i64, fetched: bool) -> Result<List> {
         bail!("the relay list is over {MAX_BYTES} bytes");
     }
     let served: Served = serde_json::from_slice(doc).map_err(|e| anyhow!("the relay list isn't one: {e}"))?;
-    let claims = crate::proof::verify_signed(&served.signed, TYPE, "relay list", MAX_BYTES)?;
+    let claims = crate::signed::verify_signed(&served.signed, TYPE, "relay list", MAX_BYTES)?;
     let c: Claims = serde_json::from_slice(&claims).map_err(|e| anyhow!("the relay list is damaged: {e}"))?;
     if c.iss != ISSUER || c.aud != AUDIENCE {
         bail!("the relay list isn't Reason Network's");
@@ -221,7 +221,7 @@ async fn fetch(url: &str) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::proof::tests::{KID, forger, sign_with, signer};
+    use crate::signed::tests::{KID, forger, sign_with, signer};
     use serde_json::{Value, json};
 
     fn region(r: &str) -> String {
@@ -298,21 +298,15 @@ mod tests {
     }
 
     #[test]
-    fn a_sign_in_proof_is_no_relay_list_nor_the_other_way_round() {
-        let me = iroh::SecretKey::generate().public();
-        let proof = crate::proof::tests::proof("u_1", "alex", &me);
-        let as_list = serde_json::to_vec(&json!({"signed": proof})).unwrap();
-        assert!(parse(&as_list, now(), true).unwrap_err().to_string().contains("not a Reason Network relay list"));
-        // A relay list's signed part isn't a proof, even with a proof's claims in it; and those claims (the proof's
-        // issuer) make no relay list.
-        let mut c = crate::proof::tests::claims("u_1", "alex", &me);
+    fn another_issuer_or_type_is_no_relay_list() {
+        // Signed by the key, but with another issuer's claims (a sign-in proof's), it makes no relay list.
+        let mut c =
+            json!({"iss": "https://reasonmachines.com/network", "aud": AUDIENCE, "iat": now(), "exp": now() + 3600});
         c["relays"] = json!([{"url": region("sfo1")}]);
         let list = sign_with(signer(), json!({"alg": "RS256", "kid": KID, "typ": TYPE}), c);
-        let err = crate::proof::verify(&list, &me).unwrap_err().to_string();
-        assert!(err.contains("not a Reason Network sign-in proof"), "{err}");
         let err = parse(&serde_json::to_vec(&json!({"signed": list})).unwrap(), now(), true).unwrap_err();
         assert!(err.to_string().contains("isn't Reason Network's"), "{err}");
-        // Nor does a list signed as a proof pass as one.
+        // Nor does a list signed as another type (a sign-in proof's) pass.
         let typ_proof = doc_with(json!({"alg": "RS256", "kid": KID, "typ": "reason-network-proof"}), claims(&four()));
         assert!(parse(&typ_proof, now(), true).unwrap_err().to_string().contains("not a Reason Network relay list"));
     }

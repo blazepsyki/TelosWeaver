@@ -11,9 +11,9 @@ ask_user); without them, you use the `reason-network` command.
 
 ## Joining
 
-To join, or to set up Reason Network on a computer, follow https://reasonmachines.com/network: your user signs in
-there, and gets their network and its invite line, `Join the Reason Network: <link>`, which anyone pastes to their agent
-to join.
+To join, your user needs the team's invite line, `Join the Reason Network: <link>`, from a teammate (`reason-network
+link` on their machine), then runs `reason-network join '<link>' --as <name>`. To start a team: `reason-network init
+<team> --as <name>`.
 
 ## Commands
 

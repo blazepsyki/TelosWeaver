@@ -417,11 +417,8 @@ fn failure(e: anyhow::Error) -> CallToolResult {
     CallToolResult::error(vec![ContentBlock::text(render::defang(&format!("{e:#}")))])
 }
 
-/// Getting this machine into a team: the Reason CLI does it, or a team link with this binary's own path.
+/// Getting this machine into a team: a team link with this binary's own path.
 fn join_hint() -> String {
-    if crate::managed() {
-        return "This machine isn't on a Reason Network yet: ask your user to run `reason network`.".into();
-    }
     let exe = crate::setup::exe()
         .map_or_else(|_| crate::AGENT_NAME.into(), |p| crate::setup::shell_cmd(&p, "").trim_end().to_string());
     format!(

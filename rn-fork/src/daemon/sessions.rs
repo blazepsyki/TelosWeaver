@@ -32,8 +32,8 @@ impl Daemon {
     fn hook_tier(&self, agent: &str, push_failed: bool) -> Tier {
         match agent {
             "codex" if !push_failed && agent::find_bin("codex").is_some() => Tier::Push,
-            // Their plugin or extension delivers into idle sessions; Reason's CLI sends into its sessions.
-            "opencode" | "pi" | "reason" => Tier::Push,
+            // Their plugin or extension delivers into idle sessions.
+            "opencode" | "pi" => Tier::Push,
             _ => Tier::Turn,
         }
     }
@@ -115,7 +115,6 @@ impl Daemon {
                     last_hook: None,
                     push_failed: false,
                     transcript: None,
-                    retry: None,
                     stop_gen: 0,
                     attached,
                     mcp_push,
@@ -392,7 +391,6 @@ impl Daemon {
             l.status = Some((status.to_string(), now));
         }
         let address = self.addr(&l.name);
-        let agent_kind = l.reg.agent.clone();
         // Mid-turn, only what should interrupt; at a pause, everything.
         let msgs: Vec<Message> = if mail {
             g.pending(&address)?.into_iter().filter(|m| event != "tool" || m.wake).collect()
@@ -409,7 +407,7 @@ impl Daemon {
         if !ids.is_empty() {
             self.reached(g, &key);
         }
-        let text = (!msgs.is_empty()).then(|| render::for_agent(&msgs, Some(&agent_kind), false));
+        let text = (!msgs.is_empty()).then(|| render::for_agent(&msgs, false));
         Ok(HookReply { address: Some(address), text, ids })
     }
 

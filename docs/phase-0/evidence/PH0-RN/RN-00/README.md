@@ -23,6 +23,7 @@
 4. 다만 **팀이 없어도 Reason 서버에 주기적으로 접속하는 경로가 하나 있습니다.** 중계 서버 목록을 `https://reasonmachines.com/network/relays.json`에서 받아 옵니다(`daemon/mod.rs:74`에서 항상 시작하는 `relays_loop`(`:367`) → `relays.rs` `curl`). 로그인·CLI·업데이트가 아니라 네트워크 기능이므로 유지 대상이지만, 로컬 전용 시험에서 외부 접속을 만들지 않도록 조정을 제안합니다(§5-2).
 5. **`reason` CLI 연동과 자동 업데이트는 코드 경계가 뚜렷합니다.** `daemon/reason.rs`·`daemon/update.rs`는 파일 단위로 제거할 수 있고, 나머지는 `cfg.reason`·`managed()`·`installer()` 참조를 정리하면 됩니다.
 6. **`ring` 의존성은 로그인 증명 검증(`proof.rs`)에서만 쓰입니다.** 로그인을 제거하면 함께 빠집니다.
+   - **정정 (PH0-RN-03, 2026-10-25):** `proof.rs`의 서명 검증(`verify_signed`)은 Relay 목록(`relays.rs`)도 씁니다. Relay는 유지 대상이므로 서명 검증과 `ring`은 남기고(`signed.rs`로 분리), 로그인 증명 부분만 제거했습니다. [RN-03 기록](../RN-03/README.md) 참고.
 
 ## 3. 처리표
 
@@ -65,7 +66,7 @@
 | `src/main.rs:177~226·622` `proof`·`endpoint` 명령 | CLI가 증명을 넘기는 진입점, 증명 대상(endpoint id) 출력 | 삭제 |
 | `src/daemon/teamops.rs:183·222·266~267·384~404·684~697` | 증명을 가진 가입, 증명 첨부·갱신, "로그인은 링크로만 가입" 규칙 | 증명 경로 삭제. 가입은 코드·링크만 |
 | `src/team.rs` `verified_people`·`has_proof`, `MachineInfo.verified`, `src/net.rs:86·655` | 이름의 "검증됨" 표시와 같은 계정 판별 | 삭제. 이름은 팀 안에서 미검증 |
-| `Cargo.toml` `ring` | 증명 검증 전용 | 의존성 삭제 |
+| `Cargo.toml` `ring` | 증명 검증 전용 | 의존성 삭제 → **정정:** Relay 목록 서명 검증에도 쓰여 유지(PH0-RN-03) |
 
 영향: 팀원 이름이 모두 미검증이 됩니다. 팀 가입 자체는 초대 코드·링크로 통제되며, 원본도 로그인 없는 가입을 허용합니다. Phase 0은 로컬 전용이라 시험에 영향이 없습니다.
 

@@ -44,8 +44,7 @@ fn patience(req: &Request) -> Duration {
         | Request::Link { .. }
         | Request::Remove { .. }
         | Request::Leave { .. }
-        | Request::SetRelay { .. }
-        | Request::Proof { .. } => Duration::from_secs(600),
+        | Request::SetRelay { .. } => Duration::from_secs(600),
         _ => Duration::from_secs(120),
     }
 }

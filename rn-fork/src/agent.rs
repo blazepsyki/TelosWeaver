@@ -61,8 +61,6 @@ pub fn from_client_name(name: &str) -> Option<&'static str> {
         "dsh"
     } else if n == "zcode" || n.starts_with("zcode-") || n.starts_with("zcode ") {
         "zcode"
-    } else if has("reason") {
-        "reason"
     } else if n == "amp" || n.starts_with("amp-") || n.starts_with("amp ") {
         "amp"
     } else if has("zed") {
@@ -181,7 +179,6 @@ pub fn label(agent: &str) -> &str {
     match agent {
         "codex" => "Codex",
         "grok" => "Grok",
-        "reason" => "Reason",
         a => a,
     }
 }
