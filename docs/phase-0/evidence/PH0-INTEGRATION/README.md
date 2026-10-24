@@ -117,7 +117,9 @@ Policy Revision은 `<revision>#<설정 파일 SHA-256 앞 12자>`입니다. Snap
 - **Linux·Remote SSH:** WSL 미구성으로 미검증(G3).
 - **영속성:** 실행 감독·Snapshot은 메모리입니다.
 
-### 7.5 시험 세션 (Archive 대상)
+### 7.5 시험 세션 (삭제 완료)
+
+> 2026-10-24: 사용자 지시로 이 목록의 시험 세션을 모두 삭제했습니다. 확장 대화 목록에는 처음부터 보이지 않았습니다(작업 폴더가 임시 폴더라 Workspace별 목록에 나타나지 않음). 앞으로는 병합 시점에 삭제합니다(배정표 §6 "시험 세션 정리").
 
 PH0-CLAUDE 증거 §5와 같은 방식으로 처리합니다. 작업 폴더는 `%TEMP%\telos-phase0-g1\*\workspace`입니다.
 
@@ -214,9 +216,11 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 
 ### 8.5 시험 세션 정리 현황
 
+> 2026-10-24 최종: Claude 세션 폴더 18개(33개)를 삭제했고, Antigravity `e386a213`은 요약 DB에서 CLI 전용 프로젝트(`default-cli-project`)로 확인되어 삭제했습니다. Codex 시험 Thread 22개(G2 14개, PH0-CODEX 8개)는 모두 Archive 상태이며, 아래에서 Archive되지 않았다고 적은 Thread도 확인 결과 2개(`01a16d89-0038…`, `01a16d8a-bd44…`)만 남아 있어 App Server `thread/archive`로 처리했습니다. Codex는 Thread 목록을 내부 SQLite에도 두므로 파일 삭제 대신 공식 Archive로 정리합니다.
+
 - **Antigravity:** 시험 세션 6개(`898cc499`·`0d96778a`·`ba7bdfbf`·`69c76b8d`·`79303ad7`·`8a99e97b`)의 `brain/<id>`와 `conversations/<id>.db(-wal/-shm)`를 지웠습니다. `e386a213-d36d-4557-b06c-4be82ad0029f`(19:51 생성)는 첫 실행 시간대지만 내용으로 시험 세션임을 확인하지 못해 남겼습니다. `conversation_summaries.db`의 요약 기록은 남습니다.
 - **Codex:** 정상 종료한 시험의 Thread는 Adapter가 Archive했습니다. 어설션 실패로 정리 전에 끝난 실행의 Thread는 Archive되지 않았습니다. Adapter는 자기가 만든 Thread만 Archive하므로 새 프로세스에서 처리할 수 없습니다: `01a16d89-0038-76f0-9808-394029b8b859`, `01a16d89-a725-7fa2-87a5-db7aa1e0b16d`, `01a16d8d-d8dd-7cd2-a989-fca583d11bb3`, `01a16d93-e562-7fa0-9027-567f49234a68`, 첫 실행 완료 시험의 Thread 1개(ID 미수집). 이후 완료 시험은 판정 전에 정리하도록 고쳤습니다.
-- **Claude (Archive 대상):** G2 `ec6e79e0-ede3-43b7-8ca3-7054cb1efd8a`, `3ff7f760-79e6-4353-b913-4d6f936387ce`, `741d5dc4-852d-4224-8247-7e35864fb167`, `6f011265-1c46-4e1d-996a-d78874a978d1`, `d1e1169c-db12-485f-a358-2b43970cc55f`. G1 재검증 `cac0203e-5074-4aea-abe0-dd6bc4502940`, `2c8a9a43-6840-4edf-a063-3449a4aaba83`, `88c6b64a-9c99-4a87-827c-5d96c21d85a4`, `194594cb-364c-4498-9e70-3f4e715c5e13`.
+- **Claude (삭제 완료):** G2 `ec6e79e0-ede3-43b7-8ca3-7054cb1efd8a`, `3ff7f760-79e6-4353-b913-4d6f936387ce`, `741d5dc4-852d-4224-8247-7e35864fb167`, `6f011265-1c46-4e1d-996a-d78874a978d1`, `d1e1169c-db12-485f-a358-2b43970cc55f`. G1 재검증 `cac0203e-5074-4aea-abe0-dd6bc4502940`, `2c8a9a43-6840-4edf-a063-3449a4aaba83`, `88c6b64a-9c99-4a87-827c-5d96c21d85a4`, `194594cb-364c-4498-9e70-3f4e715c5e13`.
 
 ### 8.6 G2 남은 조건
 

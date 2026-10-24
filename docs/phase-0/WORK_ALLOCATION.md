@@ -114,9 +114,10 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | CI | 원격 저장소가 생기고 초기 구현이 진행된 뒤 검토. 그전에는 통합 담당이 Spec §19.5.8의 검사 명령을 수동 실행하고 증거에 기록 | 보류 | 2026-10-24 |
 | 대상 OS 우선순위 | 구현·일상 검증은 Windows 로컬 우선. Linux·Remote SSH는 G3 전에 WSL로 확보 | 적용 | 2026-10-24 |
 | G1 대표 Provider | Claude Code. Spec §19.5.6의 기본값(Codex)에서 변경. 이유: PH0-CODEX 미배정, 통합 담당이 PH0-CLAUDE를 함께 맡음. 마스터 Provider 선택(MASTER-01)과는 무관 | 적용 | 2026-10-24 |
-| Claude 실환경 시험 조건 | 모델 `haiku`, 짧은 프롬프트. 설정 디렉터리는 기본 `~/.claude`(확장과 공유, 토큰 복사·별도 로그인 없음). 실행은 저장소 밖 일회용 폴더에서만, 허용 도구 명시(`--allowedTools`/`--disallowedTools`, `--permission-mode`), `--dangerously-skip-permissions` 금지. 시험 세션은 끝난 뒤 확장 대화 목록에서 보이지 않도록 Archive. 기존 대화는 재개·수정하지 않음 | 적용 | 2026-10-24 |
+| Claude 실환경 시험 조건 | 모델 `haiku`, 짧은 프롬프트. 설정 디렉터리는 기본 `~/.claude`(확장과 공유, 토큰 복사·별도 로그인 없음). 실행은 저장소 밖 일회용 폴더에서만, 허용 도구 명시(`--allowedTools`/`--disallowedTools`, `--permission-mode`), `--dangerously-skip-permissions` 금지. 시험 세션은 "시험 세션 정리" 규칙을 따름. 기존 대화는 재개·수정하지 않음 | 적용 | 2026-10-24 |
 | 마스터 Provider (Phase 0) | Claude Code. 임시 선택이며 MASTER-01에 따라 Provider를 고정하지 않고 교체 가능하게 구현. 시험 조건은 Claude 실환경 시험 조건을 따름 | 적용 | 2026-10-24 |
 | 마스터 Phase 0 범위 | 시험 모델 `haiku`. 실행: `create_tasks`·`request_run`·`request_cancel`. 나머지 5종은 Payload 검사 후 `unsupported_kind`. 결과 왕복(Resume) 시험 1개. 마스터 Run은 도구 없음·읽기 전용 | 적용 | 2026-10-24 |
+| 시험 세션 정리 | 특별한 사유가 없으면 실환경 시험 세션은 해당 코드를 `main`에 병합하는 시점에 삭제합니다(통합 담당, 병합 후 Branch·Worktree 정리와 함께). Claude: `~/.claude/projects/<시험 작업 폴더>` 삭제. Codex: 내부 SQLite가 Thread를 색인하므로 파일 삭제 대신 App Server `thread/archive`. Antigravity: `brain/<id>`, `conversations/<id>.db`(`-wal`·`-shm`). 시험은 저장소 밖 임시 폴더를 작업 폴더로 써서 사용자 대화 목록과 섞이지 않게 하고, 세션 ID는 증거에 남깁니다. 시험이 아닌 세션은 건드리지 않습니다 | 적용 | 2026-10-24 |
 
 ## 7. 변경 기록
 
@@ -169,5 +170,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 20:38 | `claude-opus-5.5/session-c9336d2c` | PH0-MASTER `reserved → in-progress`. 사용자 결정(추천안 승인): 시험 모델 haiku, 실행 kind 3종, 결과 왕복 시험 1개, 마스터 Run 도구 없음. §6 기록 | `7f0ff8d` |
 | 2026-10-24 20:50 | `claude-opus-5.5/session-c9336d2c` | `ph0/master`(`2608af6`)를 `7989d64`로 통합. `main` 142개 통과(실환경 30개 무시)·clippy·fmt, 실제 Claude 마스터 실환경 2개 통과. PH0-MASTER `in-progress → integrated`. G2 남은 조건은 RN·EXT. Branch·Worktree 삭제 | `7989d64` |
 | 2026-10-24 (시각 미기록) | `Codex / PH0-HOST-20261024 · PH0-CODEX-20261024` | 사용자 현황 최신화 요청으로 main `692d2ce`의 HOST·REQ-013/015 완료, G1 확정, 세 Provider Core 연결과 MASTER 통합을 코드·증거로 재확인. Workspace 142개·엄격 Clippy·fmt 재통과(실환경 30개 기본 제외, 모델 호출 재실행 없음). 자기 HOST·CODEX 행에 확인 결과를 추가하고 CODEX 증거 갱신의 과거 반영 대기 표현 정리. 타 작업·게이트 판정과 Linux 대기는 유지 | `692d2ce` |
+| 2026-10-24 21:21 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시: 지금까지의 시험 세션 삭제(Claude 33개·Antigravity 1개 삭제, Codex 잔여 2개 Archive), 앞으로는 병합 시점에 삭제하는 규칙을 §6에 추가. PH0-CLAUDE·MASTER·INTEGRATION 증거의 세션 목록을 삭제 완료로 표기 | `692d2ce` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
