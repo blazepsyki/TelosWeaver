@@ -1,4 +1,4 @@
-//! `reason network tray`: the menu bar icon (macOS). The background service starts it and it exits with the daemon. It
+//! `reason network tray`: the menu bar icon (macOS). `daemon --service` starts it and it exits with the daemon. It
 //! shows who's around and what their sessions are doing, and the messages waiting for you.
 
 #[cfg(not(target_os = "macos"))]

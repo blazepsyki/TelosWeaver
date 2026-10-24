@@ -9,7 +9,6 @@ mod notify;
 mod reason;
 mod sessions;
 mod teamops;
-mod update;
 
 use crate::{
     config::Config,
@@ -60,8 +59,8 @@ pub async fn run(service: bool) -> Result<()> {
     {
         log(&format!("network not started: {e:#}"));
     }
-    // Normally the service's daemon; a daemon started some other way stands in for it while it runs.
-    if daemon.cfg.tray() && (service || crate::setup::service_installed()) {
+    // Only a daemon started with `--service` (by hand: this fork registers no login service).
+    if daemon.cfg.tray() && service {
         tokio::spawn(tray());
     }
     if daemon.cfg.reason {
@@ -70,11 +69,7 @@ pub async fn run(service: bool) -> Result<()> {
     if crate::managed() {
         tokio::spawn(daemon.clone().relay_loop());
     }
-    tokio::spawn(crate::migrate::run(log));
     tokio::spawn(daemon.clone().relays_loop());
-    if update::allowed(daemon.cfg.auto_update) {
-        tokio::spawn(daemon.clone().update_loop());
-    }
     loop {
         let stream = listener.accept().await?;
         tokio::spawn(daemon.clone().serve(stream));
@@ -373,7 +368,7 @@ impl Daemon {
         }
     }
 
-    /// Exits shortly (after the reply goes out). The service manager, or the next client, starts a fresh
+    /// Exits shortly (after the reply goes out). The next client starts a fresh
     /// daemon, which picks up changed config and team state.
     fn restart_soon(self: &Arc<Self>) {
         let this = self.clone();
@@ -384,11 +379,6 @@ impl Daemon {
             }
             #[cfg(unix)]
             let _ = std::fs::remove_file(paths::socket());
-            // Windows has no service manager to bring us back: start the one that takes over once we're gone.
-            #[cfg(windows)]
-            if crate::setup::service_installed() {
-                let _ = crate::client::start_daemon(true);
-            }
             std::process::exit(0);
         });
     }

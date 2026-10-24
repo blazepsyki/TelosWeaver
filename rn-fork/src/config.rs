@@ -14,12 +14,10 @@ pub struct Config {
     pub share_unmanaged: bool,
     /// Find teammates on the local network with mDNS.
     pub lan: bool,
-    /// Show the menu bar icon (macOS, while the background service runs).
+    /// Show the menu bar icon (macOS, while a `daemon --service` runs).
     pub tray: bool,
     /// List your live Reason sessions and deliver to them (`reason session list`/`send`).
     pub reason: bool,
-    /// Install new releases when they come out (the daemon checks every few hours).
-    pub auto_update: bool,
     /// The UDP port teammates reach this machine on directly, e.g. `41641` for a firewall or router rule. None: a
     /// random one each start. Taken by something else, a random one is used.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -66,7 +64,6 @@ impl Default for Config {
             lan: true,
             tray: true,
             reason: false,
-            auto_update: true,
             port: None,
             inbound: Inbound::default(),
             folders: BTreeMap::new(),
