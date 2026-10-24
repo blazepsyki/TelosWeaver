@@ -3,7 +3,7 @@
 > **프로젝트:** TelosWeaver  
 > **갱신일:** 2026-10-24  
 > **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.4.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
-> **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `ba97e7b`). PH0-HOST 1차 구현을 `d8e8725`로 통합했고(REQ-011 포함), REQ-010 탐지 계약을 `271e7fd`로 추가했습니다. HOST의 엔진 연결·Linux 검증과 G1 준비가 다음 단계입니다. 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
+> **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `ba97e7b`). PH0-HOST 1차 구현을 `d8e8725`로 통합했고(REQ-011 포함), REQ-010 탐지 계약을 `271e7fd`로 추가했습니다. HOST 탐지 엔진 연결(`b0a58b4`)과 PH0-CLAUDE Adapter(`41139e0`, `10abcc1`)를 통합했습니다. 다음은 Core 연결로 G1을 판정하는 것입니다. 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
 
 ## 1. 단일 원본과 갱신 주체
 
@@ -32,11 +32,11 @@
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `ba97e7b` (G0 개정 1), `271e7fd` (REQ-010) | HOST 1차 통합·REQ-011(`d8e8725`), REQ-010 계약(`271e7fd`) 완료. 다음: HOST 엔진 연결 통합, WSL 구성(사용자 수행 필요), G1(HOST + Codex) 통합 |
+| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `ba97e7b` (G0 개정 1), `271e7fd` (REQ-010) | HOST 1차 통합·REQ-011(`d8e8725`), REQ-010 계약(`271e7fd`)·엔진 연결(`b0a58b4`), CLAUDE 통합(`10abcc1`). 다음: G1 Core 연결(신뢰된 `RunAuthorizer`, `ClaudeLaunchResolver`, 탐지 결과로 Adapter 구성), WSL 구성(사용자 수행 필요) |
 | PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | verified | `ph0/contract` / Worktree 정리됨 | `0094720` | 1차 `fd0b206`, 개정 1 `98177db` (통합 `ba97e7b`), REQ-010 `4e29f20` (통합 `271e7fd`) | 이후 계약 변경은 §4 요청으로 처리 |
-| PH0-HOST | `Codex / PH0-HOST-20261024` | in-progress | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` | 후속 기준 `2ac1497` (Spec v1.4), 계약 `271e7fd` | 1차 `6bb943e` (통합 `d8e8725`), 후속 `77a925f` (코드 `e844791`, 통합 대기) | 사용자 요청 1~3 구현·검증 완료: main 반영, REQ-010 공개 엔진 연결, 공개 API 시험 17개로 전환. 공식 Workspace 71개·clippy·fmt 통과. [후속 검증·인계는 ph0/host Branch](evidence/PH0-HOST/README.md)에 기록. INTEGRATION 검토·통합 대기. 4번 WSL Linux·Remote SSH 실행 검증은 사용자 지시로 대기 |
+| PH0-HOST | `Codex / PH0-HOST-20261024` | in-progress | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` | 후속 기준 `2ac1497` (Spec v1.4), 계약 `271e7fd` | 1차 `6bb943e` (통합 `d8e8725`), 후속 `77a925f` (코드 `e844791`, 통합 `b0a58b4`) | 사용자 요청 1~3 완료·통합: REQ-010 공개 엔진 연결, 공개 API 시험 17개. [검증·인계](evidence/PH0-HOST/README.md). 통합 후 실제 확장에서 Claude CLI 탐지 확인(PH0-CLAUDE PROV-01). 전달: 탐지 경로가 `\\?\C:\...` 형식으로 나옴(표시·비교 정규화 검토). 남은 일: WSL Linux·Remote SSH 실행 검증(사용자 지시로 대기) |
 | PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `openai.chatgpt` 확장의 `bin/<platform>/codex`(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용. G1 대표는 Claude로 변경됨(§6) |
-| PH0-CLAUDE | `claude-opus-5.5/session-c9336d2c` | in-progress | `ph0/claude` / `D:\worktree\TelosWeaver\ph0-claude` | `2ac1497`, 계약 `271e7fd` | 없음 | G1 대표 Provider(§6). 실행 파일은 `anthropic.claude-code` 확장의 `resources/native-binary/claude`(Spec §7.5). 순서: `cli_rule`·Stream JSON Parser·Fixture → HOST `NativeRuntime`으로 실제 실행(PROV-01~04·06~09) → Resume/Fork 실험(PROV-05·FORK-POC-01~02). 시험 조건은 §6 |
+| PH0-CLAUDE | `claude-opus-5.5/session-c9336d2c` | integrated | `ph0/claude` / `D:\worktree\TelosWeaver\ph0-claude` | `0b5b34f`, 계약 `271e7fd` | `2142e05`·`18fcf77` (통합 `41139e0`·`10abcc1`) | G1 대표 Provider(§6). [검증 기록](evidence/PH0-CLAUDE/README.md): Mock 13개, 실환경 6개(haiku) 통과 — PROV-01~08, Resume·Fork 동작 확인. 남은 일: G1 Core 연결, 시험 세션 Archive(§5 목록), Linux 검증 |
 | PH0-AGY | `gemini-4-argon/session-9e6137eb` | in-progress | `ph0/agy` / `D:\worktree\TelosWeaver\ph0-agy` | `0b5b34f`, 계약 `271e7fd` | 없음 | 사용자 착수 지시. 실행 파일은 `google.google-antigravity` 확장이 관리하는 `~/.gemini/bin/agy`(Spec §7.5). 순서: AGY-DATA-01~05 실환경 검증(확장 활성 상태, Flash 계열 경량 모델·`--effort low`·일회용 임시 폴더·테스트 세션 정리) → `cli_rule`·NDJSON Parser·Fixture → HOST `NativeRuntime` 실제 실행(PROV-01~04·06~09, 재개/분기 판정) |
 | PH0-MASTER | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. `DecisionPayload`·`DecisionContext`·`DecisionOutcome`과 공통 실패 Fixture 사용 |
 | PH0-RN | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Fork 도입 방식·기준 SHA 기록, `telos_schema::rn` 계약 구현 |
@@ -68,7 +68,7 @@
 | REQ-007 | G0 독립 검토 / PH0-CONTRACT | Local API 주소·상태 디렉터리·토큰 수명·1 MiB 프레임 경계와 상호운용 시험 명세 | CONTRACT, HOST, EXT, INTEGRATION | CONTRACT·HOST·EXT 협의·INTEGRATION 통합 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-007-local-api-주소인증프레임-규칙) |
 | REQ-008 | G0 독립 검토 / PH0-CONTRACT | DecisionContext의 최소 목록 검사와 실제 권한 검사의 경계·신뢰된 조회 계약 명시 | CONTRACT, MASTER, HOST | CONTRACT·MASTER 협의·INTEGRATION 통합 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-008-decisioncontext의-권한-검사-범위) |
 | REQ-009 | G0 독립 검토 / PH0-CONTRACT | 알 수 없는 Payload 필드의 최상위/중첩 허용 정책과 Schema·Parser·Fixture 일치 | CONTRACT, MASTER, HOST | CONTRACT 처리·INTEGRATION 통합, MASTER 확인 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-009-중첩-payload의-알-수-없는-필드) |
-| REQ-010 | PH0-HOST | CLI 공통 탐색의 결과 계약·Provider 규칙 입력·discovery 모듈 등록. Spec §7.5의 경로·출처·버전·해시를 다른 담당자가 같은 형태로 사용하도록 확정 | CONTRACT, HOST, 세 Provider, EXT | CONTRACT 계약·등록, INTEGRATION 조정 | 계약 완료(`4e29f20`, 통합 `271e7fd`). 엔진 연결·모듈 등록은 PH0-HOST 대기. [상세](evidence/PH0-HOST/README.md#req-010-cli-탐색-계약과-모듈-등록) |
+| REQ-010 | PH0-HOST | CLI 공통 탐색의 결과 계약·Provider 규칙 입력·discovery 모듈 등록. Spec §7.5의 경로·출처·버전·해시를 다른 담당자가 같은 형태로 사용하도록 확정 | CONTRACT, HOST, 세 Provider, EXT | CONTRACT 계약·등록, INTEGRATION 조정 | 완료. 계약 `4e29f20`(통합 `271e7fd`), HOST 엔진 연결·모듈 등록 `e844791`(통합 `b0a58b4`), 실제 확장 탐지 확인(PH0-CLAUDE). [상세](evidence/PH0-HOST/README.md#req-010-cli-탐색-계약과-모듈-등록) |
 | REQ-011 | PH0-HOST | HOST 실행용 Tokio 기능·플랫폼/보안 의존성과 Core Daemon 진입점 연결 준비. 공통 Cargo·Lock·진입점은 INTEGRATION 소유 | HOST, INTEGRATION, 세 Provider, EXT | INTEGRATION 의존성·등록, HOST 구현 | 완료(`d8e8725`). 적용안대로 반영하되 `libc`는 배포 2주 기준으로 0.2.191 대신 0.2.190 고정. 공식 Workspace test 57개·clippy·fmt 통과. [상세](evidence/PH0-HOST/README.md#req-011-실행-의존성과-daemon-진입점-연결) |
 
 요청에는 필요한 타입·메서드·의존성과 호환·시험 계획을 포함합니다. 통합 담당과 공통 계약 담당이 먼저 기준 변경을 통합하고 소비 작업에 전달합니다. 소비 작업에서 임시 공통 타입을 만들거나 같은 파일을 각자 수정하여 우회하지 않습니다.
@@ -141,5 +141,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 17:26 | `gemini-4-argon/session-9e6137eb` | 사용자 직접 배정으로 PH0-AGY `unassigned → reserved` 기록. Branch `ph0/agy`·Worktree `D:\worktree\TelosWeaver\ph0-agy` 예정, 기준 Commit `2ac1497`·계약 기준 `271e7fd` 기록. 코드 구현 및 AGY-DATA-01~05 실험 착수 전 사전 결정 사항 확인 대기 | `2ac1497` (준비 기반), `271e7fd` (계약) |
 | 2026-10-24 17:33 | `gemini-4-argon/session-9e6137eb` | 사용자 착수 지시로 PH0-AGY `reserved → in-progress`(Worktree `D:\worktree\TelosWeaver\ph0-agy`, Branch `ph0/agy`). 사용자 결정: 확장 활성 상태에서 AGY-DATA-01~05 바로 검증, 경량 Flash 모델·`--effort low`·일회용 임시 폴더 사용, 테스트 세션은 실험 후 정리(기존 대화 보존) | `0b5b34f` (착수 기반), `271e7fd` (계약) |
 | 2026-10-24 (시각 미기록) | `Codex / PH0-HOST-20261024` | 요청 1~3 구현·검증 완료 제출. 코드 `e844791`, 검증·인계 `77a925f`. 공개 CliDiscoverer 연결·DTO/실패 분류·기록 필드 연결, 공개 API 탐색 시험 17개·공식 Workspace 71개·clippy·fmt 통과. HOST 전체는 후속 통합·Linux 검증이 남아 in-progress 유지. 4번은 사용자 지시로 대기하며 다른 담당의 변경과 게이트 판정은 유지 | `2ac1497` (구현 기준), `271e7fd` (계약) |
+| 2026-10-24 17:42 | `claude-opus-5.5/session-c9336d2c` | `ph0/claude`(`2142e05`)를 `41139e0`, `ph0/host`(`77a925f`)를 `b0a58b4`, 탐지 실환경 시험(`18fcf77`)을 `10abcc1`로 통합. `main`에서 85개 통과(실환경 6개 무시), clippy·fmt. REQ-010 완료, PH0-CLAUDE `in-progress → integrated`. G1은 Core 연결 후 판정 | `10abcc1` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
