@@ -1,34 +1,39 @@
-# PH0-HOST 통합 인계
+# PH0-HOST 탐색 계약 연결 인계
 
-> 2026-10-24 · Codex / PH0-HOST-20261024 · `ph0/host` · 구현 `159617e` · 최종 코드 `53ad1de`
+> 2026-10-24 · Codex / PH0-HOST-20261024 · `ph0/host` · 코드 `e844791` · 기준 `2ac1497` · 계약 `271e7fd`
 
-HOST 소유 경로의 구현과 독립 검증 결과를 제출합니다. 공통 계약 기준은 `ba97e7b`입니다. 공식 Workspace 통합·G1 판정·Linux 실행 검증이 남아 있어 상태는 in-progress로 유지합니다. 대표 배정표의 결과 Commit·인계 문구 갱신과 변경 요청 판정은 기존 INTEGRATION 담당자가 처리해 주십시오.
+사용자 요청 1~3을 수행했습니다. 최신 main을 반영하고 REQ-010 탐색 엔진을 공개 계약에 연결했으며 내부 소스 포함 시험을 공개 API 시험으로 바꿨습니다. 사용자 요청 4의 Linux·Remote SSH 검증은 대기입니다. PH0-HOST 전체 verified와 G1~G3 판정은 하지 않습니다.
 
-## 1. 통합 순서
+## 1. 이번 제출과 통합
 
-1. 구현 Commit과 이 문서를 검토합니다. 공유 의존성이 없어 코드만 main에 합치면 공식 Workspace 빌드가 되지 않습니다. REQ-011 적용과 한 통합 단위로 처리하십시오.
-2. REQ-011의 [패치](REQ-011-INTEGRATION.patch)를 검토하고 공통 Cargo.toml·Core main.rs에 적용합니다. `git apply --check`는 통과했습니다. Cargo.lock은 INTEGRATION이 갱신하십시오. 제안 진입점은 기본 `DenyRuns`로 인증·Health만 확인하며 임의 실행을 허용하지 않습니다.
-3. REQ-010의 공통 탐색 DTO와 공개 Port를 CONTRACT가 확정합니다. HOST가 내부 엔진의 매핑·공개 경계를 조정하고 시험의 소스 경로 포함을 정식 API 호출로 바꿉니다.
-4. MASTER·Snapshot·Workspace 서비스에서 `RunAuthorizer`가 승인된 값만 반환하도록 연결합니다. Provider에는 `NativeRuntime`을 주입합니다. 시험의 `AllowFixture`를 제품에 연결하지 마십시오.
-5. 실제 Codex Adapter로 시작·실패·이벤트·취소·실제 종료·출력/Artifact를 확인해 G1을 판정합니다. 현재 Mock·로컬 프로세스 결과는 실제 CLI PoC의 증거가 아닙니다.
-6. 기존 WSL 절차로 Linux·Socket 권한·자식 회수·Remote SSH를 검증합니다. Linux 대상 Clippy는 통과했지만 실제 실행 증거는 아직 없습니다.
+- 1차 HOST 구현과 REQ-011은 이미 `d8e8725`로 통합되어 있습니다. 기존 REQ-011 패치를 재적용하지 마십시오.
+- 이번 코드 변경은 `git diff 2ac1497..e844791`로 확인합니다. 공개 `NativeCliDiscoverer`가 `CliDiscoverer`를 구현하고 공통 DTO를 반환합니다.
+- lib.rs는 CONTRACT 인계 §6.3의 예외에 따라 모듈 등록·구현 타입 재노출 두 줄만 추가했습니다. Schema·Trait·Cargo·Provider별 모듈은 변경하지 않았습니다.
+- INTEGRATION은 후속 Branch를 통합한 뒤 §3의 공식 명령으로 재검증하고 REQ-010의 엔진 연결 상태를 갱신해 주십시오. 대표 배정표의 자기 행·변경 기록은 HOST가 main의 별도 Commit으로 갱신합니다.
 
-## 2. 사용 경계
+## 2. Provider 담당 사용 경계
 
-- `telos_adapters::runtime::NativeRuntime`은 G0 Trait을 구현합니다. 탐색한 Native 실행 파일을 전달하고 `LineTooLong`·`ReadError`는 Provider가 명시적 실패로 연결해야 합니다.
-- `ExecutionSupervisor::new(project_id, host_id, adapters, policy)`에 신뢰된 `RunAuthorizer`를 주입합니다. `RunPermit`은 승인된 Workspace·Context Snapshot·Policy Revision·Controller Epoch의 참조입니다. 클라이언트의 임의 참조를 승인하면 안 됩니다.
-- API 서버 종료는 연결·구독을 닫습니다. Run을 허용하는 최종 Daemon은 활성 Run 취소와 실제 종료 확인도 조합해야 합니다. 현재 제안 진입점은 실행을 허용하지 않습니다.
-- 이벤트·멱등 결과는 메모리 보존입니다. 전체 이벤트 32 MiB 등 구체 상한은 [검증 기록](README.md)에 있습니다. 재시작 복구나 Writer Lock을 구현했다고 취급하지 마십시오.
+`NativeCliDiscoverer::new(Arc<dyn ProcessRuntime>)`에 공용 런타임을 주입하고 `CliDiscoverer::discover(provider_id, &rule, &request)`를 호출합니다. Provider별 `ProviderCliRule`과 Host별 `DiscoveryRequest`는 각 호출자가 공급합니다. 반환된 `CliDiscovery`는 별도 변환 없이 같은 공통 타입으로 기록·표시할 수 있습니다.
 
-## 3. 공식 확인 명령
+- 요청의 Host·확인 시각을 보존합니다. 엔진이 인증 상태나 지원 Capability를 추정하지 않습니다.
+- `found`는 실행 경로·버전·해시 확인을 뜻합니다. 같은 Run에서는 확인한 실행 경로를 고정하십시오.
+- `unavailable`의 실패 분류·출처·사유를 사용하십시오. 명시 경로나 버전 확인 실패를 임의 PATH 대체로 우회하지 않습니다.
+- 확장 출처에는 위치 결정 방법·폴더 결정 방법·실제 플랫폼 기록을 포함합니다. 관리 경로는 해당 확장이 설치되었을 때만 선택합니다.
+- 실제 Provider 규칙·로그인·프로토콜·Run 실행 시험은 각 Provider 담당이 수행해야 합니다. 시험용 `Probe`와 `sample.agent` 규칙은 제품 구현이 아닙니다.
 
-공유 변경 반영 후 저장소 루트에서 실행합니다. 이 제출 시점에는 공식 Workspace에서 수행한 결과가 아닙니다.
+## 3. 검증 결과와 재현
 
 ```powershell
-cargo test --workspace
-cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --locked --offline
+cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 cargo fmt --all -- --check
-cargo run -p telos-core --bin telos-weaver -- --version
 ```
 
-독립 검증은 [Validate-Host.ps1](Validate-Host.ps1)로 재현합니다. 공통 Manifest를 변경하지 않고 보관한 검증 Lock으로 실행합니다. Linux 실제 시험은 별도로 수행해 OS·Host·CLI 버전·결과를 기록해야 합니다.
+Windows에서 71개 시험과 정적 검사가 통과했습니다. 그중 탐색 공개 API 시험은 17개이며 실제 로컬 Fixture 실행·5초 타임아웃·해시 변경·관리 경로·실패 분류를 포함합니다. 상세 반례·환경은 [검증 기록](README.md)에 있습니다. Cache가 없는 환경에서는 `--offline`만 생략합니다.
+
+## 4. 이번 이후 남는 경계
+
+1. Linux·Remote SSH는 사용자 지시로 대기합니다. 본 제출에서 환경 구성이나 검증을 시작하지 않았습니다.
+2. G1은 대표 배정표에서 정한 Provider Adapter와 신뢰된 `RunAuthorizer` 연결이 필요합니다. 제품 진입점의 `DenyRuns`를 시험용 승인으로 대체하지 마십시오.
+3. Run을 허용하는 최종 Daemon은 활성 Run 취소와 실제 종료 확인까지 조합해야 합니다. API 연결 종료를 Run 취소로 취급하지 않습니다.
+4. 현재 실행 감독은 메모리 보존입니다. 영속화·재시작 복구·Writer Lock·전체 Workspace 서비스를 구현했다고 판단하지 않습니다.
