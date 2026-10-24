@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
 members = ["crates/*"]
+# RN Fork는 별도 프로세스·DB의 독립 Workspace입니다 (Spec §3.4, §12, §19.5.10).
+exclude = ["rn-fork"]
 
 [workspace.package]
 version = "0.0.0"

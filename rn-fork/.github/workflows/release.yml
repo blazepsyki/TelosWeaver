@@ -1,0 +1,76 @@
+name: release
+
+# Push a tag like v0.10.4 to build reason-network for macOS, Linux and Windows and publish a GitHub release, with the
+# install scripts a standalone install (and its updates) uses. The reason CLI pins the macOS and Linux archives' sha256.
+# Reason then replaces the macOS archives (and their .sha256) with Developer ID signed and notarized builds of the same
+# binaries, so macOS knows every release as one program. install.sh never puts an unsigned build over a signed one.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: aarch64-apple-darwin, os: macos-14 }
+          - { target: x86_64-apple-darwin, os: macos-14 }
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-24.04 }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest }
+          - { target: aarch64-pc-windows-msvc, os: windows-11-arm }
+    runs-on: ${{ matrix.os }}
+    env:
+      # Windows builds carry their C runtime, so they run without the Visual C++ redistributable.
+      RUSTFLAGS: ${{ contains(matrix.target, 'windows') && '-C target-feature=+crt-static' || '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Package
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p dist
+          # On Linux, owned by root (0:0), not the runner's user: tar run as root otherwise tries to give the file to that
+          # user. (The macOS archives are replaced by signed ones, and the runners' bsdtar may not take these flags.)
+          tar ${{ runner.os == 'Linux' && '--owner=0 --group=0 --numeric-owner' || '' }} -czf dist/reason-network-${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release reason-network
+          cd dist && shasum -a 256 reason-network-${{ matrix.target }}.tar.gz > reason-network-${{ matrix.target }}.tar.gz.sha256
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $name = "reason-network-${{ matrix.target }}.zip"
+          New-Item -ItemType Directory dist | Out-Null
+          Compress-Archive target/${{ matrix.target }}/release/reason-network.exe dist/$name
+          # One LF-terminated line, as shasum writes it (Out-File would end it in CRLF, which `shasum -c` refuses).
+          Set-Content -NoNewline -Encoding ascii dist/$name.sha256 "$((Get-FileHash dist/$name -Algorithm SHA256).Hash.ToLower())  $name`n"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reason-network-${{ matrix.target }}
+          path: dist/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          merge-multiple: true
+      - run: cp install.sh install.ps1 dist/
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          files: dist/*
+          generate_release_notes: true
+          # v1.2.0-rc.1 and the like: a test release, which installs and auto-updates never pick as "latest".
+          prerelease: ${{ contains(github.ref_name, '-') }}
