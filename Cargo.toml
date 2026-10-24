@@ -5,7 +5,7 @@ members = ["crates/*"]
 [workspace.package]
 version = "0.0.0"
 edition = "2024"
-license = "UNLICENSED"
+license = "MIT OR Apache-2.0"
 publish = false
 
 # 모든 의존성 버전은 여기서만 정합니다. 추가·변경은 PH0-INTEGRATION에 요청합니다 (Spec §19.5.4-1).

@@ -121,3 +121,14 @@ npm run build   # schemas/ → src/generated/ 타입 생성 후 tsc
 ### 병렬 작업
 
 Phase 0은 작업 ID(PH0-*)별 독점 경로로 나누어 여러 에이전트가 병렬로 구현합니다(Spec §19.5). 착수 전 [배정표](docs/phase-0/WORK_ALLOCATION.md)에 자기 행을 기록하고, Worktree는 `D:\worktree\TelosWeaver\` 아래에 만듭니다. 공통 파일·계약 변경은 변경 요청(REQ-xxx)으로 처리합니다.
+
+## 라이선스
+
+다음 중 하나를 선택해 사용할 수 있습니다.
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT License ([LICENSE-MIT](LICENSE-MIT))
+
+별도로 밝히지 않는 한, 이 저장소에 제출한 기여는 Apache-2.0 정의에 따라 위 두 라이선스로 이중 라이선스되며 추가 조건은 붙지 않습니다.
+
+`rn-fork/`에 들여올 Reason Network Fork는 원본의 LICENSE·NOTICE를 그대로 유지하고 수정한 파일에 변경 사실을 표시합니다.

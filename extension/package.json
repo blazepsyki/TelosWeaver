@@ -4,7 +4,7 @@
   "description": "범용 멀티 에이전트 오케스트레이터 UI (Spec §17)",
   "version": "0.0.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT OR Apache-2.0",
   "engines": {
     "vscode": "^1.100.0"
   },
