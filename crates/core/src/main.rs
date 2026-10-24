@@ -1,9 +1,15 @@
-//! TelosWeaver Core Daemon 진입점 (REQ-011). Local API의 인증·Health만 제공하며 정책이 연결되기 전에는 Run을 허용하지 않습니다.
-use std::{collections::HashMap, path::PathBuf, process::ExitCode, sync::Arc};
+//! TelosWeaver Core Daemon 진입점 (REQ-011, G1).
+//!
+//! `--policy <file>`이 없으면 Local API의 인증·Health만 제공하고 Run을 허용하지 않습니다.
+//! 있으면 운영자 설정으로 Run을 승인하고 탐지한 Provider CLI로 실행합니다 (`telos_core::integration`).
+use std::{collections::HashMap, path::PathBuf, process::ExitCode, time::Duration};
 use telos_core::{
     api::{ApiServer, ApiServerConfig},
-    execution::{DenyRuns, ExecutionSupervisor},
+    integration::Phase0Execution,
 };
+use telos_schema::CliDiscoveryOutcome;
+
+const USAGE: &str = "usage: telos-weaver serve --project-root <path> --project-id <id> --host-id <id> [--policy <file>]";
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -23,17 +29,12 @@ async fn run() -> Result<(), String> {
             return Ok(());
         }
         Some("serve") => {}
-        _ => {
-            return Err(
-                "usage: telos-weaver serve --project-root <path> --project-id <id> --host-id <id>"
-                    .into(),
-            );
-        }
+        _ => return Err(USAGE.into()),
     }
     let mut options = HashMap::new();
     while let Some(flag) = args.next() {
         let flag = flag.to_str().ok_or("option name must be UTF-8")?;
-        if !["--project-root", "--project-id", "--host-id"].contains(&flag) {
+        if !["--project-root", "--project-id", "--host-id", "--policy"].contains(&flag) {
             return Err("unknown option".into());
         }
         let value = args.next().ok_or("missing option value")?;
@@ -56,20 +57,38 @@ async fn run() -> Result<(), String> {
         .and_then(|value| value.into_string().ok())
         .filter(|value| !value.is_empty())
         .ok_or("host ID is required")?;
-    // Policy and snapshot services are not configured here. No Run is authorized.
-    let execution = Arc::new(ExecutionSupervisor::new(
-        project_id,
-        host_id,
-        vec![],
-        Arc::new(DenyRuns),
-    ));
-    let server = ApiServer::start(ApiServerConfig::new(project_root), execution)
-        .await
-        .map_err(|_| "Local API startup failed")?;
-    println!(
-        "{}: Local API ready (execution unavailable)",
-        telos_core::SERVICE_ID
-    );
+    let policy = options.remove("--policy").map(PathBuf::from);
+    let execution = Phase0Execution::build(project_id, host_id, policy.as_deref()).await?;
+    if let Some(discovery) = &execution.claude_discovery {
+        match &discovery.outcome {
+            CliDiscoveryOutcome::Found { cli } => println!(
+                "{}: claude {} ({:?})",
+                telos_core::SERVICE_ID,
+                cli.cli_version,
+                cli.source
+            ),
+            CliDiscoveryOutcome::Unavailable { failure, .. } => println!(
+                "{}: claude unavailable ({failure:?})",
+                telos_core::SERVICE_ID
+            ),
+        }
+    }
+    let server = ApiServer::start(
+        ApiServerConfig::new(project_root),
+        execution.supervisor.clone(),
+    )
+    .await
+    .map_err(|_| "Local API startup failed")?;
+    match &execution.policy_revision {
+        Some(revision) => println!(
+            "{}: Local API ready (policy {revision})",
+            telos_core::SERVICE_ID
+        ),
+        None => println!(
+            "{}: Local API ready (execution unavailable)",
+            telos_core::SERVICE_ID
+        ),
+    }
     #[cfg(unix)]
     {
         let mut terminate =
@@ -81,8 +100,14 @@ async fn run() -> Result<(), String> {
     tokio::signal::ctrl_c()
         .await
         .map_err(|_| "shutdown signal failed")?;
-    server
-        .shutdown()
-        .await
-        .map_err(|_| "Local API shutdown failed".into())
+    // 연결부터 닫아 새 Run을 받지 않은 뒤, 활성 Run의 취소와 실제 종료를 확인합니다.
+    let closed = server.shutdown().await;
+    let report = execution.shutdown(Duration::from_secs(15)).await;
+    if !report.unconfirmed.is_empty() {
+        return Err(format!(
+            "{} run(s) did not confirm termination",
+            report.unconfirmed.len()
+        ));
+    }
+    closed.map_err(|_| "Local API shutdown failed".into())
 }

@@ -3,6 +3,7 @@
 
 pub mod api;
 pub mod execution;
+pub mod integration;
 pub mod master;
 pub mod policy;
 
