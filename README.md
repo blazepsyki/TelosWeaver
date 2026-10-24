@@ -2,7 +2,7 @@
 
 서로 다른 AI 에이전트(Codex, Claude Code, Antigravity)를 사용하여 **목표 확인 → 계획 → 위임 → 실행 → 산출물 수집 → 검증 → 승인 판단 → 재작업 또는 완료**를 관리하는 로컬 우선 오케스트레이터입니다.
 
-- 기준 설계: [docs/DEVELOPMENT_v1.4.md](docs/DEVELOPMENT_v1.4.md)
+- 기준 설계: [docs/DEVELOPMENT_v1.5.md](docs/DEVELOPMENT_v1.5.md)
 - 진행 현황: [docs/phase-0/WORK_ALLOCATION.md](docs/phase-0/WORK_ALLOCATION.md) (작업 배정·게이트·변경 요청의 단일 원본)
 - 에이전트 작업 지침: [AGENTS.md](AGENTS.md)
 
@@ -28,7 +28,7 @@
 - **Core Daemon (`telos-weaver serve`):** 토큰 인증 Local API(Windows Named Pipe / Unix Socket, NDJSON), 운영자 정책 파일 기반 실행 승인, 실행 감독(멱등 시작·이벤트 보존·취소·Daemon 종료 시 활성 Run 정리).
 - **마스터:** 마스터 에이전트(Phase 0 임시 Claude)가 구조화 결정을 내면 Core가 검증해 잘못된 결정·중복·권한 초과를 거부하고, 허용된 결정(`create_tasks`·`request_run`·`request_cancel`)을 집행해 결과를 다음 Turn에 돌려줍니다.
 
-**아직 없는 것:** Reason Network 연동(PH0-RN), VS Code Extension의 Core 연결(PH0-EXT), 영속 저장소·재시작 복구, Scheduler·Workspace 관리·검증·Artifact, Linux·Remote SSH 검증. 미구현 기능은 지원하는 것처럼 표시하지 않습니다.
+**아직 없는 것:** Reason Network 연동(PH0-RN 진행 중: 원본 도입 완료, 제거·재구성 남음), VS Code Extension의 Core 연결(PH0-EXT), 영속 저장소·재시작 복구, Scheduler·Workspace 관리·검증·Artifact, Linux·Remote SSH 검증. 미구현 기능은 지원하는 것처럼 표시하지 않습니다.
 
 ## 저장소 구조 (Spec §3.4)
 
@@ -46,7 +46,7 @@ crates/
                  integration/   Phase 0 통합 구성: 운영자 정책 승인, Provider 탐지·등록, 종료 정리
 schemas/       telos-schema에서 생성한 JSON Schema (커밋 대상)
 extension/     VS Code Extension, TypeScript (§17) — 생성 타입만 사용, Core 연결은 미구현
-rn-fork/       Reason Network Fork 자리 — 아직 도입 전
+rn-fork/       Reason Network Fork(원본 v0.12.11, subtree) — DEC-07 정리 진행 중, 독립 Cargo Workspace
 (docs/archive/의 이전 설계 문서는 로컬에만 보관하며 원격 저장소에 올리지 않습니다)
 docs/          설계 문서, phase-0/에 배정표·WSL 절차·작업별 검증 증거
 ```
@@ -131,4 +131,4 @@ Phase 0은 작업 ID(PH0-*)별 독점 경로로 나누어 여러 에이전트가
 
 별도로 밝히지 않는 한, 이 저장소에 제출한 기여는 Apache-2.0 정의에 따라 위 두 라이선스로 이중 라이선스되며 추가 조건은 붙지 않습니다.
 
-`rn-fork/`에 들여올 Reason Network Fork는 원본의 LICENSE·NOTICE를 그대로 유지하고 수정한 파일에 변경 사실을 표시합니다.
+`rn-fork/`의 Reason Network Fork는 원본의 LICENSE·NOTICE를 그대로 유지하고 수정한 파일에 변경 사실을 표시합니다.

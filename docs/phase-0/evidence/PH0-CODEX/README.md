@@ -9,7 +9,7 @@
 | 기준 | 착수 `7a9d4b3`, 공통 계약 `3a37919`, 최신 main 반영 `83cf156`(main `04cc2c3`, Spec 개정 1.4.3 포함) |
 | 구현 Commit | 초기 `a498976`, 실환경 시험·사용량 보정·승인 경계 `0dcc1ca`, 통합 `64f9674` |
 | 배정·승인 | 대표 main `31369f6`(예약), `796e3ce`(사용자 권장안 승인 후 착수·REQ-012) |
-| 기준 문서 | [Spec](../../../DEVELOPMENT_v1.4.md), [대표 배정표](../../WORK_ALLOCATION.md) |
+| 기준 문서 | [Spec](../../../DEVELOPMENT_v1.5.md), [대표 배정표](../../WORK_ALLOCATION.md) |
 
 사용자가 기존 Codex 인증, 저장소 밖 일회용 폴더, 사용 가능한 경량 모델·low, 신규 시험 세션의 Resume/Fork 및 Archive를 승인했습니다. 기존 대화·프로젝트를 시험 대상으로 삼지 않았습니다. G1 대표 Provider는 기존 결정대로 Claude입니다. Linux·Remote SSH 검증은 사용자 지시로 대기하며 이 제출로 G2·G3를 판정하지 않습니다.
 

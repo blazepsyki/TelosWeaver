@@ -1,7 +1,7 @@
-# TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.4)
+# TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.4 (개정 1.4.4)\
+> **문서 버전:** 1.5  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-24  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -9,7 +9,7 @@
 > **초기 UI:** VS Code Extension  
 > **구현 언어:** Core·Provider Adapter·RN Client·공통 Schema는 Rust, VS Code Extension은 TypeScript  
 > **초기 실행 Provider:** OpenAI Codex, Anthropic Claude Code, Google Antigravity CLI(`agy`)  
-> **기준 자료:** `DEVELOPMENT_v1.3.md` (개정 1.3.8), `DEVELOPMENT_v1.2.md`, `DEVELOPMENT_GAP_ANALYSIS.md` — 이전 문서는 `docs/archive/`에 로컬 보관하며 원격 저장소에는 올리지 않습니다
+> **기준 자료:** `DEVELOPMENT_v1.4.md` (개정 1.4.4), `DEVELOPMENT_v1.3.md` (개정 1.3.8), `DEVELOPMENT_v1.2.md`, `DEVELOPMENT_GAP_ANALYSIS.md` — 이전 문서는 `docs/archive/`에 로컬 보관하며 원격 저장소에는 올리지 않습니다
 
 ## 변경 이력
 
@@ -27,11 +27,12 @@
 | v1.3.6 | 2026-10-24 | §7.5 확장 탐지를 버전 비의존 규칙으로 변경(`extensions.json`·`.obsolete` 해석, 폴더 이름 파싱, 파일 이름 검색 조건). Antigravity 실행 파일 위치를 `~/.gemini/bin/agy`로 확정 |
 | v1.3.7 | 2026-10-24 | §7.5에 Antigravity 데이터 디렉터리 검증을 추가. 관찰 결과, `--app_data_dir=antigravity` 가설, AGY-DATA-01~05, 순서, 판정·반영 방법을 PH0-AGY 작업으로 지정 |
 | v1.3.8 | 2026-10-24 | 배정표 수정 범위 완화(§19.5.5, §19.5.9): 담당 에이전트가 자기 작업 행·변경 요청 제출·변경 기록을 직접 갱신하고, 기준·게이트·판정·`verified` 전환은 통합 담당이 유지. 배정표 수정은 `main` 단독 커밋 |
-| **v1.4** | **2026-10-24** | **v1.3.1~1.3.8 정리: Rust Core(DEC-05)와 기존 코드 삭제(DEC-04), Phase 0 병렬 구현 절차(작업 ID·독점 경로·게이트·증거·Worktree·배정표 수정 범위), LF 고정과 WSL 기반 Linux·Remote SSH Host, VS Code 확장 CLI 탐지(DEC-06, 버전 비의존 규칙·Antigravity 데이터 디렉터리 검증). REQ-010 탐지 계약 위치를 §7.5에 연결** |
+| v1.4 | 2026-10-24 | v1.3.1~1.3.8 정리: Rust Core(DEC-05)와 기존 코드 삭제(DEC-04), Phase 0 병렬 구현 절차(작업 ID·독점 경로·게이트·증거·Worktree·배정표 수정 범위), LF 고정과 WSL 기반 Linux·Remote SSH Host, VS Code 확장 CLI 탐지(DEC-06, 버전 비의존 규칙·Antigravity 데이터 디렉터리 검증). REQ-010 탐지 계약 위치를 §7.5에 연결 |
 | v1.4.1 | 2026-10-24 | INTEGRATION 경로에 `crates/core/src/integration/**` 추가(§19.5.3): G1~G3 통합 구성(운영자 설정 기반 Phase 0 실행 승인, Provider 탐지·구성, Daemon 종료 시 활성 Run 정리). 정식 정책은 MASTER(`core/policy`)가 대체 |
 | v1.4.2 | 2026-10-24 | §7.5 Antigravity 데이터 디렉터리 검증 결과(AGY-DATA-01~05) 반영: 기본 `--app_data_dir=antigravity`, 실행 전 버전 명령으로 옵션 수용 확인, 미수용 시 `unsupported`. '확장을 끈 상태' 조건 제외(REQ-013) |
 | v1.4.3 | 2026-10-24 | 병합 직후 Worktree·Branch 삭제를 통합 담당의 기본 동작으로 지정(§19.5.5). 커밋하지 않은 의미 있는 변경이 있으면 보류 |
 | v1.4.4 | 2026-10-24 | RN Fork의 비공개 CLI 연동·자동 업데이트 등 민감 기능 제거 방향(DEC-07), 유지·제거·대체 정책과 미확정 경계(§12.4~12.5), PH0-RN-00~08의 선행 조건·산출물·소유권·검증(§19.5.10)을 추가. Upstream 변경은 선택적으로 반영하며 제거 경로의 재유입을 검사. 작업 배정·착수를 뜻하지 않음 |
+| **v1.5** | **2026-10-24** | **v1.4.1~1.4.4 정리와 RN 방향 확정. DEC-07을 사용자 결정대로 좁힘: RN Fork는 클로즈드 소스 Reason CLI 연동, 자동 업데이트·받아서 실행하는 설치 경로, Reason 계정 로그인만 제거하고 Claude·Codex 세션 탐지·메시지 전달·MCP·Hook·네트워크 기능은 유지(§12.1·§12.4·§12.5 확정, RN-09~12·RN-POC-13~15·PH0-RN-03 문구 조정). Fork는 `rn-fork/`에 subtree(squash)로 도입, 실행 파일·상태·MCP 이름 분리, 실제 에이전트 설정 변경은 시험 시에만 백업·Diff·복원과 사전 확인. 이 밖에 v1.4.1 INTEGRATION 경로, v1.4.2 Antigravity 데이터 디렉터리 확정, v1.4.3 병합 후 정리 규칙, v1.4.4 RN 서브 태스크 계획을 포함** |
 
 ## 목차
 
@@ -76,7 +77,7 @@ TelosWeaver는 서로 다른 AI 에이전트를 사용하여 **목표 확인 →
 | DEC-04 | 기존 Rust harness 코드는 저장소에서 삭제했으며 새 구현과 무관합니다. | 기존 모듈·설정·로그·TUI/Web의 재사용·호환·이관을 요구하지 않습니다. 필요하면 Git 이력에서만 참고합니다. |
 | DEC-05 | Core는 RN Fork와 같은 Rust로 구현합니다. | Core·Adapter·RN Client·공통 Schema를 Cargo Workspace로 구성합니다. VS Code Extension만 TypeScript이며 공통 타입은 Rust에서 생성합니다. Core와 RN의 프로세스·DB 분리는 유지합니다. |
 | DEC-06 | Provider 실행은 사용자가 설치한 각 에이전트의 VS Code 확장(Codex·Claude Code·Antigravity)이 내부에서 쓰는 CLI를 찾아 사용합니다. | 별도 CLI 설치를 전제로 하지 않습니다. 확장이 포함·관리하는 실행 파일을 탐지해 Core가 소유하는 Managed 프로세스로 실행합니다(§7.5). 확장이 이미 띄운 세션의 제어는 Attached(P1)이며 이 결정과 구분합니다. |
-| DEC-07 | RN은 원본을 Fork한 뒤 비공개 CLI 연동·자동 업데이트 등 보안상 민감한 기능을 제거하고 TelosWeaver에 필요한 통신 서비스로 재구성합니다. | 유지·제거·대체 목록을 먼저 정하고 민감 기능은 코드·호출 경로·의존성에서 제거합니다. PH0-RN은 §19.5.10의 서브 태스크로 분할합니다. 기존 Provider Adapter에 대한 정책 확대와 원격 기능의 장기 범위 등은 §12.5에서 별도로 확정합니다. |
+| DEC-07 | RN은 원본을 Fork한 뒤 **클로즈드 소스 Reason CLI 연동**, **자동 업데이트와 받아서 실행하는 설치 경로**, **Reason 계정 로그인**을 제거하고, 나머지 기능은 TelosWeaver에 맞춰 유지·재구성합니다. | 걱정하는 위험은 공개되지 않은 코드(Reason CLI)가 RN을 통해 실행되거나 업데이트로 다시 들어오는 것입니다. Claude·Codex 세션 탐지와 메시지 전달처럼 Provider의 비공식 인터페이스를 쓰는 기능은 TelosWeaver Provider Adapter(DEC-06)와 같은 위험 수준으로 수용합니다. 제거는 설정 비활성화가 아니라 코드·호출 경로·의존성에서 정리합니다(§12.4). PH0-RN은 §19.5.10의 서브 태스크로 진행합니다. |
 
 추가 확정 방향은 세션 포크와 문맥 전달 전략을 토큰 효율 설계에 포함하는 것입니다. 포크 지원 여부와 효율은 Provider별로 검증하며 절감률을 사전에 보장하지 않습니다.
 
@@ -776,7 +777,7 @@ Validation Contract가 `human`으로 명시한 검사는 실제 사용자 판단
 
 ### 12.1 채택 범위와 Local RPC
 
-RN Fork는 TelosWeaver가 유지·빌드·배포하는 표준 통신 인프라입니다. DEC-07에 따라 원본의 실행 경로를 검토·축소한 뒤 독립 Rust Daemon으로 실행하며 원본 내부 IPC를 안정적 외부 API로 가정하지 않고 Fork에 버전이 명시된 RPC를 정의합니다. 유지·제거·대체 기준은 §12.4, 구현 분할은 §19.5.10을 따릅니다.
+RN Fork는 TelosWeaver가 유지·빌드·배포하는 표준 통신 인프라입니다. DEC-07에 따라 제거 대상(Reason CLI 연동·자동 업데이트·계정 로그인)을 정리한 뒤 독립 Rust Daemon으로 실행하며 원본 내부 IPC를 안정적 외부 API로 가정하지 않고 Fork에 버전이 명시된 RPC를 정의합니다. 유지·제거·대체 기준은 §12.4, 구현 분할은 §19.5.10을 따릅니다.
 
 | RPC | 계약 |
 |---|---|
@@ -794,7 +795,7 @@ RN Fork는 TelosWeaver가 유지·빌드·배포하는 표준 통신 인프라�
 
 P0는 Health·Version·Discovery 계약과 통제된 대상의 Message 왕복을 확인합니다. 기존 IDE로의 실제 전달은 P1에서 Provider별 PoC 통과 기능만 활성화합니다.
 
-원본의 비공개 발견·주입 경로를 제거하면 Endpoint 정보와 수신 경로도 다시 설계해야 합니다. Phase 0의 권장 대안은 Core가 소유한 Managed Endpoint를 명시적으로 등록하는 방식이며, 채택 여부는 §12.5에서 확정합니다. 위 조회 RPC와 현재 `telos_schema::rn`에는 등록·갱신·해제 계약이 없습니다. 이 방식을 채택하면 CONTRACT가 등록 권한·소유권·수명·재시작 의미를 먼저 정의하고 소비 구현이 이를 따릅니다. 세션 파일을 임의로 읽거나 제거한 비공개 호출을 재사용하여 등록 계약을 우회하지 않습니다.
+세션 발견과 메시지 전달은 원본의 경로(Claude Code 세션 목록, Codex Hook·Thread 등 Provider별 Connector)를 유지합니다. 이 경로는 Provider 내부 구조에 기대므로 Provider 버전을 확인하고 검증된 기능만 `sessions.capabilities`로 보고합니다(§12.4). Core가 띄운 Managed Run을 RN 주소로 노출할지와 그 등록 방식은 §12.5에서 정하며, 채택하면 CONTRACT가 등록·갱신·해제 계약을 먼저 정의합니다.
 
 ### 12.2 Message와 DeliveryReceipt
 
@@ -812,7 +813,7 @@ Attached Session은 Core가 소유하지 않을 수 있습니다. 구조화 결�
 
 ### 12.3 설치·업데이트·장애
 
-- 유지·도입하기로 확정한 자체 Task MCP와 RN MCP/Hook의 이름·책임을 구분합니다. 기존 등록과 충돌을 확인하고 설정 Diff·Backup·변경 소유권을 기록합니다. 원본의 자동 설정 변경·서비스 등록 경로를 그대로 활성화하지 않습니다.
+- 유지·도입하기로 확정한 자체 Task MCP와 RN MCP/Hook의 이름·책임을 구분합니다. 기존 등록과 충돌을 확인하고 설정 Diff·Backup·변경 소유권을 기록합니다. RN의 `setup`이 하는 에이전트 설정 변경(MCP 서버·Hook 등록)은 사용자가 명시적으로 실행할 때만 적용합니다. Phase 0 시험에서는 적용 직전에 사용자 확인을 받고, 설정 파일 Backup·Diff를 증거에 남기며 시험 후 되돌립니다. 자동 서비스 등록(시작 프로그램·launchd·systemd)은 사용하지 않습니다.
 - 제거 시 자신이 추가한 항목만 정리하고 설치 후 사용자 변경도 보존합니다. 원본 설정을 일괄 복원해 나중 변경을 지우지 않습니다.
 - Upstream 변경은 필요한 수정만 검토하여 선택적으로 반영합니다. 원본 SHA와 변경 출처를 보존하고 통합 Branch에서 Diff·의존성·제거 경로 재유입 검토, Build·Contract Test·Windows/Linux 시험 후 검증된 Fork SHA로 배포합니다. 전체 Upstream 병합이나 원본 자동 업데이트를 기본 갱신 수단으로 사용하지 않습니다.
 - upstream_tag·upstream_commit·fork_commit·rpc_schema_version·Build Target/시각, Patch Inventory를 남깁니다. DB Migration·Backup·Rollback과 원본·의존 패키지의 배포 고지 조건도 확인합니다.
@@ -821,34 +822,36 @@ Attached Session은 Core가 소유하지 않을 수 있습니다. 구조화 결�
 
 ### 12.4 RN Fork의 유지·제거·대체 정책
 
-DEC-07은 원본을 검토·축소하는 작업까지 구현 범위에 포함합니다. 설정을 끄거나 feature flag의 기본값만 바꾼 것으로 제거를 완료하지 않습니다. 대상 코드, CLI/RPC 진입점, 간접 호출, 관련 설정·문서·시험과 불필요해진 의존성을 함께 정리합니다. 원본의 라이선스·출처·고지와 변경 이력은 보존합니다.
+DEC-07의 제거 대상은 아래 표의 **제거** 세 분류입니다. 설정을 끄거나 feature flag의 기본값만 바꾼 것으로 제거를 완료하지 않습니다. 대상 코드, CLI/RPC 진입점, 간접 호출, 관련 설정·문서·시험과 불필요해진 의존성을 함께 정리합니다. 원본의 라이선스·출처·고지와 변경 이력은 보존합니다.
 
 착수 후 PH0-RN-00에서 다음 목록을 실제 파일·심볼·호출자·부작용·관련 의존성과 연결한 처리표로 확정합니다. 이 표는 조사·구현 기준이며 현재 소스 도입·제거를 완료했다는 증거가 아닙니다.
 
-| 분류 | 처리 기준 |
-|---|---|
-| 자동 업데이트·원격 설치 실행 | 업데이트 확인, 실행 중 다운로드·설치 스크립트 실행, 자체 실행 파일 교체·재시작과 이를 노출하는 명령·설정을 제거합니다. 배포 갱신은 TelosWeaver의 검토·고정 릴리스 절차로 수행합니다. |
-| 비공개 Provider 연동 | RN 내부의 비공개 CLI 호출, 비공식 메시지 주입·깨우기와 이를 전제로 한 Connector 경로를 제거합니다. 전달 경로를 잃은 Capability는 대체 경로 검증 전까지 미지원으로 둡니다. |
-| Hook·설정 변경·파일 탐색 | Hook 설치, MCP/사용자 설정 변경, 세션·대화 파일 읽기, 외부 프로세스 실행을 개별 분류합니다. 기능의 필요성·인터페이스·권한 범위를 검토해 유지·제거·대체를 정하며, 미확정 경로는 활성화하지 않습니다. |
-| 외부 네트워크·Relay·팀·초대 | 원격 기능의 장기 범위는 §12.5에서 확정합니다. Phase 0 필수 범위에 넣지 않으며, 외부 통신을 시작하는 초기화·주기 작업·대체 경로까지 조사합니다. |
-| 통신 기능과 저장소 | Endpoint 정체성, 메시지·Receipt·멱등성·TTL·구독에 필요한 부분을 선별합니다. 원본의 주소·전달 의미를 그대로 승계하지 않고 TelosWeaver 계약과 실제 수신 확인에 맞춰 재사용·수정합니다. |
-| 독립 실행 기반 | Core와 별도 프로세스·DB를 유지합니다. 전용 상태 경로·IPC·명시적 시작·종료를 설계하며 기존 RN 사용자 상태의 자동 탐색·이관·공유 여부를 명시합니다. |
+| 분류 | 처리 | 기준 |
+|---|---|---|
+| 클로즈드 소스 Reason CLI 연동 | **제거** | `reason` CLI 호출(세션 조회·전송), CLI가 관리하는 Relay·프로세스, CLI 관리 설치 모드(`~/.reason/bin` 고정·CLI 동반 업데이트), `reason network` 진입점과 관련 설정·문서·시험을 정리합니다. 이 연동에만 쓰이던 Capability는 남기지 않습니다. |
+| 자동 업데이트·받아서 실행하는 설치 | **제거** | 업데이트 확인, 실행 중 다운로드·설치 스크립트 실행, 자체 실행 파일 교체·재시작, 원격 설치 스크립트 호출과 이를 노출하는 명령·설정을 제거합니다. 배포 갱신은 TelosWeaver의 검토·고정 릴리스 절차로만 수행합니다. |
+| Reason 계정 로그인 | **제거** | Reason 계정 로그인·서명된 신원 확인과 그 서버 호출을 제거합니다. 로그인에 기대던 기능은 로그인 없이 동작하도록 바꾸거나, 불가능하면 미지원으로 둡니다. |
+| Provider 세션 탐지·메시지 전달 | 유지 | Claude Code·Codex 등 Provider별 Connector의 세션 발견·Busy/Idle·전달(push·turn·pull)을 유지합니다. Provider 내부 구조에 기대므로 버전을 확인하고 검증된 기능만 보고합니다. |
+| MCP 서버·Hook·설정 변경 | 유지(명시적 적용) | 에이전트 설정 변경은 사용자가 명시적으로 실행할 때만 적용하고 Backup·Diff·복원을 남깁니다(§12.3). 자동 서비스 등록은 사용하지 않습니다. |
+| 네트워크·Relay·팀·초대 | 유지 | 계정 로그인을 뺀 나머지 원격 기능은 유지합니다. Phase 0 시험 범위에는 넣지 않고 로컬 전용으로 시험합니다. 로그인 제거로 동작하지 않게 되는 경로는 PH0-RN-00 처리표에 기록합니다. |
+| 통신 기능과 저장소 | 유지·조정 | Endpoint 정체성, 메시지·Receipt·멱등성·TTL·구독을 TelosWeaver 계약(§12.2)과 실제 수신 확인에 맞춰 재사용·수정합니다. |
+| 독립 실행 기반 | 유지·분리 | Core와 별도 프로세스·DB를 유지합니다. 실행 파일·상태 디렉터리·MCP 서버 이름을 원본과 다르게 하여 공식 Reason Network 설치와 충돌·공유·이관하지 않습니다. |
 
-제거·대체 목록에는 영향받는 기능과 수용 시험을 연결합니다. `providers.list`·`sessions.capabilities`는 실제 남아 있는 검증된 기능만 보고합니다. 메시지 저장·전달 확인은 Agent 실행·Task 완료와 구분하고, 제거된 수단을 다른 숨겨진 호출로 대체하지 않습니다.
+처리표에는 영향받는 기능과 수용 시험을 연결합니다. `providers.list`·`sessions.capabilities`는 실제 남아 있는 검증된 기능만 보고합니다. 메시지 저장·전달 확인은 Agent 실행·Task 완료와 구분하고, 제거한 Reason CLI·업데이트·로그인 경로를 다른 호출로 되살리지 않습니다.
 
 제거 검증은 소스·호출 경로와 빌드 의존성 검토, CLI/RPC의 제거 기능 거부, 대표 실행 중 파일·설정·프로세스·외부 통신 관찰을 함께 사용합니다. 문자열 검색만으로 전체 제거를 입증하지 않으며, 시험한 경로·환경·관찰 방법과 검증 한계를 기록합니다. 미허용 동작이나 제거 대상 경로의 잔존이 발견되면 수용 실패로 기록합니다. Upstream 변경을 가져올 때 같은 검사를 다시 수행합니다.
 
-### 12.5 구현 전 확정할 RN 경계
+### 12.5 RN 경계 (v1.5 확정)
 
-다음은 앞선 방향을 구체화하기 위한 설계 항목입니다. **권장안은 확정 결정과 구분하며**, 해당 항목에 의존하는 소비 구현 전에 결과와 근거를 기록합니다. 이 목록이나 §19.5.10의 존재는 PH0-RN 예약·착수 또는 현 G0 계약 변경을 뜻하지 않습니다.
+2026-10-24 사용자 결정으로 확정한 경계입니다. 아래에서 "PH0-RN-00에서 확인"으로 적은 항목은 원본 조사 결과를 처리표에 기록한 뒤 구현합니다.
 
-| 항목 | 권장안·확정할 내용 | 확정·반영 경계 |
-|---|---|---|
-| 비공개 인터페이스 제거의 제품 범위 | 이번 제거 대상은 RN 내부 연동으로 명시하고, 기존 TelosWeaver Provider Adapter까지 같은 정책을 확대할지는 별도 점검합니다. | RN 변경만으로 DEC-06이나 §7.5의 기존 Adapter 결정을 취소하지 않습니다. 확대 시 사용자와 합의해 해당 Spec·담당 범위를 먼저 변경합니다. |
-| 원격 기능의 장기 범위 | Phase 0 유지 대상에서 제외하는 방향을 권합니다. 제품에서 완전히 제거할지, 후속 단계에 별도 설계로 도입할지 정합니다. | 사용자 범위 결정 후 PH0-RN-00의 제거·대체 목록에 반영합니다. P2 항목이 있다는 이유로 원본 네트워크 경로의 보존·활성화를 허용하지 않습니다. |
-| 세션 정보·전달 경로 | Phase 0은 Core 소유 Managed Endpoint의 명시적 등록과 통제된 수신 경로를 권합니다. 기존 IDE Attached는 허용 인터페이스가 확보된 Connector별로 검증합니다. | CONTRACT·INTEGRATION과 등록·갱신·해제, 접근 권한, Host·Native ID·Fingerprint, 만료·연결 단절·재시작 계약을 먼저 확정합니다. |
-| 원본 저장·고정 기준 | subtree를 도입 후보로 두되 submodule·별도 Fork와 비교하고, 수정 전 빌드가 가능한 원본 SHA·Lockfile을 고정합니다. | 도입 방식·기준 SHA는 PH0-RN-00~01에서 기록합니다. 예시 버전이나 조사 시점의 최신 버전을 검증된 배포 버전으로 간주하지 않습니다. |
-| 실행·상태·설정 범위 | Phase 0은 전용 상태·DB의 로컬 시험 인스턴스, 명시적 시작·종료를 권합니다. 기존 RN 공유·자동 서비스 설치·기존 설정 변경은 개별 확정합니다. | 사용자 환경 변경 범위를 정하고, 주소·인증·등록·프로세스 소유권은 CONTRACT·INTEGRATION과 구체화합니다. Linux·Remote SSH의 기존 대기 지시는 유지합니다. |
+| 항목 | 확정 내용 |
+|---|---|
+| 제거 범위 | 클로즈드 소스 Reason CLI 연동, 자동 업데이트·받아서 실행하는 설치 경로, Reason 계정 로그인 (§12.4). Provider의 비공식 인터페이스를 쓰는 세션 탐지·전달은 제거 대상이 아니며, DEC-06·§7.5의 기존 Adapter 결정도 그대로입니다. |
+| 네트워크 기능 | 계정 로그인을 뺀 P2P·Relay·팀·초대는 유지합니다. Phase 0은 로컬 전용으로 시험하며, 로컬 동작이 로그인에 기대는지는 PH0-RN-00에서 확인합니다. |
+| 세션 정보·전달 경로 | 원본의 Provider별 발견·전달 경로를 유지합니다. Core 소유 Managed Run을 RN 주소로 노출하는 등록 방식은 PH0-RN-05~07에서 필요성을 확인한 뒤 CONTRACT·INTEGRATION이 계약을 먼저 정의합니다. |
+| 원본 저장·고정 | `rn-fork/`에 subtree(squash)로 도입합니다. 기준 SHA·Lockfile은 PH0-RN-01에서 고정·기록하며, 원본 변경은 필요한 수정만 선택적으로 반영합니다(§12.3). |
+| 실행·상태·설정 | 실행 파일·상태 디렉터리·MCP 서버 이름을 원본과 분리합니다(가칭 `telos-rn`). 기존 Reason Network 설치와 공유·이관하지 않습니다. 실제 에이전트 설정 변경은 시험할 때만, 사전 확인·Backup·Diff·복원과 함께 적용합니다(§12.3). Linux·Remote SSH의 기존 대기 지시는 유지합니다. |
 
 ## 13. 설정·권한·예산
 
@@ -1099,10 +1102,10 @@ P0는 최초 실사용, P1은 첫 확장과 협업 고도화, P2는 후속 운�
 | RN-06 | P2 | 원격 메시징의 Host Identity·정책 |
 | RN-07 | P0/P1 | P0 Schema·Backup 기준, P1 Migration/Rollback 검증 |
 | RN-08 | P0/P1 | P0 Fork 패치 기록, P1 Upstream 영향·충돌 추적 |
-| RN-09 | Phase 0/P0 | 비공개 CLI 연동·자동 업데이트 등 민감 기능의 유지·제거·대체 목록과 파일·호출·의존성·부작용 근거 확정 (§12.4) |
+| RN-09 | Phase 0/P0 | 제거 대상(Reason CLI 연동·자동 업데이트·계정 로그인)과 유지 대상의 처리표, 파일·호출·의존성·부작용 근거 확정 (§12.4) |
 | RN-10 | Phase 0/P0 | 제거 대상의 코드·진입점·간접 호출·불필요 의존성 정리. 설정 비활성화만으로 완료 처리 금지. 제거 후 최소 빌드·회귀 확인 |
-| RN-11 | Phase 0/P0 | 제거로 바뀐 Endpoint 발견·수신 경로의 계약과 Capability 정합성. 등록 방식 채택 시 CONTRACT 계약 확정 후 소비 구현 |
-| RN-12 | Phase 0/P0 | 제거 결과의 소스·빌드·실행 검증과 환경·한계 기록. Upstream 반영 시 같은 검사를 재수행하고 불명확한 경로는 활성화하지 않음 |
+| RN-11 | Phase 0/P0 | 로그인 제거 후 신원·Endpoint 정체성의 동작과 Capability 정합성. Managed Run 등록 방식 채택 시 CONTRACT 계약 확정 후 소비 구현 |
+| RN-12 | Phase 0/P0 | 제거 결과의 소스·빌드·실행 검증과 환경·한계 기록. Upstream 반영 시 같은 검사를 재수행하고 Reason CLI·업데이트·로그인 경로의 재유입을 거부 |
 | CFG-01 | P0 | 설정 계층·출처·최종 설정 해시 저장 |
 | CFG-02 | P0 | 권한 상한의 교집합과 하위 위임 적용 |
 | CFG-03 | P0 | MCP/Hook 등록 소유권·충돌·설치 후 변경 보존 |
@@ -1157,7 +1160,7 @@ Phase 0은 §19.5의 작업 묶음으로 나누어 병렬 구현할 수 있습�
 - [ ] 세 Provider의 VS Code 확장에서 CLI 실행 파일을 탐지하고(§7.5), 확장 로그인 상태가 Managed 실행에 유효한지와 Antigravity의 데이터 디렉터리 처리를 확인합니다. Windows 로컬과 Remote SSH 실행 Host(`~/.vscode-server/extensions`)를 각각 확인합니다.
 - [ ] 마스터 후보가 구조화 결정을 반환하고 Core가 잘못된 결정·중복·권한 초과를 거부하는 최소 경로를 확인합니다.
 - [ ] Agy의 Turn 직렬화·도구 거부·Exit Code와 결과 차이를 확인합니다.
-- [ ] RN Fork의 유지·제거·대체 정책에 따라 민감 기능을 제거하고, 정리된 Fork의 Windows/Linux Build, Health·Version·Discovery·통제된 Message RPC를 재현합니다(§12.4, §19.5.10).
+- [ ] RN Fork에서 Reason CLI 연동·자동 업데이트·계정 로그인을 제거하고(§12.4), 정리된 Fork의 Windows/Linux Build, Health·Version·Discovery·통제된 Message RPC를 재현합니다(§12.4, §19.5.10).
 - [ ] VS Code 로컬과 단일 Remote SSH에서 실제 CLI·Workspace·Core의 Host를 확인합니다.
 - [ ] 이벤트 구독 전 종료, 잘못된 Stream, 프로세스·자식 종료와 기본 권한 적용을 확인합니다.
 - [ ] Native Resume·Fork를 실험하고 Provider별 증거·제한을 기록합니다. 신규 실행 통과와 별개로 판정합니다.
@@ -1241,14 +1244,14 @@ G0 완료 시 공통 인터페이스와 최소 컴파일 가능한 등록 경로
 
 | 작업 ID | 책임·산출물 | 독점 수정 경로 | 선행 조건 |
 |---|---|---|---|
-| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/src/integration/**, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, AGENTS.md, CLAUDE.md, docs/DEVELOPMENT_v1.4.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md | 최초 지정, G0 준비부터 담당 |
+| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/src/integration/**, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, AGENTS.md, CLAUDE.md, docs/DEVELOPMENT_v1.5.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md | 최초 지정, G0 준비부터 담당 |
 | PH0-CONTRACT | 공통 Rust 계약·Payload Schema·생성 원본·Wire/Schema 시험, Adapter Trait·공통 오류 | crates/schema/**, schemas/**, crates/adapters/src/lib.rs, crates/adapters/src/unimplemented.rs, crates/adapters/tests/unimplemented.rs | INTEGRATION과 G0 확정 |
 | PH0-HOST | 공용 프로세스 I/O·취소·자식 회수, VS Code 확장 CLI 공통 탐색, 최소 Core API·Supervisor와 Fixture 경로 | crates/adapters/src/runtime/**, crates/adapters/src/discovery/**, crates/adapters/tests/runtime_*.rs, crates/adapters/tests/discovery_*.rs, crates/adapters/tests/support/runtime/**, crates/adapters/tests/fixtures/runtime/**, crates/core/src/api/**, crates/core/src/execution/**, crates/core/tests/host_*.rs, crates/core/tests/fixtures/host/** | G0, 공용 런타임·API 계약 |
 | PH0-CODEX | Codex App Server 접속·신규 실행·이벤트 매핑·오류·취소, Resume/Fork 실험 | crates/adapters/src/codex.rs, crates/adapters/src/codex/**, crates/adapters/tests/codex_*.rs, crates/adapters/tests/fixtures/codex/** | G0, HOST 공개 인터페이스 |
 | PH0-CLAUDE | Claude Print/Stream 실행·Session/Turn 연결·오류·취소, Resume/Fork 실험 | crates/adapters/src/claude.rs, crates/adapters/src/claude/**, crates/adapters/tests/claude_*.rs, crates/adapters/tests/fixtures/claude/** | G0, HOST 공개 인터페이스 |
 | PH0-AGY | Agy Headless·NDJSON·Turn 직렬화·소프트 거부·취소, 재개/분기 판정 | crates/adapters/src/agy.rs, crates/adapters/src/agy/**, crates/adapters/tests/agy_*.rs, crates/adapters/tests/fixtures/agy/** | G0, HOST 공개 인터페이스 |
 | PH0-MASTER | 최소 마스터 호출·결정 회수, kind별 검증·권한/Epoch/멱등 거부와 결과 통지 | crates/core/src/master/**, crates/core/src/policy/**, crates/core/tests/master_*.rs, crates/core/tests/policy_*.rs, crates/core/tests/fixtures/master/**, crates/core/tests/fixtures/policy/** | G0, CONTRACT 타입·HOST API |
-| PH0-RN | RN Fork 도입·민감 기능 제거·재설계·고정 리비전·빌드·Local RPC와 Client 실제 통신·시험. 서브 태스크 PH0-RN-00~08은 §19.5.10을 따름 | rn-fork/**, crates/rn-client/** | G0 RPC 계약, §12.5 경계·Fork 도입 방식·기준 SHA 기록, 서브 태스크별 선행 조건 |
+| PH0-RN | RN Fork 도입·DEC-07 제거 대상(Reason CLI·자동 업데이트·계정 로그인) 정리·재구성·고정 리비전·빌드·Local RPC와 Client 실제 통신·시험. 서브 태스크 PH0-RN-00~08은 §19.5.10을 따름 | rn-fork/**, crates/rn-client/** | G0 RPC 계약, §12.5 경계·Fork 도입 방식·기준 SHA 기록, 서브 태스크별 선행 조건 |
 | PH0-EXT | Core 실행 파일 탐지·시작·연결·Health/상태 표시, 생성 타입 사용 | extension/** | G0 Local API, 생성된 Schema; 실제 연결은 HOST 통합 후 |
 
 각 작업은 추가로 `docs/phase-0/evidence/<작업 ID>/**`에 자신의 한국어 검증 기록을 작성할 수 있습니다. 출력 파일명은 `README.md` 등 영문을 사용합니다. 다른 작업의 증거를 대신 수정하지 않습니다. 통합 담당은 자기 증거 경로에 전체 판정을 기록합니다.
@@ -1318,7 +1321,7 @@ flowchart LR
 | PH0-CLAUDE | 동일 공통 시험을 Claude 환경에서 검증, Resume/Fork 실험 | 공통 Trait·OS 런타임 변경, Codex/Agy, 기존 IDE Attached |
 | PH0-AGY | 동일 공통 시험과 Turn 직렬화·Tool 거부·Exit Code/결과 차이 검증, 재개/Fork 지원 판정 | 미검증 Headless Fork 보장, 기존 IDE 제어, 타 Provider |
 | PH0-MASTER | 실제 마스터 후보의 구조화 결정 회수, 유효/잘못된 Payload·권한·Epoch·중복 거부, 허용 결정의 실행 결과 연결 | 전체 DAG Planner·예산 엔진·지식·템플릿·독립 리뷰 루프 |
-| PH0-RN | 고정 Upstream/Fork, 민감 기능 제거와 검증, Windows/Linux Build, Health/Version/Discovery와 통제된 Message 왕복·오류/중복 계약. §19.5.10의 서브 태스크 결과 통합 | Core DB·Scheduler, P1 Attached 안정화·P2 원격 P2P. 미확정 경계를 임의 결정하거나 제거 기능을 재활성화하는 작업 |
+| PH0-RN | 고정 Upstream/Fork, DEC-07 제거 대상 정리와 검증, Windows/Linux Build, Health/Version/Discovery와 통제된 Message 왕복·오류/중복 계약. §19.5.10의 서브 태스크 결과 통합 | Core DB·Scheduler, P1 Attached 안정화·P2 원격 P2P. 미확정 경계를 임의 결정하거나 제거 기능을 재활성화하는 작업 |
 | PH0-EXT | 생성 타입 기반 Core 탐지·시작·Health 연결, 오류 표시, Extension 종료 후 Core 수명 분리 | Task Board·전체 마스터 대화 UI·Artifact Explorer 등 P0 완성 UI |
 | PH0-INTEGRATION | Crate·생성 경로·공통 등록 통합, 실제 Provider·RN·마스터·Extension 연결, 환경 증거와 G0~G3 판정 | 개별 담당 영역의 무단 재구현, 미실행 시험 통과 처리 |
 
@@ -1359,14 +1362,14 @@ Phase 0의 Linux 실행 Host와 단일 Remote SSH 실행 Host는 같은 PC의 WS
 
 #### 19.5.10 PH0-RN 서브 태스크와 진행 순서
 
-PH0-RN은 DEC-07에 따라 원본 조사·축소·대체 설계부터 수용 시험까지 포함하는 상위 작업입니다. 아래 ID는 **계획상 분할**이며 담당 배정·예약·착수 기록이 아닙니다. 실제 착수는 §19.5.5에 따라 별도로 기록합니다. 서브 태스크 ID는 기존 기능 요구사항 `RN-01~12`와 혼동하지 않도록 `PH0-RN-00~08`을 사용합니다.
+PH0-RN은 DEC-07에 따라 원본 조사·제거·재구성부터 수용 시험까지 포함하는 상위 작업입니다. 아래 ID는 **계획상 분할**이며 담당 배정·예약·착수 기록이 아닙니다. 실제 착수는 §19.5.5에 따라 별도로 기록합니다. 서브 태스크 ID는 기존 기능 요구사항 `RN-01~12`와 혼동하지 않도록 `PH0-RN-00~08`을 사용합니다.
 
 | 서브 태스크 | 선행 조건 | 작업·산출물 | 완료 조건 |
 |---|---|---|---|
 | PH0-RN-00 범위·제거 정책 | Spec·원본 읽기, §12.5 결정 조정 | 실제 파일·심볼·호출·외부 통신·설정 변경·프로세스 실행·데이터 접근·의존성을 조사한 유지·제거·대체 처리표. 허용 인터페이스·대체 경계·미지원 Capability·시험 대응표 | 각 조사 대상의 처리·근거·담당·검증 방법과 미확정 항목이 구분되고, 후속 작업에 필요한 경계가 확정됨 |
 | PH0-RN-01 원본 도입·기준 | 00의 도입·조사 기준 | 고정 원본 도입, 출처·고지·SHA·Lockfile·Patch Inventory, 수정 전 빌드·시험 기록, Core와 분리된 빌드 구조. 원본 자동 설치·서비스·MCP/Hook 설정은 실행하지 않음 | 원본 기준이 재현 가능하고 실패가 있으면 원인·처리 기준이 기록됨. 이후 구현의 파일 소유권과 공통 변경 요청이 확정됨 |
 | PH0-RN-02 업데이트·설치 제거 | 01 | 업데이트 확인, 다운로드·원격 스크립트 실행, 자체 바이너리 교체·재시작, 자동 설치·서비스 등록의 대상 코드·명령·설정·불필요 의존성 정리 | 설정으로 다시 켤 수 있는 잔존 경로를 포함해 제거 결과가 확인되고 최소 빌드·관련 시험 통과 |
-| PH0-RN-03 비공개 연동 제거 | 01, 00의 허용 인터페이스 | RN의 비공개 Provider CLI·비공식 주입·깨우기 경로 정리. Hook·설정 변경·세션 파일 접근은 처리표에 따라 제거·대체 | 제거한 전달 수단을 전제로 한 경로·Capability가 남지 않고, 대체 경계와 미지원 기능이 기록됨 |
+| PH0-RN-03 Reason CLI·로그인 제거 | 01, 00의 처리표 | `reason` CLI 호출·CLI 관리 모드·Relay 연동과 Reason 계정 로그인·서명 신원의 코드·명령·설정·불필요 의존성 정리. 로그인에 기대던 기능은 로그인 없이 동작하도록 바꾸거나 미지원으로 표시 | 제거 경로가 남지 않고 남은 기능이 로그인 없이 빌드·동작하며, 미지원 기능이 기록됨 |
 | PH0-RN-04 Daemon 기반 정리 | 02·03, 네트워크·운영 범위 확정 | 진입점·설정·IPC·상태·DB·시작·종료 정리, 기존 RN 상태와의 분리, 네트워크·Relay 등 확정된 대상 제거·정리 | 승인된 실행·상태·외부 접근 범위 안에서 독립 Daemon이 동작하고 정리된 기준 빌드가 고정됨 |
 | PH0-RN-05 메시지·정체성·저장소 | 04, Endpoint·Receipt 의미 확정 | Endpoint 정체성, Message·Receipt, 멱등성·TTL·보존·재시작·DB 백업 기준 | 실제 수신 확인과 상태 전이가 일치하고 중복·만료·재바인딩·장애 후 불명 상태의 회귀 시험 통과 |
 | PH0-RN-06 Local RPC 서버 | 04, CONTRACT의 관련 계약 확정 | 접근 제어·버전·프레임·요청 상관 관계·조회·전송·구독·커서·오류 처리 | 실제 Daemon이 공통 계약대로 응답. 순서·상한·재연결·재동기화·비호환·권한 실패가 명시적으로 처리됨 |
@@ -1429,9 +1432,9 @@ PH0-RN은 DEC-07에 따라 원본 조사·축소·대체 설계부터 수용 시
 | RN-POC-10 | Upstream 수정의 선택적 반영 후 제거 경로 재유입 검사·Build·Contract·회귀 통과와 고정 릴리스 |
 | RN-POC-11 | Windows/Remote SSH Host 혼동·잘못된 경로 전달 차단 |
 | RN-POC-12 | DB Migration·Backup·Rollback의 정합성 |
-| RN-POC-13 | 처리표의 제거 대상과 코드·CLI/RPC 진입점·간접 호출·의존성을 대조하고 제거 후 최소 빌드 확인 |
-| RN-POC-14 | 대표 실행에서 파일·설정 변경·자식 프로세스·외부 통신을 관찰해 제거 대상 동작의 부재와 검증 한계 기록 |
-| RN-POC-15 | 대체 Endpoint 경로의 권한·소유권·Host·Native ID·Fingerprint·단절·만료·재시작 처리와 Capability 정합성 |
+| RN-POC-13 | 처리표의 제거 대상(Reason CLI·업데이트·로그인)과 코드·CLI/RPC 진입점·간접 호출·의존성을 대조하고 제거 후 최소 빌드 확인 |
+| RN-POC-14 | 대표 실행에서 파일·설정 변경·자식 프로세스·외부 통신을 관찰해 `reason` CLI 실행·업데이트 다운로드·로그인 호출의 부재와 검증 한계 기록 |
+| RN-POC-15 | 로그인 제거 후 Endpoint 정체성·Host·Native ID·Fingerprint·단절·만료·재시작 처리와 Capability 정합성 |
 | AGY-ATT-01 | 기존 확장 Native ID 탐지 |
 | AGY-ATT-02 | Host·cwd·상태 식별 |
 | AGY-ATT-03 | 공식 경로로 대상 고정 메시지 전달 |
@@ -1442,7 +1445,7 @@ PH0-RN은 DEC-07에 따라 원본 조사·축소·대체 설계부터 수용 시
 
 Go는 정체성·전달·결과 연결이 반복 재현된 기능만 활성화하는 판정입니다. Conditional Go는 탐지·읽기·수동 메시징 등 검증 범위로 제한합니다. No-go는 오인·충돌·무검출 유실·권한 경계 실패가 해결되지 않은 Attached 기능을 비활성화하는 판정이며 Managed 지원과 별개입니다.
 
-RN-POC-13~15는 §12.4의 제거·대체 검증이며, 실제 IDE Attached 성공과 구분합니다. 기존 RN-POC-02~06과 AGY-ATT 시험을 통과하려고 제거한 비공개 전달 수단을 다시 도입하지 않습니다. 허용된 경로가 없는 기능은 미지원·미검증으로 남기고 통제된 RPC 왕복 결과와 구분합니다.
+RN-POC-13~15는 §12.4의 제거 검증이며, 실제 IDE Attached 성공과 구분합니다. RN-POC-02~06은 유지한 Provider별 발견·전달 경로로 시험합니다. 시험을 통과하려고 제거한 Reason CLI·업데이트·로그인 경로를 다시 도입하지 않으며, 검증하지 못한 기능은 미지원·미검증으로 남깁니다.
 
 ### 20.3 제품 E2E 수용 시나리오
 

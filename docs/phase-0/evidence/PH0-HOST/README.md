@@ -9,7 +9,7 @@
 | 이번 기준 | `3fe9153` 및 착수 `66e9cb9`, Spec 개정 1.4.3, 공통 계약 `3a37919`. §1~§6은 이전 `eb642fd` 기준 REQ-010 연결 이력 |
 | 이번 코드 Commit | `4791c5d` (G1 검토·REQ-013 ③), 이전 REQ-010 연결 `a3f196a`(통합 `685bd96`) |
 | 이전 결과 | 구현 `366d524`·`d1d818f`, 인계 `29295c9`, main 1차 통합·REQ-011 `1d8734f` |
-| 기준 문서 | [Spec](../../../DEVELOPMENT_v1.4.md), [대표 배정표](../../WORK_ALLOCATION.md), [CONTRACT 인계 §6.3](../PH0-CONTRACT/README.md#63-host-인계-엔진-연결) |
+| 기준 문서 | [Spec](../../../DEVELOPMENT_v1.5.md), [대표 배정표](../../WORK_ALLOCATION.md), [CONTRACT 인계 §6.3](../PH0-CONTRACT/README.md#63-host-인계-엔진-연결) |
 
 현재 제출은 [G1 HOST 확인·REQ-013 ③ 처리 결과](G1_HOST_REVIEW.md)를 따릅니다. 아래 §1~§6은 이전 REQ-010 연결 당시의 기록이며, 당시 테스트 수와 미완료 표기를 현재 상태로 사용하지 않습니다.
 
