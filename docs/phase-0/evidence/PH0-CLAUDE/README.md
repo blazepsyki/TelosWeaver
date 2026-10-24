@@ -19,7 +19,7 @@ G1 대표 Provider 작업입니다(배정표 §6). 이 기록은 Adapter 단위�
 | `crates/adapters/src/claude/protocol.rs` | Stream JSON 한 줄 → 공통 이벤트 Payload 변환 |
 | `crates/adapters/src/claude/run.rs` | Run별 이벤트 보존·재생, 프로세스 감시·취소·종료 보고 |
 | `crates/adapters/tests/claude_adapter.rs` | Mock 시험 13개 (실제 출력 Fixture 재생) |
-| `crates/adapters/tests/claude_environment.rs` | 실환경 시험 5개 (`#[ignore]`, 명시 실행) |
+| `crates/adapters/tests/claude_environment.rs` | 실환경 시험 6개 (`#[ignore]`, 명시 실행. 탐지 1개 포함) |
 | `crates/adapters/tests/fixtures/claude/*.jsonl` | 실제 CLI 출력에서 경로·불필요 필드를 지운 Fixture 3개 |
 | `crates/adapters/src/lib.rs` | `mod claude` → `pub mod claude` (CONTRACT 소유 파일, 같은 담당자가 처리. REQ-010의 Provider별 `cli_rule` 공개 규칙을 따름) |
 
@@ -75,7 +75,9 @@ G1 대표 Provider 작업입니다(배정표 §6). 이 기록은 Adapter 단위�
 | `env_cancel_terminates_process_tree` | 08 | `session_started` 뒤 취소 → `turn_finished`(`cancelled`) → `process_exited`(`killed`, 1, 자식 회수 `true`). 취소 요청→종료 2.04초. 2초 유예 안에 정상 종료하지 않아 강제 종료됨 |
 | `env_resume_and_fork` | 05·FORK-POC-01 | Resume: 같은 세션 ID(`c9c865af…`)로 이전 대화의 코드워드를 답함. Fork: 새 세션 ID(`45558394…`)로 같은 코드워드를 답함 |
 
-PROV-01(탐지)은 HOST의 탐지 엔진 연결 후 `cli_rule`로 확인합니다. 이번 시험은 실행 파일을 환경 변수로 지정했습니다. 확장이 2.1.309에서 2.1.310으로 업데이트된 상태였으며, 버전 폴더 이름이 바뀌어도 상대 경로 규칙은 그대로였습니다.
+| `env_discovery_finds_extension_cli` | 01 | HOST `NativeCliDiscoverer`(통합 `b0a58b4`) + `cli_rule("win32-x64")` → `found`: 출처 `extension`, 위치 `relative-path`, 폴더 결정 `metadata`, 확장 2.1.310(`win32-x64`), CLI `2.1.310 (Claude Code)`, SHA-256 기록. 버전 명령만 실행 |
+
+위 다섯 실행 시험은 실행 파일을 환경 변수로 지정했고, PROV-01은 탐지 결과로 같은 파일을 찾는지 따로 확인했습니다. 확장이 2.1.309에서 2.1.310으로 업데이트된 상태였으며 버전 폴더 이름이 바뀌어도 상대 경로 규칙은 그대로였습니다. 탐지 결과 경로가 Windows 확장 길이 경로(`\\?\C:\...`) 형식으로 나오므로 표시·비교 시 정규화가 필요한지 HOST에 전달합니다.
 
 ### 3.2 Resume·Fork 판정
 
@@ -88,7 +90,7 @@ PROV-01(탐지)은 HOST의 탐지 엔진 연결 후 `cli_rule`로 확인합니�
 | 항목 | 상태 |
 |---|---|
 | Core 연결 (G1) | `ExecutionSupervisor`에 Adapter 등록, 신뢰된 `RunAuthorizer`와 `ClaudeLaunchResolver` 구현이 필요합니다(INTEGRATION). |
-| 탐지 연결 (PROV-01) | HOST의 `CliDiscoverer` 구현 후 `cli_rule`로 실행 파일을 찾고 결과를 Capability·Snapshot에 기록합니다. |
+| 탐지 결과 기록 | 탐지는 확인했습니다(§3.1). 탐지 결과를 Adapter 구성·Capability·Context Snapshot에 연결하는 일은 Core 연결(G1)에서 합니다. |
 | 정상 종료 유예 | Windows에서 2초 유예 안에 정상 종료하지 않았습니다. 유예 시간·정상 종료 신호의 효과는 HOST 런타임과 함께 확인합니다. |
 | Linux·Remote SSH | WSL 미설치로 미검증입니다. |
 | PROV-09 모델·권한 Capability | 모델 지정(`haiku`)·권한 모드·도구 목록은 동작을 확인했습니다. 모델 목록 탐지는 하지 않습니다. |

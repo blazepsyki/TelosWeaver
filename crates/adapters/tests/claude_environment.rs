@@ -293,3 +293,49 @@ async fn env_resume_and_fork() {
         "fork must get a new session id"
     );
 }
+
+/// PROV-01: 설치된 VS Code 확장에서 공통 탐지로 CLI를 찾습니다. 버전 명령만 실행하며 사용량을 쓰지 않습니다.
+#[tokio::test]
+#[ignore = "reads the local VS Code extensions folder"]
+async fn env_discovery_finds_extension_cli() {
+    use telos_adapters::{CliDiscoverer, DiscoveryRequest, NativeCliDiscoverer};
+    use telos_schema::{BinaryLocation, CliSource, ExtensionResolution};
+
+    let home = PathBuf::from(
+        std::env::var_os("USERPROFILE")
+            .or_else(|| std::env::var_os("HOME"))
+            .expect("home directory"),
+    );
+    let (platform, roots) = if cfg!(windows) {
+        ("win32-x64", vec![home.join(".vscode/extensions")])
+    } else {
+        (
+            "linux-x64",
+            vec![
+                home.join(".vscode-server/extensions"),
+                home.join(".vscode/extensions"),
+            ],
+        )
+    };
+    let rule = telos_adapters::claude::cli_rule(platform).unwrap();
+    let request = DiscoveryRequest {
+        host_id: "windows-local".into(),
+        target_platform: platform.into(),
+        explicit_path: None,
+        extension_roots: roots,
+        home_dir: home,
+        path_env: None,
+        checked_at: "2026-10-24T00:00:00Z".into(),
+    };
+    let discovery = NativeCliDiscoverer::new(Arc::new(NativeRuntime))
+        .discover("claude", &rule, &request)
+        .await;
+    println!("{}", serde_json::to_string_pretty(&discovery).unwrap());
+    let cli = discovery.found().expect("Claude Code CLI is discovered");
+    assert_eq!(cli.source, CliSource::Extension);
+    assert_eq!(cli.location, BinaryLocation::RelativePath);
+    assert!(cli.cli_version.contains("Claude Code"));
+    let extension = cli.extension.as_ref().unwrap();
+    assert_eq!(extension.extension_id, "anthropic.claude-code");
+    assert_eq!(extension.resolution, ExtensionResolution::Metadata);
+}
