@@ -1,0 +1,136 @@
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const Module = require("node:module");
+const { CoreConnection } = require("../dist/core");
+const { hello, health } = require("./helpers.cjs");
+
+function ui() {
+  const commands = new Map();
+  const messages = [];
+  const output = [];
+  let provider;
+  const disposable = () => ({ dispose() {} });
+  const folder = (name) => ({
+    name,
+    uri: { scheme: "file", fsPath: `C:/${name}` },
+  });
+  const vscode = {
+    workspace: {
+      isTrusted: false,
+      workspaceFolders: [folder("one"), folder("two")],
+      getConfiguration: () => ({
+        get: (key, fallback) => (key === "corePath" ? "C:/core.exe" : fallback),
+        update: async () => {},
+      }),
+    },
+    window: {
+      createOutputChannel: () => ({
+        ...disposable(),
+        appendLine: (line) => output.push(line),
+        clear() {},
+        show() {},
+      }),
+      createStatusBarItem: () => ({ ...disposable(), show() {} }),
+      createTreeView: (_, options) => {
+        provider = options.treeDataProvider;
+        return disposable();
+      },
+      showWarningMessage: (message) => messages.push(message),
+      showErrorMessage: (message) => messages.push(message),
+      showQuickPick: async (values) => values[1],
+    },
+    commands: {
+      registerCommand: (name, handler) => {
+        commands.set(name, handler);
+        return disposable();
+      },
+    },
+    TreeItem: class {
+      constructor(label) {
+        this.label = label;
+      }
+    },
+    EventEmitter: class {
+      event = () => {};
+      fire() {}
+      dispose() {}
+    },
+    StatusBarAlignment: { Left: 1 },
+    env: {},
+    ConfigurationTarget: { Global: 1 },
+  };
+  const originalLoad = Module._load;
+  Module._load = function (name, ...args) {
+    return name === "vscode" ? vscode : originalLoad.call(this, name, ...args);
+  };
+  let extension;
+  try {
+    delete require.cache[require.resolve("../dist/extension")];
+    extension = require("../dist/extension");
+  } finally {
+    Module._load = originalLoad;
+  }
+  const context = { subscriptions: [] };
+  const api = extension.activate(context);
+  return {
+    vscode,
+    commands,
+    messages,
+    output,
+    api,
+    provider: () => provider,
+    close: () => context.subscriptions.forEach((item) => item.dispose()),
+  };
+}
+test("Restricted Mode and empty workspaces block programmatic start/connect", async () => {
+  const fixture = ui();
+  const original = CoreConnection.prototype.connect;
+  let calls = 0;
+  CoreConnection.prototype.connect = async () => {
+    calls++;
+  };
+  try {
+    await fixture.commands.get("telosWeaver.startCore")();
+    await fixture.commands.get("telosWeaver.connect")();
+    assert.equal(calls, 0);
+    assert.equal(fixture.messages.length, 2);
+    fixture.vscode.workspace.isTrusted = true;
+    fixture.vscode.workspace.workspaceFolders = [];
+    await fixture.commands.get("telosWeaver.startCore")();
+    assert.equal(calls, 0);
+  } finally {
+    fixture.close();
+    CoreConnection.prototype.connect = original;
+  }
+});
+test("multi-root selection displays real identity and Degraded without auto-start", async () => {
+  const fixture = ui();
+  const original = CoreConnection.prototype.connect;
+  const calls = [];
+  CoreConnection.prototype.connect = async function (root, options, start) {
+    calls.push({ root, options, start });
+    this.state = { phase: "connected", root, hello, health };
+    this.emit("state", this.state);
+  };
+  try {
+    assert.equal(calls.length, 0);
+    fixture.vscode.workspace.isTrusted = true;
+    await fixture.commands.get("telosWeaver.connect")();
+    assert.equal(calls[0].root, "C:/two");
+    assert.equal(calls[0].start, false);
+    const rows = fixture.provider().getChildren();
+    assert.ok(
+      rows.some(
+        (row) => row.label === "Host" && row.description === "fixture-host",
+      ),
+    );
+    assert.ok(rows.some((row) => row.description.includes("degraded")));
+    assert.deepEqual(
+      fixture.output,
+      ["미연결", "연결됨 (degraded)"].filter((x) => x !== "미연결"),
+    );
+  } finally {
+    fixture.close();
+    CoreConnection.prototype.connect = original;
+  }
+});
