@@ -36,6 +36,7 @@
           "type": "string"
         }
       },
+      "additionalProperties": false,
       "required": [
         "provider",
         "role"
@@ -63,6 +64,7 @@
           "type": "string"
         }
       },
+      "additionalProperties": false,
       "required": [
         "artifactId",
         "versionId"
@@ -84,6 +86,7 @@
               "const": "artifact"
             }
           },
+          "additionalProperties": false,
           "required": [
             "source",
             "name",
@@ -112,6 +115,7 @@
               "const": "task-output"
             }
           },
+          "additionalProperties": false,
           "required": [
             "source",
             "name",
@@ -167,6 +171,7 @@
           ]
         }
       },
+      "additionalProperties": false,
       "required": [
         "id",
         "name",
@@ -211,6 +216,7 @@
           ]
         }
       },
+      "additionalProperties": false,
       "required": [
         "mode"
       ]
@@ -290,6 +296,7 @@
           "$ref": "#/$defs/WorkspaceRequest"
         }
       },
+      "additionalProperties": false,
       "required": [
         "id",
         "revision",
@@ -350,6 +357,7 @@
           }
         }
       },
+      "additionalProperties": false,
       "required": [
         "id",
         "revision",
@@ -403,6 +411,7 @@
           ]
         }
       },
+      "additionalProperties": false,
       "required": [
         "mode",
         "hostId",

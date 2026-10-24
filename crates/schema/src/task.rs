@@ -1,4 +1,7 @@
 //! Spec §5.2 Task·입출력 계약, §9.4 Task와 Run 상태
+//!
+//! 마스터 입력(`DecisionPayload`)에서 닿는 구조체는 미정의 필드를 거부합니다 (G0 개정 1 REQ-009).
+//! 확장은 `ValidationContract::parameters` 같은 명시적 자유 형식 필드로만 받습니다.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -31,7 +34,7 @@ pub enum ArtifactKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArtifactVersionRef {
     pub artifact_id: String,
     pub version_id: String,
@@ -41,7 +44,8 @@ pub struct ArtifactVersionRef {
 #[serde(
     tag = "source",
     rename_all = "kebab-case",
-    rename_all_fields = "camelCase"
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
 )]
 pub enum InputBinding {
     Artifact {
@@ -57,7 +61,7 @@ pub enum InputBinding {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OutputContract {
     pub id: String,
     /// Task Revision 안에서 유일합니다.
@@ -89,7 +93,7 @@ pub enum ValidationKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ValidationContract {
     pub id: String,
     pub revision: u32,
@@ -100,7 +104,7 @@ pub struct ValidationContract {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AgentSelection {
     pub provider: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -120,7 +124,7 @@ pub enum WorkspaceMode {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkspaceRequest {
     pub mode: WorkspaceMode,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -130,7 +134,7 @@ pub struct WorkspaceRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TaskSpec {
     pub id: String,
     pub revision: u32,

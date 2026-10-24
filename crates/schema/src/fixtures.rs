@@ -89,27 +89,7 @@ pub fn provider_event(run_id: &str, sequence: u64, payload: ProviderEventPayload
     }
 }
 
-/// 정상 종료한 Run의 최소 이벤트 순서입니다.
-pub fn completed_run_events(run_id: &str) -> Vec<ProviderEvent> {
-    let payloads = [
-        ProviderEventPayload::SessionStarted(SessionStartedPayload {
-            provider_version: None,
-            model: None,
-        }),
-        ProviderEventPayload::TextDelta(TextDeltaPayload {
-            channel: TextChannel::Assistant,
-            text: "hello".into(),
-        }),
-        ProviderEventPayload::TurnFinished(TurnFinishedPayload {
-            status: TurnStatus::Completed,
-            reason: None,
-        }),
-        ProviderEventPayload::ProcessExited(ProcessExitedPayload {
-            exit_code: Some(0),
-            termination: ProcessTermination::Exited,
-            children_reaped: Some(true),
-        }),
-    ];
+fn run_events(run_id: &str, payloads: Vec<ProviderEventPayload>) -> Vec<ProviderEvent> {
     payloads
         .into_iter()
         .zip(1..)
@@ -117,8 +97,151 @@ pub fn completed_run_events(run_id: &str) -> Vec<ProviderEvent> {
         .collect()
 }
 
+fn session_started() -> ProviderEventPayload {
+    ProviderEventPayload::SessionStarted(SessionStartedPayload {
+        provider_version: None,
+        model: None,
+    })
+}
+
+fn text(text: &str) -> ProviderEventPayload {
+    ProviderEventPayload::TextDelta(TextDeltaPayload {
+        channel: TextChannel::Assistant,
+        text: text.into(),
+    })
+}
+
+fn turn_finished(status: TurnStatus) -> ProviderEventPayload {
+    ProviderEventPayload::TurnFinished(TurnFinishedPayload {
+        status,
+        reason: None,
+    })
+}
+
+fn process_exited(exit_code: Option<i32>, termination: ProcessTermination) -> ProviderEventPayload {
+    ProviderEventPayload::ProcessExited(ProcessExitedPayload {
+        exit_code,
+        termination,
+        children_reaped: Some(true),
+    })
+}
+
+fn error(kind: FailureKind, terminal: bool) -> ProviderEventPayload {
+    ProviderEventPayload::Error(ErrorPayload {
+        kind,
+        message: "fixture".into(),
+        terminal,
+    })
+}
+
+/// 전용 프로세스가 정상 종료한 Run입니다. 종료: `process_exited`.
+pub fn completed_run_events(run_id: &str) -> Vec<ProviderEvent> {
+    run_events(
+        run_id,
+        vec![
+            session_started(),
+            text("hello"),
+            turn_finished(TurnStatus::Completed),
+            process_exited(Some(0), ProcessTermination::Exited),
+        ],
+    )
+}
+
+/// `start_run` 반환 뒤 프로세스 시작이 실패한 Run입니다. 종료: 종료 `error`. `process_exited`가 없습니다.
+pub fn start_failed_run_events(run_id: &str) -> Vec<ProviderEvent> {
+    run_events(run_id, vec![error(FailureKind::StartFailed, true)])
+}
+
+/// 취소한 Run입니다. 취소 후 늦게 도착한 사용량도 보존합니다. 종료: `process_exited`.
+pub fn cancelled_run_events(run_id: &str) -> Vec<ProviderEvent> {
+    run_events(
+        run_id,
+        vec![
+            session_started(),
+            text("partial"),
+            turn_finished(TurnStatus::Cancelled),
+            ProviderEventPayload::Usage(UsagePayload {
+                scope: UsageScope::Cumulative,
+                source: UsageSource::ProviderReported,
+                input_tokens: Some(1),
+                output_tokens: None,
+                cache_read_tokens: None,
+                cache_write_tokens: None,
+                cache_included_in_input: None,
+                cost_usd: None,
+            }),
+            process_exited(None, ProcessTermination::TerminatedOnRequest),
+        ],
+    )
+}
+
+/// 프로세스가 Run보다 오래 사는 Provider의 Run입니다. 종료: `turn_finished`.
+pub fn persistent_process_run_events(run_id: &str) -> Vec<ProviderEvent> {
+    run_events(
+        run_id,
+        vec![
+            session_started(),
+            text("hello"),
+            turn_finished(TurnStatus::Completed),
+        ],
+    )
+}
+
+/// 진행 중 추적을 잃은 Run입니다. 종료: 종료 `error`. 확인하지 못한 `process_exited`를 만들지 않습니다.
+pub fn tracking_lost_run_events(run_id: &str) -> Vec<ProviderEvent> {
+    run_events(
+        run_id,
+        vec![
+            session_started(),
+            text("partial"),
+            error(FailureKind::Unknown, true),
+        ],
+    )
+}
+
+/// `check_run_events`가 거부해야 하는 이벤트 순서 (공통 실패 Fixture). 각 항목은 `(설명, 이벤트)`입니다.
+pub fn invalid_run_event_sequences(run_id: &str) -> Vec<(&'static str, Vec<ProviderEvent>)> {
+    let mut cases = Vec::new();
+
+    let mut gap = completed_run_events(run_id);
+    gap.remove(1);
+    cases.push(("순번 누락", gap));
+
+    let mut after_exit = completed_run_events(run_id);
+    let extra = provider_event(run_id, 5, text("late"));
+    after_exit.push(extra);
+    cases.push(("process_exited 뒤 이벤트", after_exit));
+
+    let mut no_end = completed_run_events(run_id);
+    no_end.truncate(2);
+    cases.push(("종료 이벤트 없음", no_end));
+
+    let text_after_turn = run_events(
+        run_id,
+        vec![
+            session_started(),
+            turn_finished(TurnStatus::Completed),
+            text("after turn"),
+            process_exited(Some(0), ProcessTermination::Exited),
+        ],
+    );
+    cases.push(("turn_finished 뒤 text_delta", text_after_turn));
+
+    let mut mismatch = completed_run_events(run_id);
+    mismatch[1].kind = ProviderEventKind::ProcessExited;
+    cases.push(("kind와 payload 불일치", mismatch));
+
+    let mut mixed = completed_run_events(run_id);
+    mixed[2].run_id = "other-run".into();
+    cases.push(("다른 Run의 이벤트", mixed));
+
+    cases
+}
+
 pub fn decision_context() -> DecisionContext {
     DecisionContext {
+        project_id: PROJECT_ID.into(),
+        allowed_host_ids: vec![HOST_ID.into()],
         plan_id: PLAN_ID.into(),
         plan_revision: 1,
         controller_epoch: 1,
@@ -179,6 +302,38 @@ pub fn invalid_payload_decisions() -> Vec<(&'static str, MasterDecision)> {
         .payload
         .insert("propagateToChildren".into(), json!("yes"));
     cases.push(("필드 타입 불일치", wrong_type));
+
+    // 중첩 구조체의 미정의 필드 (REQ-009)
+    for (description, pointer) in [
+        ("TaskSpec의 미정의 필드", "/tasks/0"),
+        ("AgentSelection의 미정의 필드", "/tasks/0/agent"),
+        ("WorkspaceRequest의 미정의 필드", "/tasks/0/workspace"),
+        ("OutputContract의 미정의 필드", "/tasks/0/outputs/0"),
+    ] {
+        let mut decision = valid_create_tasks_decision();
+        let mut payload = serde_json::Value::Object(decision.payload);
+        payload
+            .pointer_mut(pointer)
+            .and_then(serde_json::Value::as_object_mut)
+            .expect("fixture pointer exists")
+            .insert("allowAll".into(), json!(true));
+        let serde_json::Value::Object(map) = payload else {
+            unreachable!()
+        };
+        decision.payload = map;
+        cases.push((description, decision));
+    }
+
+    let mut session = master_decision(DecisionPayload::RequestRun(RequestRunPayload {
+        task_id: "task-1".into(),
+        task_revision: 1,
+        session: run_context(&task_spec()).session,
+    }));
+    session.payload["session"]
+        .as_object_mut()
+        .expect("session is an object")
+        .insert("inheritPermissions".into(), json!(true));
+    cases.push(("SessionRequest의 미정의 필드", session));
 
     cases
 }

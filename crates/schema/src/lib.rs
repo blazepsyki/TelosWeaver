@@ -16,6 +16,7 @@ mod master;
 mod messaging;
 mod provider;
 pub mod rn;
+mod secret;
 mod task;
 mod validation;
 
@@ -27,6 +28,7 @@ pub use limits::*;
 pub use master::*;
 pub use messaging::*;
 pub use provider::*;
+pub use secret::*;
 pub use task::*;
 pub use validation::*;
 

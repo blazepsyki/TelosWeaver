@@ -1,0 +1,56 @@
+[
+  {
+    "platform": "windows",
+    "canonical": "\\\\?\\D:\\Downloads\\Vibe_dev\\TelosWeaver",
+    "normalized": "d:/downloads/vibe_dev/telosweaver",
+    "projectKey": "786c13f209fd44f8"
+  },
+  {
+    "platform": "windows",
+    "canonical": "D:\\Downloads\\Vibe_dev\\TelosWeaver\\",
+    "normalized": "d:/downloads/vibe_dev/telosweaver",
+    "projectKey": "786c13f209fd44f8"
+  },
+  {
+    "platform": "windows",
+    "canonical": "D:/Downloads/Vibe_dev/TelosWeaver",
+    "normalized": "d:/downloads/vibe_dev/telosweaver",
+    "projectKey": "786c13f209fd44f8"
+  },
+  {
+    "platform": "windows",
+    "canonical": "\\\\?\\C:\\",
+    "normalized": "c:/",
+    "projectKey": "508e9f1d9b22d570"
+  },
+  {
+    "platform": "windows",
+    "canonical": "\\\\?\\UNC\\server\\share\\Project",
+    "normalized": "//server/share/project",
+    "projectKey": "ed0860ba55f5cefa"
+  },
+  {
+    "platform": "windows",
+    "canonical": "D:\\프로젝트\\Ünïcode",
+    "normalized": "d:/프로젝트/ünïcode",
+    "projectKey": "1613fcedbbaf75bb"
+  },
+  {
+    "platform": "unix",
+    "canonical": "/home/user/src/TelosWeaver/",
+    "normalized": "/home/user/src/TelosWeaver",
+    "projectKey": "593bb167b3bd90b7"
+  },
+  {
+    "platform": "unix",
+    "canonical": "/home/user/src/TelosWeaver",
+    "normalized": "/home/user/src/TelosWeaver",
+    "projectKey": "593bb167b3bd90b7"
+  },
+  {
+    "platform": "unix",
+    "canonical": "/",
+    "normalized": "/",
+    "projectKey": "8a5edab282632443"
+  }
+]

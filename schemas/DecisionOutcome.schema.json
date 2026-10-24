@@ -1,48 +1,77 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "DecisionOutcome",
-  "description": "같은 멱등 키·같은 Payload의 재요청은 처음 기록한 결과를 `replayed: true`로 다시 반환합니다.",
-  "type": "object",
-  "properties": {
-    "decisionId": {
-      "type": "string"
-    },
-    "effects": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/DecisionEffect"
-      }
-    },
-    "idempotencyKey": {
-      "type": "string"
-    },
-    "recordedAt": {
-      "type": "string"
-    },
-    "rejection": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/DecisionRejection"
+  "description": "결정 집행 결과 (G0 개정 1 REQ-004). `status`가 태그이며 조합을 타입으로 강제합니다.\n\n- `accepted`는 `effects`만, `rejected`는 `rejection`만 가집니다. 다른 조합·미정의 필드는 역직렬화에서 거부합니다.\n- `accepted`는 결정 단계의 검사 통과를 뜻하며 Run 시작 시의 권한 재검사(§9.1)를 대신하지 않습니다.\n- `replayed: true`는 같은 멱등 키·같은 Payload의 재요청에 처음 기록한 결과를 그대로 반환했다는 뜻입니다.\n  `effects`는 처음 집행한 효과이며 다시 집행하지 않습니다.\n- 부분 집행은 Phase 0 계약에 없습니다.",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "decisionId": {
+          "type": "string"
         },
-        {
-          "type": "null"
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DecisionEffect"
+          }
+        },
+        "idempotencyKey": {
+          "type": "string"
+        },
+        "recordedAt": {
+          "type": "string"
+        },
+        "replayed": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "const": "accepted"
         }
+      },
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "decisionId",
+        "idempotencyKey",
+        "effects",
+        "replayed",
+        "recordedAt"
       ]
     },
-    "replayed": {
-      "type": "boolean"
-    },
-    "status": {
-      "$ref": "#/$defs/DecisionStatus"
+    {
+      "type": "object",
+      "properties": {
+        "decisionId": {
+          "type": "string"
+        },
+        "idempotencyKey": {
+          "type": "string"
+        },
+        "recordedAt": {
+          "type": "string"
+        },
+        "rejection": {
+          "$ref": "#/$defs/DecisionRejection"
+        },
+        "replayed": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "const": "rejected"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "decisionId",
+        "idempotencyKey",
+        "rejection",
+        "replayed",
+        "recordedAt"
+      ]
     }
-  },
-  "required": [
-    "decisionId",
-    "idempotencyKey",
-    "status",
-    "effects",
-    "replayed",
-    "recordedAt"
   ],
   "$defs": {
     "DecisionEffect": {
@@ -218,13 +247,6 @@
         "message"
       ]
     },
-    "DecisionStatus": {
-      "type": "string",
-      "enum": [
-        "accepted",
-        "rejected"
-      ]
-    },
     "RejectionCode": {
       "oneOf": [
         {
@@ -261,6 +283,16 @@
           "description": "사용자 전용 결정이라 마스터가 집행할 수 없음 (§4.3)",
           "type": "string",
           "const": "user_decision_required"
+        },
+        {
+          "description": "필요한 신뢰된 정책 조회에 실패함. 허용으로 간주하지 않음",
+          "type": "string",
+          "const": "policy_unavailable"
+        },
+        {
+          "description": "필요한 검사를 이 단계에서 수행할 수 없음",
+          "type": "string",
+          "const": "check_unsupported"
         }
       ]
     }
