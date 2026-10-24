@@ -118,7 +118,7 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 마스터 Provider (Phase 0) | Claude Code. 임시 선택이며 MASTER-01에 따라 Provider를 고정하지 않고 교체 가능하게 구현. 시험 조건은 Claude 실환경 시험 조건을 따름 | 적용 | 2026-10-24 |
 | 마스터 Phase 0 범위 | 시험 모델 `haiku`. 실행: `create_tasks`·`request_run`·`request_cancel`. 나머지 5종은 Payload 검사 후 `unsupported_kind`. 결과 왕복(Resume) 시험 1개. 마스터 Run은 도구 없음·읽기 전용 | 적용 | 2026-10-24 |
 | 시험 세션 정리 | 특별한 사유가 없으면 실환경 시험 세션은 해당 코드를 `main`에 병합하는 시점에 삭제합니다(통합 담당, 병합 후 Branch·Worktree 정리와 함께). Claude: `~/.claude/projects/<시험 작업 폴더>` 삭제. Codex: 내부 SQLite가 Thread를 색인하므로 파일 삭제 대신 App Server `thread/archive`. Antigravity: `brain/<id>`, `conversations/<id>.db`(`-wal`·`-shm`). 시험은 저장소 밖 임시 폴더를 작업 폴더로 써서 사용자 대화 목록과 섞이지 않게 하고, 세션 ID는 증거에 남깁니다. 시험이 아닌 세션은 건드리지 않습니다 | 적용 | 2026-10-24 |
-| RN 범위 (Spec v1.5 DEC-07) | 제거: 클로즈드 소스 Reason CLI 연동, 자동 업데이트·받아서 실행하는 설치 경로, Reason 계정 로그인. 유지: Claude·Codex 세션 탐지·메시지 전달(DEC-06과 같은 위험 수준으로 수용), MCP·Hook(명시적 적용), 로그인을 뺀 네트워크·Relay·팀(Phase 0은 로컬 전용 시험). Fork는 `rn-fork/`에 subtree(squash). 실행 파일·상태·MCP 이름 분리(가칭 `telos-rn`). 실제 에이전트 설정 변경은 시험 시에만 사전 확인·Backup·Diff·복원 | 적용 | 2026-10-24 |
+| RN 범위 (Spec v1.5 DEC-07) | 제거: 클로즈드 소스 Reason CLI 연동, 자동 업데이트·받아서 실행하는 설치 경로, Reason 계정 로그인. 유지: Claude·Codex 세션 탐지·메시지 전달(DEC-06과 같은 위험 수준으로 수용), MCP·Hook(명시적 적용), 로그인을 뺀 네트워크·Relay·팀(Phase 0은 로컬 전용 시험). Fork는 `rn-fork/`에 subtree(squash). 실행 파일·상태·MCP 이름·환경 변수 접두 분리: `telos-rn`으로 확정(2026-10-25, 상태 `~/.telos-rn`, 환경 변수 `TELOS_RN_*`). 팀 링크는 주소 없이 `rn1-…` 문자열만 사용(2026-10-25). 실제 에이전트 설정 변경은 시험 시에만 사전 확인·Backup·Diff·복원 | 적용 | 2026-10-24 |
 
 ## 7. 변경 기록
 
@@ -189,5 +189,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-25 00:45 | `claude-opus-5.5/session-c9336d2c` | PH0-RN-02 완료·통합(`4faed8a`): RN Fork에서 `update.rs`·`migrate.rs`·`install.sh`·`install.ps1`·`tests/install_script.rs` 삭제, `upgrade` 명령·`auto_update`·launchd/systemd/Run 키 서비스 등록 제거, 초대 안내는 코드·`join`만. 격리 시험 190개·clippy 0건, `main` 142개·RN Fork 빌드 재확인. 후속(`init`·`join` 자동 연결, 원본 문서) PH0-RN-04. `ph0/rn-02` 정리 | `4faed8a` |
 | 2026-10-25 00:55 | `claude-opus-5.5/session-c9336d2c` | PH0-RN-03 착수(Branch `ph0/rn-03`): 클로즈드 소스 Reason CLI 연동(`daemon/reason.rs`·`managed()`·`cfg.reason`·`reason` 에이전트)과 Reason 계정 로그인 증명(`proof.rs`·`ring`·검증된 이름) 제거(처리표 §3.1·§3.3) | `78db640` |
 | 2026-10-25 01:40 | `claude-opus-5.5/session-c9336d2c` | PH0-RN-03 완료·통합(`f4fbd25`): RN Fork에서 `daemon/reason.rs` 삭제, `reason` 에이전트·`cfg.reason`·`managed()` 제거, 로그인 증명(`proof`·`endpoint` 명령, `Request::Proof`, 가입 프로토콜 증명·`owner_only`, `attestations`, 검증된 이름) 제거. Relay 목록 서명 검증은 `proof.rs` → `signed.rs`로 분리해 유지(`ring` 유지, RN-00 처리표 정정). 격리 시험 178개·clippy 0건, `main` 142개·RN Fork 빌드 재확인. `ph0/rn-03` 정리 | `f4fbd25` |
+| 2026-10-25 01:50 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정: RN 이름 `telos-rn` 확정, 팀 링크는 `rn1-…` 문자열만(§6 "RN 범위" 갱신). PH0-RN-04 착수(Branch `ph0/rn-04`): 이름·상태·환경 변수 분리, tincan 이전 처리 제거, `init`·`join` 자동 에이전트 연결 해제, Relay 목록은 팀이 있을 때만 조회 | `d1a5db5` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
