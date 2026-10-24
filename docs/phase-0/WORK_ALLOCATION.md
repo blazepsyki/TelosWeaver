@@ -3,7 +3,7 @@
 > **프로젝트:** TelosWeaver  
 > **갱신일:** 2026-10-24  
 > **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.3.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
-> **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `ba97e7b`). PH0-HOST 1차 구현을 `d8e8725`로 통합했습니다(REQ-011 포함). REQ-010은 CONTRACT가 처리 중입니다. 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
+> **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `ba97e7b`). PH0-HOST 1차 구현을 `d8e8725`로 통합했고(REQ-011 포함), REQ-010 탐지 계약을 `271e7fd`로 추가했습니다. HOST의 엔진 연결·Linux 검증과 G1 준비가 다음 단계입니다. 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
 
 ## 1. 단일 원본과 갱신 주체
 
@@ -17,16 +17,16 @@
 |---|---|
 | 대표 저장소 | `D:\Downloads\Vibe_dev\TelosWeaver`, Branch `main` (원격 없음) |
 | 통합 담당자 ID | `claude-opus-5.5/session-c9336d2c` (2026-10-24 사용자 지정) |
-| 공통 계약 기준 Commit | `ba97e7b` (2026-10-24 G0 개정 1). 1차 기준 `ae31eb2` |
+| 공통 계약 기준 Commit | `271e7fd` (2026-10-24 REQ-010 CLI 탐지 계약 추가). G0 개정 1 `ba97e7b`, 1차 기준 `ae31eb2` |
 | 공통 계약 기준 설명 | §5의 7개 계약. 변경은 §4 변경 요청으로만 처리합니다. 판정 근거: `evidence/PH0-INTEGRATION/README.md`, 개정: `evidence/PH0-INTEGRATION/G0_REVISION_1.md` |
 
 ## 2. 배정 상태
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `ba97e7b` (G0 개정 1) | HOST 1차 통합·REQ-011 완료(`d8e8725`). 다음: REQ-010 통합, G1(HOST + Codex) 통합 |
-| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | in-progress | `ph0/contract` / `D:\worktree\TelosWeaver\ph0-contract` | `d8e8725` | 1차 `fd0b206`, 개정 1 `98177db` (통합 `ba97e7b`) | REQ-010 CLI 탐색 계약 처리 중 |
-| PH0-HOST | `Codex / PH0-HOST-20261024` | in-progress | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` | `23605b0` (Spec v1.3.7), 계약 `ba97e7b` | 1차 `6bb943e` (통합 `d8e8725`) | 사용자 직접 배정. [검증 기록](evidence/PH0-HOST/README.md) · [인계](evidence/PH0-HOST/HANDOFF.md). 남은 일: REQ-010 계약 확정 후 탐색 엔진 연결, WSL Linux·Remote SSH 실행 검증. 다음 작업은 `main`(`d8e8725` 이후)으로 Branch를 갱신해 시작 |
+| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `ba97e7b` (G0 개정 1), `271e7fd` (REQ-010) | HOST 1차 통합·REQ-011(`d8e8725`), REQ-010 계약(`271e7fd`) 완료. 다음: HOST 엔진 연결 통합, WSL 구성(사용자 수행 필요), G1(HOST + Codex) 통합 |
+| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | verified | `ph0/contract` / Worktree 정리됨 | `0094720` | 1차 `fd0b206`, 개정 1 `98177db` (통합 `ba97e7b`), REQ-010 `4e29f20` (통합 `271e7fd`) | 이후 계약 변경은 §4 요청으로 처리 |
+| PH0-HOST | `Codex / PH0-HOST-20261024` | in-progress | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` | `23605b0` (Spec v1.3.7), 계약 `ba97e7b` | 1차 `6bb943e` (통합 `d8e8725`) | 사용자 직접 배정. [검증 기록](evidence/PH0-HOST/README.md) · [인계](evidence/PH0-HOST/HANDOFF.md). 남은 일: ① REQ-010 계약(`271e7fd`)에 탐색 엔진 연결([인계](evidence/PH0-CONTRACT/README.md#63-host-인계-엔진-연결), lib.rs 등록 줄 한정 허용) ② WSL Linux·Remote SSH 실행 검증. 다음 작업은 `main`(`271e7fd` 이후)으로 Branch를 갱신해 시작 |
 | PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `openai.chatgpt` 확장의 `bin/<platform>/codex`(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용. G1 대표 Provider |
 | PH0-CLAUDE | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `anthropic.claude-code` 확장의 `resources/native-binary/claude`(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
 | PH0-AGY | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `google.google-antigravity` 확장이 관리하는 `~/.gemini/bin/agy`(Spec §7.5). 첫 실험은 Spec §7.5 "Antigravity 데이터 디렉터리 검증"(AGY-DATA-01~05)입니다. Managed 실행에 `--app_data_dir=antigravity`를 넘겨 확장과 같은 데이터 디렉터리·인증을 쓸 수 있는지 확인하고, 결과로 디렉터리 규칙 확정을 변경 요청합니다. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
@@ -60,7 +60,7 @@
 | REQ-007 | G0 독립 검토 / PH0-CONTRACT | Local API 주소·상태 디렉터리·토큰 수명·1 MiB 프레임 경계와 상호운용 시험 명세 | CONTRACT, HOST, EXT, INTEGRATION | CONTRACT·HOST·EXT 협의·INTEGRATION 통합 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-007-local-api-주소인증프레임-규칙) |
 | REQ-008 | G0 독립 검토 / PH0-CONTRACT | DecisionContext의 최소 목록 검사와 실제 권한 검사의 경계·신뢰된 조회 계약 명시 | CONTRACT, MASTER, HOST | CONTRACT·MASTER 협의·INTEGRATION 통합 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-008-decisioncontext의-권한-검사-범위) |
 | REQ-009 | G0 독립 검토 / PH0-CONTRACT | 알 수 없는 Payload 필드의 최상위/중첩 허용 정책과 Schema·Parser·Fixture 일치 | CONTRACT, MASTER, HOST | CONTRACT 처리·INTEGRATION 통합, MASTER 확인 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-009-중첩-payload의-알-수-없는-필드) |
-| REQ-010 | PH0-HOST | CLI 공통 탐색의 결과 계약·Provider 규칙 입력·discovery 모듈 등록. Spec §7.5의 경로·출처·버전·해시를 다른 담당자가 같은 형태로 사용하도록 확정 | CONTRACT, HOST, 세 Provider, EXT | CONTRACT 계약·등록, INTEGRATION 조정 | 채택. CONTRACT 처리 중(`ph0/contract`), 이후 HOST가 엔진 연결. [상세](evidence/PH0-HOST/README.md#req-010-cli-탐색-계약과-모듈-등록) |
+| REQ-010 | PH0-HOST | CLI 공통 탐색의 결과 계약·Provider 규칙 입력·discovery 모듈 등록. Spec §7.5의 경로·출처·버전·해시를 다른 담당자가 같은 형태로 사용하도록 확정 | CONTRACT, HOST, 세 Provider, EXT | CONTRACT 계약·등록, INTEGRATION 조정 | 계약 완료(`4e29f20`, 통합 `271e7fd`). 엔진 연결·모듈 등록은 PH0-HOST 대기. [상세](evidence/PH0-HOST/README.md#req-010-cli-탐색-계약과-모듈-등록) |
 | REQ-011 | PH0-HOST | HOST 실행용 Tokio 기능·플랫폼/보안 의존성과 Core Daemon 진입점 연결 준비. 공통 Cargo·Lock·진입점은 INTEGRATION 소유 | HOST, INTEGRATION, 세 Provider, EXT | INTEGRATION 의존성·등록, HOST 구현 | 완료(`d8e8725`). 적용안대로 반영하되 `libc`는 배포 2주 기준으로 0.2.191 대신 0.2.190 고정. 공식 Workspace test 57개·clippy·fmt 통과. [상세](evidence/PH0-HOST/README.md#req-011-실행-의존성과-daemon-진입점-연결) |
 
 요청에는 필요한 타입·메서드·의존성과 호환·시험 계획을 포함합니다. 통합 담당과 공통 계약 담당이 먼저 기준 변경을 통합하고 소비 작업에 전달합니다. 소비 작업에서 임시 공통 타입을 만들거나 같은 파일을 각자 수정하여 우회하지 않습니다.
@@ -75,7 +75,8 @@ Spec §19.5.2의 계약을 아래 위치에 정의했으며 `ae31eb2`로 확정�
 |---|---|---|---|
 | Adapter 실행 | `telos_schema::{TaskSpec, RunContext, RunStarted, FailureKind}`, `telos_adapters::{AgentAdapter, AdapterError}` | CONTRACT | HOST, 세 Provider, MASTER |
 | 이벤트·취소 | `telos_schema::ProviderEvent`와 kind별 Payload, `AgentAdapter::{events, cancel_run, inspect_run}` 문서 계약 | CONTRACT | HOST, 세 Provider, INTEGRATION |
-| 공용 프로세스 경계 | `telos_adapters::runtime` 공개 인터페이스 (G0 Stub: `UnimplementedRuntime`) | INTEGRATION 등록, 이후 HOST 구현 | HOST, 세 Provider |
+| 공용 프로세스 경계 | `telos_adapters::runtime` 공개 인터페이스 (G0 Stub: `UnimplementedRuntime`, 구현 `NativeRuntime`) | INTEGRATION 등록, 이후 HOST 구현 | HOST, 세 Provider |
+| CLI 탐지 (REQ-010) | `telos_schema::{CliDiscovery, CliDiscoveryOutcome, DiscoveredCli, ...}`, `telos_adapters::{ProviderCliRule, CliBinaryRule, DiscoveryRequest, CliDiscoverer}` | CONTRACT, 구현 HOST | HOST, 세 Provider, EXT |
 | 마스터 결정 | `telos_schema::{MasterDecision, DecisionPayload, DecisionContext, DecisionOutcome}` | CONTRACT | MASTER, HOST |
 | Local Core API | `telos_schema::api` (전송·인증 규칙은 모듈 문서) | CONTRACT | HOST, EXT |
 | RN RPC | `telos_schema::rn`, `telos-rn-client`가 재노출 | CONTRACT 정의, INTEGRATION 등록 | RN, INTEGRATION |
@@ -122,5 +123,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 (시각 미기록) | `Codex / PH0-HOST-20261024` | 사용자 직접 배정으로 PH0-HOST `unassigned → reserved` 기록. Branch/Worktree와 준비·범위 기록, REQ-010·011 제출. 코드 구현·공통 계약 변경·WSL 구성은 아직 시작하지 않음. 기존 통합 담당과 G0 기준은 유지 | `23605b0` (준비 기반), `ba97e7b` (계약) |
 | 2026-10-24 (시각 미기록) | `Codex / PH0-HOST-20261024` | 사용자 착수 지시로 PH0-HOST `reserved → in-progress`. 공용 런타임과 탐색 엔진을 소유 경로에 구현하며 REQ-010·011 공통 변경은 별도 적용안으로 준비. 공식 Workspace 연결 전 독립 Manifest로 검증하며 G0 기준·타 담당 소유권 유지 | `1e415ba` (착수 기반), `ba97e7b` (계약) |
 | 2026-10-24 16:48 | `claude-opus-5.5/session-c9336d2c` | `ph0/host`(`6bb943e`)와 REQ-011을 한 통합 단위로 `d8e8725`에 반영. `libc` 0.2.190 고정(2주 기준), Core `serve` 진입점(기본 `DenyRuns`). 공식 Workspace test 57개·clippy·fmt 통과. PH0-HOST는 REQ-010 연결·Linux 검증이 남아 `in-progress` 유지. REQ-010 채택, PH0-CONTRACT `verified → in-progress` | `d8e8725` |
+| 2026-10-24 17:10 | `claude-opus-5.5/session-c9336d2c` | `ph0/contract`(`4e29f20`)를 `271e7fd`로 통합, `main`에서 재검증(61개 통과, clippy·fmt). 계약 기준 `ba97e7b → 271e7fd`, REQ-010 계약 완료(HOST 엔진 연결 대기), PH0-CONTRACT `in-progress → verified`, Worktree 정리. G1은 PH0-CODEX 배정과 신뢰된 `RunAuthorizer` 연결(MASTER·INTEGRATION)이 필요하고, Linux 검증은 WSL 배포판 설치(사용자 수행)가 필요 | `271e7fd` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
