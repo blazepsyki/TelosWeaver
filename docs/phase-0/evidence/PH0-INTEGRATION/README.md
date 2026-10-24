@@ -47,7 +47,7 @@ G0 통과는 계약이 정해졌다는 뜻이며 Provider·RN·Core API의 실�
 ## 4. 한계와 남은 문제
 
 - **자기 검토:** INTEGRATION과 CONTRACT를 같은 담당자가 맡아 G0 판정 주체(INTEGRATION, CONTRACT 확인)가 사실상 한 명입니다. 다른 작업 착수 전에 사용자 또는 다른 에이전트의 계약 검토를 권장합니다.
-- **CI 없음:** 원격 저장소가 없어 `.github/workflows`를 두지 않았습니다. 통합 검사는 수동으로 실행합니다.
+- **CI 없음:** G0 당시 원격 저장소가 없어 `.github/workflows`를 두지 않았습니다. 2026-10-24 공개 원격을 만든 뒤에도 사용자 결정으로 CI는 보류 중이며 통합 검사는 수동으로 실행합니다.
 - **Linux 미검증:** 모든 검사는 Windows에서만 실행했습니다.
 - **줄바꿈:** `core.autocrlf=true` 환경에서 새 Worktree가 CRLF로 체크아웃되어, Schema 재생성 시 내용 변경 없이 수정된 파일로 표시됩니다. `.gitattributes`는 Spec §19.5.3의 어느 작업 경로에도 없어 변경 요청 REQ-001로 등록했습니다.
 - **미사용 의존성:** `telos-rn-client`의 `serde`·`serde_json`은 재노출 후 현재 쓰이지 않습니다. PH0-RN의 전송 구현에서 쓸 예정이라 유지합니다.

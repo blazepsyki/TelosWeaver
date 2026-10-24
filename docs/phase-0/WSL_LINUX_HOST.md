@@ -119,7 +119,7 @@ ls ~/.vscode-server/extensions | grep -E 'openai\.chatgpt|anthropic\.claude-code
 
 ## 3. 코드 동기화
 
-원격 저장소가 없으므로 대표 저장소를 Git 원격으로 씁니다.
+공개 원격(GitHub `blazepsyki/TelosWeaver`)에는 `main`만 올라갑니다. 작업 Branch까지 다루려면 대표 저장소를 Git 원격으로 씁니다. `main`만 검증할 때는 `git clone https://github.com/blazepsyki/TelosWeaver ~/src/TelosWeaver`도 됩니다.
 
 ```bash
 git config --global --add safe.directory /mnt/d/Downloads/Vibe_dev/TelosWeaver

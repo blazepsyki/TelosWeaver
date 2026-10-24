@@ -23,7 +23,7 @@
 
 | 관리 항목 | 현재 값 |
 |---|---|
-| 대표 저장소 | `D:\Downloads\Vibe_dev\TelosWeaver`, Branch `main` (원격 없음) |
+| 대표 저장소 | `D:\Downloads\Vibe_dev\TelosWeaver`, Branch `main`. 공개 원격 `origin` = https://github.com/blazepsyki/TelosWeaver (`main`만 push, 작업 Branch는 로컬에서 병합 후 삭제) |
 | 통합 담당자 ID | `claude-opus-5.5/session-c9336d2c` (2026-10-24 사용자 지정) |
 | 공통 계약 기준 Commit | `3a37919` (2026-10-24 REQ-010 CLI 탐지 계약 추가). G0 개정 1 `077bd78`, 1차 기준 `9710402` |
 | 공통 계약 기준 설명 | §5의 7개 계약. 변경은 §4 변경 요청으로만 처리합니다. 판정 근거: `evidence/PH0-INTEGRATION/README.md`, 개정: `evidence/PH0-INTEGRATION/G0_REVISION_1.md` |
@@ -111,7 +111,7 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 |---|---|---|---|
 | 줄바꿈 | 저장소 전체 LF 고정, `.cmd`·`.bat`만 CRLF (`.gitattributes`) | 적용 | 2026-10-24 |
 | Linux·Remote SSH 실행 Host | 같은 PC의 WSL2 Ubuntu 26.04를 Linux Host 겸 Remote SSH Host로 사용. 절차는 [WSL_LINUX_HOST.md](WSL_LINUX_HOST.md). G3 필수 조건이므로 미루지 않음 | 절차 수립, 배포판 미설치. 구성 시점: PH0-HOST가 공용 런타임 구현에 착수할 때(늦어도 G2 전) | 2026-10-24 |
-| CI | 원격 저장소가 생기고 초기 구현이 진행된 뒤 검토. 그전에는 통합 담당이 Spec §19.5.8의 검사 명령을 수동 실행하고 증거에 기록 | 보류 | 2026-10-24 |
+| CI | 원격 저장소는 생겼으나(2026-10-24) 사용자 결정으로 계속 보류. 도입 전까지는 통합 담당이 Spec §19.5.8의 검사 명령을 수동 실행하고 증거에 기록 | 보류 | 2026-10-24 |
 | 대상 OS 우선순위 | 구현·일상 검증은 Windows 로컬 우선. Linux·Remote SSH는 G3 전에 WSL로 확보 | 적용 | 2026-10-24 |
 | G1 대표 Provider | Claude Code. Spec §19.5.6의 기본값(Codex)에서 변경. 이유: PH0-CODEX 미배정, 통합 담당이 PH0-CLAUDE를 함께 맡음. 마스터 Provider 선택(MASTER-01)과는 무관 | 적용 | 2026-10-24 |
 | Claude 실환경 시험 조건 | 모델 `haiku`, 짧은 프롬프트. 설정 디렉터리는 기본 `~/.claude`(확장과 공유, 토큰 복사·별도 로그인 없음). 실행은 저장소 밖 일회용 폴더에서만, 허용 도구 명시(`--allowedTools`/`--disallowedTools`, `--permission-mode`), `--dangerously-skip-permissions` 금지. 시험 세션은 "시험 세션 정리" 규칙을 따름. 기존 대화는 재개·수정하지 않음 | 적용 | 2026-10-24 |
@@ -173,5 +173,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 21:21 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시: 지금까지의 시험 세션 삭제(Claude 33개·Antigravity 1개 삭제, Codex 잔여 2개 Archive), 앞으로는 병합 시점에 삭제하는 규칙을 §6에 추가. PH0-CLAUDE·MASTER·INTEGRATION 증거의 세션 목록을 삭제 완료로 표기 | `089d0b3` |
 | 2026-10-24 21:51 | `gemini-4-argon/session-9e6137eb` | 사용자 현황 최신화 요청으로 `main`(`86ef048`)의 PH0-AGY 통합(`286844a`), REQ-013 ①②③ 완료(`286844a`·`b561da2`), Core 연결(`aef3297`), G1 확정(`399992d`), CODEX·MASTER 통합을 확인하고 Workspace 142개·엄격 Clippy·fmt 재통과 확인. INTEGRATION §8.4 전달 사항에 따라 PH0-AGY 시험이 남긴 `conversations/<id>.db` 16개 삭제 완료 및 PH0-AGY 행 갱신 | `86ef048` |
 | 2026-10-24 22:48 | `claude-opus-5.5/session-c9336d2c` | 공개 저장소 준비(사용자 지시, push 전): `git filter-repo`로 전체 이력에서 `docs/archive/` 제거, 작성자·커미터 이메일과 파일 내용의 이메일을 GitHub 비공개 주소로 변경. **모든 Commit 해시가 바뀌었으며** 배정표·증거 문서의 해시 354곳을 대응표로 갱신. `docs/archive/`는 로컬 보관(`.gitignore`), Spec·AGENTS·README의 archive 링크를 로컬 보관 표기로 변경. 재작성 전 원본은 `D:\worktree\backup\TelosWeaver-pre-public-20261024.git` | `f100687`(재작성 후) |
+| 2026-10-24 22:58 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정: `MIT OR Apache-2.0` 이중 라이선스 추가(`eadbd95`), 공개 저장소 https://github.com/blazepsyki/TelosWeaver 생성·`main` push. 대표 저장소 관리 항목·CI 결정(계속 보류)·WSL 동기화 절차 갱신. 앞으로 통합 담당이 병합 후 `main`을 push | `eadbd95` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
