@@ -66,6 +66,66 @@ async fn universal_and_unsuffixed_packages_omit_target_platform() {
         let record=discover(Arc::new(Probe::default()),&rule(),&request).await;assert!(record.found().unwrap().extension.as_ref().unwrap().target_platform.is_none());
     }
 }
+
+// REQ-013(3), Spec §7.5: active universal metadata must win over newer folders.
+#[tokio::test]
+async fn undefined_platform_metadata_preserves_active_selection() {
+    for target in ["win32-x64", "linux-x64", "darwin-arm64"] {
+        let files = Files::new();
+        files.binary("extensions/sample.agent-1.0.0/bin/tool.exe");
+        files.binary("extensions/sample.agent-9.0.0/bin/tool.exe");
+        files.write(
+            "extensions/extensions.json",
+            br#"[{"identifier":{"id":"sample.agent"},"version":"1.0.0","relativeLocation":"sample.agent-1.0.0","metadata":{"targetPlatform":"undefined"}}]"#,
+        );
+        let mut request = files.request();
+        request.target_platform = target.into();
+        request.extension_roots = vec![files.root.join("extensions")];
+        let record = discover(Arc::new(Probe::default()), &rule(), &request).await;
+        let extension = record.found().unwrap().extension.as_ref().unwrap();
+        assert_eq!(extension.version, "1.0.0", "{target}");
+        assert_eq!(extension.resolution, ExtensionResolution::Metadata);
+        assert_eq!(extension.target_platform, None);
+    }
+}
+
+#[tokio::test]
+async fn undefined_platform_metadata_preserves_ambiguity_and_obsolete_rejection() {
+    for obsolete in [false, true] {
+        let files = Files::new();
+        files.binary("extensions/sample.agent-1.0.0/bin/tool.exe");
+        let entry = serde_json::json!({
+            "identifier": {"id": "sample.agent"},
+            "version": "1.0.0",
+            "relativeLocation": "sample.agent-1.0.0",
+            "metadata": {"targetPlatform": "undefined"}
+        });
+        let entries = if obsolete {
+            files.write("extensions/.obsolete", br#"{"sample.agent-1.0.0":true}"#);
+            serde_json::json!([entry])
+        } else {
+            serde_json::json!([entry.clone(), entry])
+        };
+        files.write(
+            "extensions/extensions.json",
+            serde_json::to_vec(&entries).unwrap(),
+        );
+        let mut request = files.request();
+        request.extension_roots = vec![files.root.join("extensions")];
+        let runtime = Arc::new(Probe::default());
+        let record = discover(runtime.clone(), &rule(), &request).await;
+        unavailable(
+            &record,
+            if obsolete {
+                Failure::InvalidMetadata
+            } else {
+                Failure::Ambiguous
+            },
+            Some(CliSource::Extension),
+        );
+        assert!(runtime.programs.lock().unwrap().is_empty());
+    }
+}
 #[tokio::test]
 async fn malformed_metadata_and_ambiguity_are_classified_without_executing() {
     for (file, content, expected) in [

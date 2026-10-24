@@ -105,6 +105,58 @@ async fn cancel_acknowledgement_and_actual_termination_are_separate() {
     );
     assert!(!execution.cancel(&started.run_id).await.unwrap().accepted);
 }
+
+// Spec §7.3, G1 HOST review: an accepted cancel is not a native outcome.
+#[tokio::test]
+async fn accepted_cancel_preserves_actual_completed_or_failed_outcome() {
+    let (execution, _) = supervisor();
+    for (mode, expected) in [
+        ("hold-completed", RunStatus::Succeeded),
+        ("hold-completed-after-ack", RunStatus::Succeeded),
+        ("hold-failed", RunStatus::Failed),
+    ] {
+        let started = execution.start(params(mode, mode)).await.unwrap();
+        assert!(execution.cancel(&started.run_id).await.unwrap().accepted);
+        let events: Vec<_> = execution
+            .subscribe(&started.run_id, 0)
+            .unwrap()
+            .collect()
+            .await;
+        assert!(events.iter().all(Result::is_ok));
+        assert_eq!(
+            execution.inspect(&started.run_id).unwrap().status,
+            expected,
+            "{mode}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn accepted_cancel_does_not_mask_unconfirmed_process_or_children() {
+    let (execution, _) = supervisor();
+    for mode in [
+        "hold-unknown-exit",
+        "hold-cancelled-unknown-exit",
+        "hold-children-left",
+        "hold-cancelled-children-left",
+        "hold-children-unknown",
+        "hold-cancelled-children-unknown",
+    ] {
+        let started = execution.start(params(mode, mode)).await.unwrap();
+        assert!(execution.cancel(&started.run_id).await.unwrap().accepted);
+        let events: Vec<_> = execution
+            .subscribe(&started.run_id, 0)
+            .unwrap()
+            .collect()
+            .await;
+        assert!(events.iter().all(Result::is_ok));
+        assert_eq!(
+            execution.inspect(&started.run_id).unwrap().status,
+            RunStatus::Interrupted,
+            "{mode}"
+        );
+    }
+}
 #[tokio::test]
 async fn trusted_policy_and_project_host_boundaries_are_required() {
     let execution = Arc::new(ExecutionSupervisor::new(

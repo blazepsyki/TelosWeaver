@@ -76,10 +76,38 @@ impl AgentAdapter for FixtureAdapter {
         let (mode, cancel) = self.runs.lock().unwrap().get(&id).unwrap().clone();
         async move {
             let events = match mode.as_str() {
-                "hold" => {
+                mode if mode == "hold" || mode.starts_with("hold-") => {
                     let mut cancelled = cancel.subscribe();
                     cancelled.wait_for(|v| *v).await.unwrap();
-                    cancelled_run_events(&id)
+                    if mode.ends_with("after-ack") {
+                        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                    }
+                    let mut events = if mode == "hold" || mode.starts_with("hold-cancelled") {
+                        cancelled_run_events(&id)
+                    } else {
+                        completed_run_events(&id)
+                    };
+                    if mode == "hold-failed" {
+                        let turn = events
+                            .iter_mut()
+                            .find(|event| event.kind == ProviderEventKind::TurnFinished)
+                            .unwrap();
+                        turn.payload.insert("status".into(), "failed".into());
+                        events
+                            .last_mut()
+                            .unwrap()
+                            .payload
+                            .insert("exitCode".into(), 1.into());
+                    }
+                    let exit = &mut events.last_mut().unwrap().payload;
+                    if mode.contains("unknown-exit") {
+                        exit.insert("termination".into(), "unknown".into());
+                    } else if mode.contains("children-left") {
+                        exit.insert("childrenReaped".into(), false.into());
+                    } else if mode.contains("children-unknown") {
+                        exit.remove("childrenReaped");
+                    }
+                    events
                 }
                 "missing" => {
                     let mut e = completed_run_events(&id);
