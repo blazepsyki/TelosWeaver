@@ -1,10 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "DecisionContext",
-  "description": "결정 검증 시점의 입력 Snapshot (Phase 0 최소). 검증 결과는 이 Snapshot과 함께 기록합니다.\n권한 상한은 사용자·Host·프로젝트·Plan·부모 위임의 교집합을 Core가 계산해 넣습니다 (§13.1).",
+  "description": "결정 검증 시점의 입력 Snapshot (Phase 0 최소). 검증 결과는 이 Snapshot과 함께 기록합니다.\n권한 상한은 사용자·Host·프로젝트·Plan·부모 위임의 교집합을 Core가 계산해 넣습니다 (§13.1).\n\n# 검사 범위 (G0 개정 1 REQ-008)\n이 Snapshot은 **목록·상태 기반 검사**만 담습니다: Epoch·Revision, 한도, Task 트리, Project,\n허용 Provider·Workspace 모드·Profile·Host 목록. 경로·명령·Session 소유권·호출자와 Run의 관계·예산 잔액처럼\n여기에 없는 검사는 PH0-MASTER가 `core/policy`에 정의하는 신뢰된 조회로 수행합니다.\n조회에 실패하면 [`RejectionCode::PolicyUnavailable`], 이 단계에서 수행할 수 없는 검사가 필요하면\n[`RejectionCode::CheckUnsupported`]로 거부하며 허용으로 간주하지 않습니다.",
   "type": "object",
   "properties": {
     "allowedBudgetProfileIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowedHostIds": {
       "type": "array",
       "items": {
         "type": "string"
@@ -47,6 +53,9 @@
     "policyRevision": {
       "type": "string"
     },
+    "projectId": {
+      "type": "string"
+    },
     "tasks": {
       "type": "array",
       "items": {
@@ -55,6 +64,7 @@
     }
   },
   "required": [
+    "projectId",
     "planId",
     "planRevision",
     "controllerEpoch",
@@ -62,6 +72,7 @@
     "limits",
     "tasks",
     "allowedProviders",
+    "allowedHostIds",
     "allowedWorkspaceModes",
     "allowedPermissionProfileIds",
     "allowedBudgetProfileIds"

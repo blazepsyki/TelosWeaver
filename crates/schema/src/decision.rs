@@ -155,9 +155,17 @@ pub struct TaskSummary {
 
 /// 결정 검증 시점의 입력 Snapshot (Phase 0 최소). 검증 결과는 이 Snapshot과 함께 기록합니다.
 /// 권한 상한은 사용자·Host·프로젝트·Plan·부모 위임의 교집합을 Core가 계산해 넣습니다 (§13.1).
+///
+/// # 검사 범위 (G0 개정 1 REQ-008)
+/// 이 Snapshot은 **목록·상태 기반 검사**만 담습니다: Epoch·Revision, 한도, Task 트리, Project,
+/// 허용 Provider·Workspace 모드·Profile·Host 목록. 경로·명령·Session 소유권·호출자와 Run의 관계·예산 잔액처럼
+/// 여기에 없는 검사는 PH0-MASTER가 `core/policy`에 정의하는 신뢰된 조회로 수행합니다.
+/// 조회에 실패하면 [`RejectionCode::PolicyUnavailable`], 이 단계에서 수행할 수 없는 검사가 필요하면
+/// [`RejectionCode::CheckUnsupported`]로 거부하며 허용으로 간주하지 않습니다.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct DecisionContext {
+    pub project_id: String,
     pub plan_id: String,
     pub plan_revision: u32,
     pub controller_epoch: u64,
@@ -165,6 +173,7 @@ pub struct DecisionContext {
     pub limits: ControlLimits,
     pub tasks: Vec<TaskSummary>,
     pub allowed_providers: Vec<String>,
+    pub allowed_host_ids: Vec<String>,
     pub allowed_workspace_modes: Vec<WorkspaceMode>,
     pub allowed_permission_profile_ids: Vec<String>,
     pub allowed_budget_profile_ids: Vec<String>,
@@ -198,6 +207,10 @@ pub enum RejectionCode {
     UnsupportedCapability,
     /// 사용자 전용 결정이라 마스터가 집행할 수 없음 (§4.3)
     UserDecisionRequired,
+    /// 필요한 신뢰된 정책 조회에 실패함. 허용으로 간주하지 않음
+    PolicyUnavailable,
+    /// 필요한 검사를 이 단계에서 수행할 수 없음
+    CheckUnsupported,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -228,16 +241,73 @@ pub enum DecisionEffect {
     CompletionEvaluated { task_id: String, completed: bool },
 }
 
-/// 같은 멱등 키·같은 Payload의 재요청은 처음 기록한 결과를 `replayed: true`로 다시 반환합니다.
+/// 결정 집행 결과 (G0 개정 1 REQ-004). `status`가 태그이며 조합을 타입으로 강제합니다.
+///
+/// - `accepted`는 `effects`만, `rejected`는 `rejection`만 가집니다. 다른 조합·미정의 필드는 역직렬화에서 거부합니다.
+/// - `accepted`는 결정 단계의 검사 통과를 뜻하며 Run 시작 시의 권한 재검사(§9.1)를 대신하지 않습니다.
+/// - `replayed: true`는 같은 멱등 키·같은 Payload의 재요청에 처음 기록한 결과를 그대로 반환했다는 뜻입니다.
+///   `effects`는 처음 집행한 효과이며 다시 집행하지 않습니다.
+/// - 부분 집행은 Phase 0 계약에 없습니다.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct DecisionOutcome {
-    pub decision_id: String,
-    pub idempotency_key: String,
-    pub status: DecisionStatus,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rejection: Option<DecisionRejection>,
-    pub effects: Vec<DecisionEffect>,
-    pub replayed: bool,
-    pub recorded_at: String,
+#[serde(
+    tag = "status",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum DecisionOutcome {
+    Accepted {
+        decision_id: String,
+        idempotency_key: String,
+        effects: Vec<DecisionEffect>,
+        replayed: bool,
+        recorded_at: String,
+    },
+    Rejected {
+        decision_id: String,
+        idempotency_key: String,
+        rejection: DecisionRejection,
+        replayed: bool,
+        recorded_at: String,
+    },
+}
+
+impl DecisionOutcome {
+    pub fn status(&self) -> DecisionStatus {
+        match self {
+            Self::Accepted { .. } => DecisionStatus::Accepted,
+            Self::Rejected { .. } => DecisionStatus::Rejected,
+        }
+    }
+
+    pub fn decision_id(&self) -> &str {
+        match self {
+            Self::Accepted { decision_id, .. } | Self::Rejected { decision_id, .. } => decision_id,
+        }
+    }
+
+    pub fn idempotency_key(&self) -> &str {
+        match self {
+            Self::Accepted {
+                idempotency_key, ..
+            }
+            | Self::Rejected {
+                idempotency_key, ..
+            } => idempotency_key,
+        }
+    }
+
+    pub fn replayed(&self) -> bool {
+        match self {
+            Self::Accepted { replayed, .. } | Self::Rejected { replayed, .. } => *replayed,
+        }
+    }
+
+    /// 거부된 결정은 효과가 없으므로 빈 슬라이스입니다.
+    pub fn effects(&self) -> &[DecisionEffect] {
+        match self {
+            Self::Accepted { effects, .. } => effects,
+            Self::Rejected { .. } => &[],
+        }
+    }
 }

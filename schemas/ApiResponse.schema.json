@@ -70,6 +70,11 @@
           ]
         },
         {
+          "description": "프레임이 [`MAX_FRAME_BYTES`]를 넘었습니다. 이 응답 뒤 연결을 닫습니다.",
+          "type": "string",
+          "const": "frame_too_large"
+        },
+        {
           "description": "필요한 구성 요소(Provider, RN 등)를 지금 쓸 수 없음",
           "type": "string",
           "const": "unavailable"

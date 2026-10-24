@@ -98,6 +98,8 @@ pub trait AgentAdapter: Send + Sync {
     /// - 같은 `context.idempotency_key`와 같은 Run의 재요청은 처음의 `RunStarted`를 반환하고
     ///   프로세스를 새로 만들지 않습니다. 같은 키로 다른 Run을 요청하면 `IdempotencyConflict`입니다.
     /// - 반환 시점에 프로세스가 이미 끝났을 수 있습니다. 결과는 `events`로 확인합니다.
+    /// - 오류를 반환한 Run은 이벤트를 남기지 않으며 그 Run의 `events`는 `UnknownRun`입니다.
+    ///   반환 뒤 프로세스 시작이 실패하면 종료 `error`(`start_failed`)로 Run을 끝냅니다.
     async fn start_run(
         &self,
         task: &TaskSpec,
@@ -107,7 +109,9 @@ pub trait AgentAdapter: Send + Sync {
     /// - `sequence > after_sequence`인 이벤트를 순서대로 보냅니다. `after_sequence = 0`은 처음부터입니다.
     /// - 시작 직후부터 이벤트를 보존하여 구독 전에 끝난 Run도 회수할 수 있게 합니다 (§7.2).
     /// - 보존 범위를 벗어난 요청은 첫 항목으로 `EventsUnavailable`을 보냅니다.
-    /// - Run의 마지막 이벤트(`process_exited`, 프로세스가 더 오래 사는 경우 `turn_finished`)를 보낸 뒤 닫힙니다.
+    /// - Run의 종료 이벤트(`process_exited`, `turn_finished`, 종료 `error`)를 보낸 뒤 닫힙니다.
+    ///   종료 규칙은 `telos_schema` events 모듈 문서(G0 개정 1 REQ-006)를 따르며
+    ///   `telos_schema::check_run_events`로 Contract 시험합니다.
     /// - Payload 형식은 `telos_schema::ProviderEventPayload`를 따릅니다.
     fn events(
         &self,
