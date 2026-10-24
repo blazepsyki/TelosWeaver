@@ -2,16 +2,18 @@
 
 작성일: 2026-10-24. 담당: `Codex / PH0-CODEX-20261024`. 코드: `1f8aebd`, `2c6339b`. 통합 기준: main `2c6bd1d`를 반영한 `516a13d`, 계약 `271e7fd`. 검증·실제 버전·시험 세션 정리는 [README](README.md)를 따릅니다.
 
-## 1. 공통 등록·정리
+현재 상태: main 통합 `c00d2b0`, 배정표 integrated `15d36cb`. REQ-012·REQ-014는 완료됐습니다. 이번 현황 재확인에서도 Workspace 118개·엄격 Clippy·fmt가 통과했습니다. 아래에서 Core 연결·추가 환경 검증만 남은 작업으로 구분합니다.
 
-먼저 배정표의 REQ-012·REQ-014를 CONTRACT·INTEGRATION이 검토해 주십시오. [COMMON_CHANGES.patch](COMMON_CHANGES.patch)는 다음 두 변경만 포함합니다.
+## 1. 공통 등록·정리 결과
+
+배정표의 REQ-012·REQ-014는 CONTRACT·INTEGRATION이 `c00d2b0`에서 적용했습니다. [COMMON_CHANGES.patch](COMMON_CHANGES.patch)는 다음 두 변경을 제출했던 이력이며 현재 main에 재적용하지 않습니다.
 
 1. `crates/adapters/src/lib.rs`: `pub mod codex;`로 구성·Resolver·탐색 규칙 공개.
 2. `crates/adapters/src/unimplemented.rs`: 미사용 `unimplemented_adapter!` 매크로와 재수출 제거. `UnsupportedAdapter` 구현은 그대로 유지.
 
-패치는 `git apply --check`로 확인했으며 소유 경계에 따라 직접 적용하지 않았습니다. 두 번째 변경은 세 Provider가 모두 구현되면서 발생한 unused-macros·unused-imports를 해결하려는 요청입니다. 경고를 허용하는 속성을 추가하거나 공통 시험 대역 전체를 삭제하는 제안은 아닙니다.
+제출 시 패치의 `git apply --check`를 확인했고 실제 공통 적용은 담당자가 수행했습니다. 두 번째 변경으로 unused-macros·unused-imports가 해소됐습니다. 현재 엄격 Clippy는 경고 예외 없이 통과하며 공통 시험 대역·계약 시험도 유지됩니다.
 
-공통 Cargo 의존성·Lock·Schema·AgentAdapter Trait 변경은 필요하지 않습니다. 공통 변경 처리와 최종 검증 후 병합 여부·게이트·`integrated` 판정은 기존 통합 담당이 결정합니다. Spec §19.5의 병합 후 Branch·Worktree 정리 기본 규칙을 적용하되 미병합 `ph0/codex`는 그 전까지 보존합니다.
+공통 Cargo 의존성·Lock·Schema·AgentAdapter Trait 변경은 없었습니다. 기존 통합 담당이 integrated로 기록하고 구현 Branch·Worktree를 정리했습니다. 현황 문서 갱신은 최신 main의 별도 Branch·Worktree에서 진행하며 기존 게이트 판정을 변경하지 않습니다.
 
 ## 2. Core 연결 순서
 
@@ -62,11 +64,11 @@ RunStarted 및 모든 ProviderEvent의 native_session_id/native_turn_id를 Core�
 
 `detect(host_id)`는 구성된 Host와 현재 실행 플랫폼을 확인합니다. 실제 Windows x64 `codex-cli 0.164.0-alpha.11.1`에서 확인한 managed·stream·cancel·resume·native_fork만 EnvironmentTested/Supported로 표시합니다. 다른 버전·플랫폼과 send_input·approval은 Unverified로 남습니다. CLI 업데이트 후 같은 이름의 메서드가 있다는 이유로 실환경 증거를 승계하지 마십시오.
 
-통합 담당의 다음 검증 순서는 다음과 같습니다.
+통합 상태와 다음 검증 순서는 다음과 같습니다.
 
-1. REQ-012 공개 후 외부 소비 경로에서 CodexConfig·Resolver·cli_rule을 사용할 수 있는지 확인합니다.
-2. REQ-014 정리 후 `cargo test --workspace --locked --offline`, `cargo clippy --workspace --all-targets --locked --offline -- -D warnings`, `cargo fmt --all -- --check`를 실행합니다. 현재 118개 테스트 통과지만 엄격 Clippy는 공통 미사용 매크로 2건으로 실패합니다.
+1. **공통 등록 완료:** REQ-012 공개가 반영됐고 병합본 Codex 탐지도 통합 담당이 재확인했습니다. 외부 Core 소비 경로의 실제 연결 시험은 아래 3번에 포함합니다.
+2. **공통 검사 완료:** REQ-014 정리 후 `cargo test --workspace --locked --offline` 118개 통과, `cargo clippy --workspace --all-targets --locked --offline -- -D warnings`, `cargo fmt --all -- --check` 통과를 이번 현황 갱신에서도 확인했습니다.
 3. 신뢰된 Codex 실행 Resolver와 공통 탐색 결과를 Core에 연결하고 Local API를 통한 G2 실행·이벤트 저장·Daemon 종료 정리를 검증합니다. 대표 G1 Provider를 변경할 필요는 없습니다.
 4. Linux·Remote SSH는 기존 사용자 대기 지시가 해제된 뒤 대상 환경에서 수행합니다. 파일 Worktree 격리·Attached·Fork 전체 비용 비교는 해당 단계에서 별도 검증합니다.
 
-이 제출은 PH0-CODEX 자체 구현과 Windows 증거의 검토 요청입니다. 전체 Phase 0 완료 판정이나 공통 변경 요청의 채택·완료 판정은 포함하지 않습니다.
+PH0-CODEX 자체 구현과 Windows 증거는 통합됐으며, 남은 일은 Core 연결과 명시한 미검증 기능·환경입니다. 전체 Phase 0 완료는 G2·G3를 포함한 별도 판정을 따라야 합니다.
