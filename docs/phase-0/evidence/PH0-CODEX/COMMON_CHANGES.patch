@@ -1,0 +1,96 @@
+--- a/crates/adapters/src/lib.rs
++++ b/crates/adapters/src/lib.rs
+@@ -15,5 +15,5 @@
+ pub mod agy;
+ pub mod claude;
+-mod codex;
++pub mod codex;
+ mod discovery;
+ pub mod runtime;
+--- a/crates/adapters/src/unimplemented.rs
++++ b/crates/adapters/src/unimplemented.rs
+@@ -86,84 +86,2 @@
+     }
+ }
+-
+-/// 구현 전 Provider 타입을 [`UnsupportedAdapter`]에 위임합니다. 각 Provider가 실제 구현으로 교체할 때 제거합니다.
+-macro_rules! unimplemented_adapter {
+-    ($ty:ty, $id:literal) => {
+-        #[async_trait::async_trait]
+-        impl $crate::AgentAdapter for $ty {
+-            fn id(&self) -> &str {
+-                $id
+-            }
+-
+-            async fn detect(
+-                &self,
+-                host_id: &str,
+-            ) -> Result<
+-                std::collections::HashMap<String, telos_schema::Capability>,
+-                $crate::AdapterError,
+-            > {
+-                $crate::UnsupportedAdapter::new($id).detect(host_id).await
+-            }
+-
+-            async fn start_run(
+-                &self,
+-                task: &telos_schema::TaskSpec,
+-                context: &telos_schema::RunContext,
+-            ) -> Result<telos_schema::RunStarted, $crate::AdapterError> {
+-                $crate::UnsupportedAdapter::new($id)
+-                    .start_run(task, context)
+-                    .await
+-            }
+-
+-            fn events(
+-                &self,
+-                run_id: &str,
+-                after_sequence: u64,
+-            ) -> futures::stream::BoxStream<
+-                'static,
+-                Result<telos_schema::ProviderEvent, $crate::AdapterError>,
+-            > {
+-                $crate::UnsupportedAdapter::new($id).events(run_id, after_sequence)
+-            }
+-
+-            async fn send_input(
+-                &self,
+-                run_id: &str,
+-                input_id: &str,
+-                text: &str,
+-            ) -> Result<(), $crate::AdapterError> {
+-                $crate::UnsupportedAdapter::new($id)
+-                    .send_input(run_id, input_id, text)
+-                    .await
+-            }
+-
+-            async fn answer_approval(
+-                &self,
+-                run_id: &str,
+-                request_id: &str,
+-                decision: telos_schema::ApprovalAnswer,
+-            ) -> Result<(), $crate::AdapterError> {
+-                $crate::UnsupportedAdapter::new($id)
+-                    .answer_approval(run_id, request_id, decision)
+-                    .await
+-            }
+-
+-            async fn cancel_run(&self, run_id: &str) -> Result<bool, $crate::AdapterError> {
+-                $crate::UnsupportedAdapter::new($id)
+-                    .cancel_run(run_id)
+-                    .await
+-            }
+-
+-            async fn inspect_run(
+-                &self,
+-                run_id: &str,
+-            ) -> Result<telos_schema::RunInspection, $crate::AdapterError> {
+-                $crate::UnsupportedAdapter::new($id)
+-                    .inspect_run(run_id)
+-                    .await
+-            }
+-        }
+-    };
+-}
+-
+-pub(crate) use unimplemented_adapter;

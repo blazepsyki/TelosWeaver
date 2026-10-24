@@ -14,7 +14,7 @@ use telos_schema::{
 
 pub mod agy;
 pub mod claude;
-mod codex;
+pub mod codex;
 mod discovery;
 pub mod runtime;
 mod unimplemented;
