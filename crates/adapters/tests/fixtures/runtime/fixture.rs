@@ -6,6 +6,7 @@ use std::{
 fn main() {
     let args: Vec<_> = std::env::args().collect();
     match args.get(1).map(String::as_str) {
+        Some("--version") => println!("tool 1.2.3"),
         Some("echo") => {
             let mut input = Vec::new();
             io::stdin().read_to_end(&mut input).unwrap();

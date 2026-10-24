@@ -15,12 +15,14 @@ use telos_schema::{
 mod agy;
 mod claude;
 mod codex;
+mod discovery;
 pub mod runtime;
 mod unimplemented;
 
 pub use agy::AgyAdapter;
 pub use claude::ClaudeCodeAdapter;
 pub use codex::CodexAdapter;
+pub use discovery::NativeCliDiscoverer;
 pub use unimplemented::UnsupportedAdapter;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
