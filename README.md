@@ -2,7 +2,7 @@
 
 서로 다른 AI 에이전트(Codex, Claude Code, Antigravity)를 사용하여 **목표 확인 → 계획 → 위임 → 실행 → 산출물 수집 → 검증 → 승인 판단 → 재작업 또는 완료**를 관리하는 로컬 우선 오케스트레이터입니다.
 
-- 기준 설계: [docs/DEVELOPMENT_v1.4.md](docs/DEVELOPMENT_v1.4.md)
+- 기준 설계: [docs/DEVELOPMENT_v1.5.md](docs/DEVELOPMENT_v1.5.md)
 - 진행 현황: [docs/phase-0/WORK_ALLOCATION.md](docs/phase-0/WORK_ALLOCATION.md) (작업 배정·게이트·변경 요청의 단일 원본)
 - 에이전트 작업 지침: [AGENTS.md](AGENTS.md)
 

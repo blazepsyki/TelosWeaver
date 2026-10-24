@@ -2,7 +2,7 @@
 
 ## 기준 문서
 
-- [docs/DEVELOPMENT_v1.4.md](docs/DEVELOPMENT_v1.4.md)가 유일한 구현 기준입니다. `docs/archive/`는 로컬에만 보관하는 이력 참고용이며 원격 저장소에 올리지 않습니다(`.gitignore`).
+- [docs/DEVELOPMENT_v1.5.md](docs/DEVELOPMENT_v1.5.md)가 유일한 구현 기준입니다. `docs/archive/`는 로컬에만 보관하는 이력 참고용이며 원격 저장소에 올리지 않습니다(`.gitignore`).
 - Codex·Claude Code·Antigravity 등 이 저장소에서 작업하는 모든 에이전트가 이 문서를 따릅니다. `CLAUDE.md`는 이 문서를 불러오기만 합니다.
 - Phase 0 작업은 착수 전에 Spec §19.5와 [작업 배정표](docs/phase-0/WORK_ALLOCATION.md)를 읽고, 자기 작업 행을 기록한 뒤 독점 경로만 수정합니다.
 - 코드와 Spec이 어긋나면 Spec을 따르고, Spec 변경이 필요하면 코드보다 먼저 사용자와 합의합니다.

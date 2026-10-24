@@ -2,7 +2,7 @@
 
 > **프로젝트:** TelosWeaver  
 > **갱신일:** 2026-10-24  
-> **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.4.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
+> **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.5.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
 > **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `077bd78`). PH0-HOST 1차 구현을 `1d8734f`로 통합했고(REQ-011 포함), REQ-010 탐지 계약을 `3a37919`로 추가했습니다. HOST 탐지 엔진 연결(`685bd96`)과 PH0-CLAUDE Adapter(`3bdb808`, `b8e3fa9`)를 통합했습니다. G1 Core 연결을 `cfe1b19`로 통합하고 실제 Claude 실행으로 G1을 판정했고, HOST 확인과 REQ-015 재검증으로 G1 통과를 확정했습니다(`399992d`). Codex·Agy Core 연결을 `aef3297`로 통합해 세 Provider가 한 Daemon에서 실제 실행됩니다(G2 일부). PH0-MASTER를 `e14de42`로 통합해 마스터 결정 검증 경로도 갖췄습니다. 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G2·G3는 대기입니다.
 
 ## 1. 단일 원본과 갱신 주체
@@ -39,7 +39,7 @@
 | PH0-CLAUDE | `claude-opus-5.5/session-c9336d2c` | integrated | `ph0/claude` / 병합 후 삭제 | `689d43e`, 계약 `3a37919` | `a3027c3`·`62c86af` (통합 `3bdb808`·`b8e3fa9`) | G1 대표 Provider(§6). [검증 기록](evidence/PH0-CLAUDE/README.md): Mock 13개, 실환경 6개(haiku) 통과 — PROV-01~08, Resume·Fork 동작 확인. 남은 일: G1 Core 연결, 시험 세션 Archive(§5 목록), Linux 검증 |
 | PH0-AGY | `gemini-4-argon/session-9e6137eb` | integrated | `ph0/agy` / 병합 후 삭제 | `611032a`, 계약 `3a37919` | `aa21611` (통합 `286844a`) | 통합 완료(main 106개 통과, 병합본에서 탐지 실환경 재확인). **Core 연결 완료(`aef3297`).** **전달(INTEGRATION 증거 §8.4):** ① Workspace 경로가 `\\?\` 형식이면 Antigravity가 Workspace 대신 `~/.gemini/antigravity/scratch/`에 씀 — INTEGRATION은 경로 정규화와 `--add-dir`로 해결, AGY 시험은 쓰기 위치를 검사하지 않음. ② agy 1.4.7 대화 파일은 `conversations/<id>.db`(`-wal`·`-shm`)라 `cleanup_session`의 `.pb` 삭제가 맞지 않음. 참고: 시험 정리는 `brain/<id>`·`conversations/<id>.pb`만 지우므로 `conversation_summaries.db`의 요약 기록은 남을 수 있음. 현황 재확인(`86ef048`): REQ-013 ①②③·Core 연결(`aef3297`)·Workspace 142개·엄격 Clippy·fmt 통과 확인, 앞선 PH0-AGY 시험 세션의 잔여 `conversations/<id>.db` 16개 삭제 완료. 제출 내용: 구현·검증 완료([검증 기록](evidence/PH0-AGY/README.md)): Mock·Contract 14개, 실환경 6개(`gemini-3.8-flash-low`, `--effort low`) 통과 — AGY-DATA-01~05(`--app_data_dir=antigravity` 기본 채택·버전 명령 검증·잠금 충돌 없음), PROV-01~09, Resume(`--conversation`) 확인, NativeFork 미지원 거부(FORK-POC-01), 시험 세션 즉시 삭제 완료. REQ-013 제출(`pub mod agy;` 및 Spec §7.5 반영). 남은 일: Linux 검증 |
 | PH0-MASTER | `claude-opus-5.5/session-c9336d2c` | integrated | `ph0/master` / 병합 후 삭제 | `74a2a83`, 계약 `3a37919` | `fcf6def` (통합 `e14de42`) | [검증 기록](evidence/PH0-MASTER/README.md): 결정 검증(호출자·Plan·Epoch·Revision·Payload·kind·권한·한도·트리·의존성·신뢰된 조회)·Controller(멱등·집행·Resume 결과 왕복·Epoch·기록). 검증기 8개·Controller 6개, 실제 Claude 마스터(haiku) 실환경 2개 통과: 위임→Worker 실행→결과 왕복, 권한 밖 Provider `permission_denied`. 남은 일: 미집행 kind 5종·Local API·영속성·정식 정책은 P0 |
-| PH0-RN | `claude-opus-5.5/session-c9336d2c` | reserved | `ph0/rn-*` / `D:\worktree\TelosWeaver\ph0-rn` (착수 시 생성) | `207c125`, 계약 `3a37919` | 없음 | 사용자 배정. Spec v1.4.4 DEC-07·§12.4~12.5·§19.5.10에 따라 PH0-RN-00~08을 단일 Writer로 순차 진행. 착수 전 §12.5 경계와 원본 기준(SHA·도입 방식) 등 사용자 결정 확인 중 |
+| PH0-RN | `claude-opus-5.5/session-c9336d2c` | reserved | `ph0/rn-*` / `D:\worktree\TelosWeaver\ph0-rn` (착수 시 생성) | `207c125`, 계약 `3a37919` | 없음 | 사용자 배정. Spec v1.5 DEC-07·§12.4~12.5(확정)·§19.5.10에 따라 PH0-RN-00~08을 단일 Writer로 순차 진행. 사용자 결정(§6 "RN 범위"): 제거는 Reason CLI 연동·자동 업데이트·계정 로그인만, Fork는 `rn-fork/` subtree(squash). 다음: PH0-RN-00 원본 조사·처리표 |
 | PH0-EXT | `Codex / PH0-EXT-20261024` | reserved | `ph0/ext` / `D:\worktree\TelosWeaver\ph0-ext` (준비용) | `207c125` (Spec 개정 1.4.4), 계약 `3a37919` | 준비 `1c328fc`(구현 없음) | 사용자 직접 배정. Core 실행 파일 탐지·명시적 시작·연결·Health/상태 표시·생성 타입 사용 범위의 사전 결정·계약 점검. 구현 미착수. `runs.subscriptionClosed`와 lastSequence 재구독 전달 사항 확인. Windows 우선, Linux·Remote SSH는 기존 대기 지시 유지. [구현 전 준비](evidence/PH0-EXT/README.md)는 ph0/ext `1c328fc`에 제출. Core 경로 지정·명시적 시작·정책 없는 Health 시험 3개 권장안 확인 대기 |
 
 상태는 `unassigned → reserved → in-progress → review → integrated → verified`를 사용합니다. `blocked`는 기존 담당자를 유지하며 차단 사유·필요한 계약·재개 조건을 기록합니다. 통합 전 `verified`로 표시하지 않습니다. 개별 `verified`는 Phase 0 전체 통과와 다릅니다.
@@ -118,6 +118,7 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 마스터 Provider (Phase 0) | Claude Code. 임시 선택이며 MASTER-01에 따라 Provider를 고정하지 않고 교체 가능하게 구현. 시험 조건은 Claude 실환경 시험 조건을 따름 | 적용 | 2026-10-24 |
 | 마스터 Phase 0 범위 | 시험 모델 `haiku`. 실행: `create_tasks`·`request_run`·`request_cancel`. 나머지 5종은 Payload 검사 후 `unsupported_kind`. 결과 왕복(Resume) 시험 1개. 마스터 Run은 도구 없음·읽기 전용 | 적용 | 2026-10-24 |
 | 시험 세션 정리 | 특별한 사유가 없으면 실환경 시험 세션은 해당 코드를 `main`에 병합하는 시점에 삭제합니다(통합 담당, 병합 후 Branch·Worktree 정리와 함께). Claude: `~/.claude/projects/<시험 작업 폴더>` 삭제. Codex: 내부 SQLite가 Thread를 색인하므로 파일 삭제 대신 App Server `thread/archive`. Antigravity: `brain/<id>`, `conversations/<id>.db`(`-wal`·`-shm`). 시험은 저장소 밖 임시 폴더를 작업 폴더로 써서 사용자 대화 목록과 섞이지 않게 하고, 세션 ID는 증거에 남깁니다. 시험이 아닌 세션은 건드리지 않습니다 | 적용 | 2026-10-24 |
+| RN 범위 (Spec v1.5 DEC-07) | 제거: 클로즈드 소스 Reason CLI 연동, 자동 업데이트·받아서 실행하는 설치 경로, Reason 계정 로그인. 유지: Claude·Codex 세션 탐지·메시지 전달(DEC-06과 같은 위험 수준으로 수용), MCP·Hook(명시적 적용), 로그인을 뺀 네트워크·Relay·팀(Phase 0은 로컬 전용 시험). Fork는 `rn-fork/`에 subtree(squash). 실행 파일·상태·MCP 이름 분리(가칭 `telos-rn`). 실제 에이전트 설정 변경은 시험 시에만 사전 확인·Backup·Diff·복원 | 적용 | 2026-10-24 |
 
 ## 7. 변경 기록
 
@@ -179,5 +180,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 23:38 | `claude-opus-5.5/session-c9336d2c` | 사용자 배정으로 PH0-RN `unassigned → reserved`(통합 담당이 겸임, 서브 태스크 단일 Writer). 원본 `reason-machines/reason-network` 구조·문서 조사, 착수 전 사용자 결정 항목 정리 중 | `207c125` |
 | 2026-10-24 (시각 미기록) | `Codex / PH0-EXT-20261024` | PH0-EXT 사전 준비 `1c328fc` 제출. 현재 Extension 골격·Core API 0.2·주소/인증·타입 생성·Node 환경을 확인하고 Core 공급·시작·실환경 시험 3개 권장안 정리. reserved 유지, 구현·Core 시작·모델 호출·소스 변경 없음 | `1c328fc`, 계약 `3a37919` |
 | 2026-10-24 23:46 | `claude-opus-5.5/session-c9336d2c` | 정정: 의존성 "배포 2주 이상" 기준은 사용자 규칙이 아니라 통합 담당이 다른 도구 지침을 잘못 적용한 것이므로 철회. 이미 고정한 `sha2` 0.11.0·`libc` 0.2.190은 동작 문제가 없어 유지. 사용자 결정: RN Fork는 `rn-fork/`에 subtree(squash)로 도입. RN 유지 범위(DEC-07)는 재검토 중 | `cf40447` |
+| 2026-10-24 23:57 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정으로 Spec v1.5 개정(`docs/DEVELOPMENT_v1.4.md` → `docs/DEVELOPMENT_v1.5.md`, v1.4 원문은 `docs/archive/` 로컬 보관): DEC-07을 Reason CLI 연동·자동 업데이트·계정 로그인 제거로 좁히고 §12.1·§12.3~12.5·RN-09~12·RN-POC-13~15·PH0-RN-03 조정, §12.5 경계 확정. §6에 "RN 범위" 추가. 저장소 안 Spec 링크 갱신 | `9dcc77c` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
