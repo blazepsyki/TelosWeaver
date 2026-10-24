@@ -17,6 +17,8 @@ pub struct Client {
     next: u64,
     /// 응답을 기다리는 동안 먼저 도착한 알림입니다.
     pub notifications: Vec<Value>,
+    /// Run 도중 닫힌 구독을 다시 연 횟수.
+    pub resubscribed: usize,
 }
 
 impl Client {
@@ -40,6 +42,7 @@ impl Client {
             write,
             next: 0,
             notifications: Vec::new(),
+            resubscribed: 0,
         }
     }
 
@@ -87,10 +90,36 @@ impl Client {
         response
     }
 
-    /// `runs.event` 알림을 종료 이벤트까지 모읍니다.
-    pub async fn events_until_end(&mut self, timeout: Duration) -> Vec<Value> {
+    /// Run을 처음부터 구독하고 구독 ID를 돌려줍니다.
+    pub async fn subscribe(&mut self, run_id: &str) -> String {
+        self.subscribe_after(run_id, 0).await
+    }
+
+    async fn subscribe_after(&mut self, run_id: &str, after_sequence: u64) -> String {
+        let response = self
+            .call(
+                "runs.subscribe",
+                json!({"runId": run_id, "afterSequence": after_sequence}),
+            )
+            .await;
+        response["result"]["subscriptionId"]
+            .as_str()
+            .unwrap_or_else(|| panic!("subscribe failed: {response}"))
+            .to_owned()
+    }
+
+    /// 해당 구독의 `runs.event` 알림을 종료 이벤트까지 모읍니다.
+    /// - 한 연결에서 여러 Run을 구독하면 앞 구독의 알림이 늦게 올 수 있으므로 구독 ID로 거릅니다.
+    /// - Run이 끝나기 전에 구독이 닫히면(예: `slow_consumer`) 계약대로 `lastSequence`부터 다시 구독합니다.
+    pub async fn events_until_end(
+        &mut self,
+        run_id: &str,
+        subscription_id: &str,
+        timeout: Duration,
+    ) -> Vec<Value> {
         let deadline = tokio::time::Instant::now() + timeout;
-        let mut events = Vec::new();
+        let mut subscription_id = subscription_id.to_owned();
+        let mut events: Vec<Value> = Vec::new();
         let mut pending: Vec<Value> = std::mem::take(&mut self.notifications);
         loop {
             let message = match pending.is_empty() {
@@ -100,9 +129,16 @@ impl Client {
                     self.receive(left).await
                 }
             };
+            if message["params"]["subscriptionId"] != subscription_id {
+                continue;
+            }
             match message.get("method").and_then(Value::as_str) {
                 Some("runs.event") => {
                     let event = message["params"]["event"].clone();
+                    let last = events.last().map_or(0, |e| e["sequence"].as_u64().unwrap());
+                    if event["sequence"].as_u64().unwrap() <= last {
+                        continue;
+                    }
                     let kind = event["kind"].as_str().unwrap_or_default().to_owned();
                     let terminal = kind == "process_exited"
                         || (kind == "error" && event["payload"]["terminal"] == true);
@@ -111,7 +147,20 @@ impl Client {
                         return events;
                     }
                 }
-                Some("runs.subscriptionClosed") => return events,
+                Some("runs.subscriptionClosed") => {
+                    let params = &message["params"];
+                    if params["reason"] == "run_finished" {
+                        return events;
+                    }
+                    let last = params["lastSequence"].as_u64().unwrap_or(0);
+                    println!(
+                        "subscription closed ({}) at {last}; resubscribing",
+                        params["reason"]
+                    );
+                    self.resubscribed += 1;
+                    subscription_id = self.subscribe_after(run_id, last).await;
+                    pending.extend(std::mem::take(&mut self.notifications));
+                }
                 _ => {}
             }
         }

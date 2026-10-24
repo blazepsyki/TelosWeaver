@@ -64,7 +64,7 @@ fn policy_json(dir: &Dir, writable: bool) -> serde_json::Value {
 fn load(dir: &Dir, writable: bool) -> Arc<LocalRunPolicy> {
     let (config, revision) =
         LocalPolicyConfig::load(&dir.write_policy(policy_json(dir, writable))).unwrap();
-    Arc::new(LocalRunPolicy::new(config, revision, None))
+    Arc::new(LocalRunPolicy::new(config, revision, Default::default()))
 }
 
 fn task() -> TaskSpec {
@@ -99,8 +99,15 @@ async fn grants_only_configured_profile_provider_model_and_workspace() {
     let snapshot = policy.snapshot(&permit.context_snapshot_id).unwrap();
     assert_eq!(snapshot.model, "haiku");
     assert_eq!(
-        snapshot.workspace_path,
+        snapshot.workspace_path.canonicalize().unwrap(),
         dir.0.join("ws").canonicalize().unwrap()
+    );
+    // 확장 길이 경로(`\\?\`)가 아닌 일반 형식으로 Provider에 전달합니다.
+    assert!(
+        !snapshot
+            .workspace_path
+            .to_string_lossy()
+            .starts_with(r"\\?\")
     );
 
     let mut t = task();
@@ -327,4 +334,129 @@ async fn shutdown_reports_runs_whose_termination_is_not_confirmed() {
         .unwrap();
     let report = tracked.shutdown(Duration::from_millis(100)).await;
     assert_eq!(report.unconfirmed, vec!["run-1".to_owned()]);
+}
+
+// --- Codex·Agy (G2) ---
+
+fn multi_policy(dir: &Dir, writable: bool) -> Arc<LocalRunPolicy> {
+    let mut json = policy_json(dir, writable);
+    json["codex"] = serde_json::json!({
+        "models": ["gpt-6-luna"],
+        "effort": "low",
+        "runTimeoutSecs": 120
+    });
+    json["agy"] = serde_json::json!({
+        "models": ["gemini-3.8-flash-low"],
+        "effort": "low",
+        "mode": "accept-edits"
+    });
+    let (config, revision) = LocalPolicyConfig::load(&dir.write_policy(json)).unwrap();
+    Arc::new(LocalRunPolicy::new(config, revision, Default::default()))
+}
+
+async fn authorized_context(policy: &LocalRunPolicy, task: &TaskSpec) -> RunContext {
+    let permit = policy.authorize(task, &session()).await.unwrap();
+    let mut context = fixtures::run_context(task);
+    context.workspace_id = permit.workspace_id;
+    context.context_snapshot_id = permit.context_snapshot_id;
+    context.policy_revision = permit.policy_revision;
+    context
+}
+
+#[tokio::test]
+async fn codex_launch_follows_policy_and_workspace_permission() {
+    use telos_adapters::codex::{CodexApprovals, CodexLaunchResolver, CodexSandbox};
+    use telos_core::integration::CodexLauncher;
+
+    let dir = Dir::new("codex");
+    let policy = multi_policy(&dir, true);
+    let launcher = CodexLauncher::new(policy.clone());
+
+    let mut t = task();
+    t.agent.provider = "codex".into();
+    let launch = launcher
+        .resolve(&t, &authorized_context(&policy, &t).await)
+        .unwrap();
+    assert_eq!(launch.model, "gpt-6-luna");
+    assert_eq!(launch.effort, "low");
+    assert_eq!(launch.sandbox, CodexSandbox::WorkspaceWrite);
+    assert_eq!(launch.approvals, CodexApprovals::Deny);
+    assert_eq!(launch.run_timeout, Duration::from_secs(120));
+
+    t.workspace.read_only = true;
+    let launch = launcher
+        .resolve(&t, &authorized_context(&policy, &t).await)
+        .unwrap();
+    assert_eq!(launch.sandbox, CodexSandbox::ReadOnly);
+
+    t.agent.model = Some("gpt-6".into());
+    assert!(denied(&policy, &t).await.contains("model"));
+}
+
+#[tokio::test]
+async fn agy_launch_uses_review_mode_for_read_only_runs() {
+    use telos_adapters::agy::AgyLaunchResolver;
+    use telos_core::integration::AgyLauncher;
+
+    let dir = Dir::new("agy");
+    let policy = multi_policy(&dir, true);
+    let launcher = AgyLauncher::new(policy.clone());
+
+    let mut t = task();
+    t.agent.provider = "agy".into();
+    let launch = launcher
+        .resolve(&t, &authorized_context(&policy, &t).await)
+        .unwrap();
+    assert_eq!(launch.model.as_deref(), Some("gemini-3.8-flash-low"));
+    assert_eq!(launch.effort.as_deref(), Some("low"));
+    assert_eq!(launch.mode.as_deref(), Some("accept-edits"));
+    assert!(launch.disable_slash_commands);
+    assert!(launch.extra_args.is_empty());
+    assert_eq!(launch.add_dirs, vec![launch.cwd.clone()]);
+    assert!(!launch.cwd.to_string_lossy().starts_with(r"\\?\"));
+
+    t.workspace.read_only = true;
+    let launch = launcher
+        .resolve(&t, &authorized_context(&policy, &t).await)
+        .unwrap();
+    assert_eq!(launch.mode, None, "read-only runs keep the CLI review mode");
+}
+
+#[tokio::test]
+async fn a_snapshot_cannot_be_used_by_another_provider() {
+    use telos_adapters::codex::CodexLaunchResolver;
+    use telos_core::integration::CodexLauncher;
+
+    let dir = Dir::new("cross");
+    let policy = multi_policy(&dir, true);
+    let claude_task = task();
+    let context = authorized_context(&policy, &claude_task).await;
+    let mut codex_task = claude_task.clone();
+    codex_task.agent.provider = "codex".into();
+    assert!(
+        CodexLauncher::new(policy.clone())
+            .resolve(&codex_task, &context)
+            .is_err()
+    );
+    assert!(
+        ClaudeLauncher::new(policy)
+            .resolve(&claude_task, &context)
+            .is_ok()
+    );
+}
+
+#[test]
+fn invalid_codex_and_agy_policies_are_rejected() {
+    let dir = Dir::new("invalid-g2");
+    let mut json = policy_json(&dir, true);
+    json["codex"] = serde_json::json!({"models": ["m"], "effort": "low", "runTimeoutSecs": 0});
+    assert!(LocalPolicyConfig::load(&dir.write_policy(json)).is_err());
+
+    let mut json = policy_json(&dir, true);
+    json["agy"] = serde_json::json!({"models": ["m"], "mode": "dangerously-skip-permissions"});
+    assert!(LocalPolicyConfig::load(&dir.write_policy(json)).is_err());
+
+    let mut json = policy_json(&dir, true);
+    json["agy"] = serde_json::json!({"models": ["m"], "dataDir": "elsewhere"});
+    assert!(LocalPolicyConfig::load(&dir.write_policy(json)).is_err());
 }

@@ -63,7 +63,7 @@ impl Setup {
         )
         .await
         .unwrap();
-        let discovery = execution.claude_discovery.as_ref().unwrap();
+        let discovery = execution.discovery("claude").unwrap();
         println!(
             "discovery: {}",
             serde_json::to_string(&discovery.outcome).unwrap()
@@ -125,16 +125,6 @@ async fn start(client: &mut Client, task: &TaskSpec, key: &str) -> Value {
             }),
         )
         .await
-}
-
-async fn subscribe(client: &mut Client, run_id: &str) {
-    let response = client
-        .call(
-            "runs.subscribe",
-            json!({"runId": run_id, "afterSequence": 0}),
-        )
-        .await;
-    assert!(response.get("result").is_some(), "subscribe: {response}");
 }
 
 fn report(events: &[Value]) {
@@ -210,8 +200,10 @@ async fn g1_completed_run_produces_result_file() {
     let again = start(&mut client, &t, "g1-complete:1").await;
     assert_eq!(again["result"]["runId"], run_id.as_str());
 
-    subscribe(&mut client, &run_id).await;
-    let events = client.events_until_end(Duration::from_secs(180)).await;
+    let subscription = client.subscribe(&run_id).await;
+    let events = client
+        .events_until_end(&run_id, &subscription, Duration::from_secs(180))
+        .await;
     report(&events);
     assert_eq!(kinds(&events).first(), Some(&"session_started"));
     assert_eq!(kinds(&events).last(), Some(&"process_exited"));
@@ -246,8 +238,10 @@ async fn g1_provider_failure_is_reported() {
         .as_str()
         .expect("run started")
         .to_owned();
-    subscribe(&mut client, &run_id).await;
-    let events = client.events_until_end(Duration::from_secs(120)).await;
+    let subscription = client.subscribe(&run_id).await;
+    let events = client
+        .events_until_end(&run_id, &subscription, Duration::from_secs(120))
+        .await;
     report(&events);
     assert_eq!(find(&events, "error").unwrap()["kind"], "configuration");
     assert_eq!(find(&events, "turn_finished").unwrap()["status"], "failed");
@@ -283,7 +277,7 @@ async fn g1_cancel_reports_actual_termination() {
         .as_str()
         .expect("run started")
         .to_owned();
-    subscribe(&mut client, &run_id).await;
+    let subscription = client.subscribe(&run_id).await;
     // 세션이 시작된 뒤 취소합니다.
     loop {
         let message = client.receive(Duration::from_secs(60)).await;
@@ -297,7 +291,9 @@ async fn g1_cancel_reports_actual_termination() {
     let cancel = client.call("runs.cancel", json!({"runId": run_id})).await;
     println!("cancel: {cancel}");
     assert_eq!(cancel["result"]["accepted"], true, "{cancel}");
-    let events = client.events_until_end(Duration::from_secs(60)).await;
+    let events = client
+        .events_until_end(&run_id, &subscription, Duration::from_secs(60))
+        .await;
     report(&events);
     assert_eq!(
         find(&events, "turn_finished").unwrap()["status"],

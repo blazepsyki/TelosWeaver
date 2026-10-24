@@ -159,8 +159,8 @@ HOST가 지적한 대로 기존 시험은 미종료·취소 미재현도 통과�
 | 구성 | Adapter 구현 | Core 연결 (`telos_core::integration`) |
 |---|---|---|
 | Claude | integrated (`41139e0`) | **연결됨** (`d3130c1`, G1 판정) |
-| Codex | integrated (`c00d2b0`) | **미연결.** `Phase0Execution`은 Claude만 등록합니다 |
-| Antigravity | integrated (`b0f5b5e`) | **미연결** |
+| Codex | integrated (`c00d2b0`) | **연결됨** (§8.4) |
+| Antigravity | integrated (`b0f5b5e`) | **연결됨** (§8.4) |
 | MASTER·RN·EXT | 미배정 | — |
 
 ### 8.2 Codex·Agy Core 연결 계획 (INTEGRATION)
@@ -179,3 +179,45 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 
 - MASTER(마스터 결정 검증)·RN(RPC)·EXT(Extension 연결)는 미배정입니다. G2는 이 연결 증거까지 필요합니다(Spec §19.5.8).
 - HOST: G1 확인과 REQ-013 ③(`targetPlatform: "undefined"`)을 완료했습니다(통합 `01192ae`). 남은 HOST 일은 Linux·Remote SSH 검증입니다.
+
+### 8.4 Codex·Agy Core 연결 결과
+
+> 2026-10-24 · `ph0/integration-g2` · 기준 `1695844`
+
+§8.2 계획대로 연결했습니다.
+
+| 경로 | 변경 |
+|---|---|
+| `integration/policy.rs` | `CodexPolicy`(모델·`effort`·`runTimeoutSecs`), `AgyPolicy`(모델·`effort`·`mode`·`dataDir`), Provider별 모델 검사, Provider ID별 탐지 결과를 Snapshot에 기록, 승인 Snapshot의 Provider 일치 검사(`authorized`). `CodexLauncher`(Sandbox: 읽기 전용 Run → `read-only`, 쓰기 → `workspace-write`, 승인 `Deny`), `AgyLauncher`(읽기 전용 Run은 CLI 기본 검토 모드, `--add-dir <Workspace>`, `--disable-slash-commands`). Workspace 경로를 `\?\` 없는 일반 형식으로 정규화(`plain_path`) |
+| `integration/mod.rs` | 공통 `discover(provider, cli_rule, 명시 경로)`, `Phase0Execution`이 정책에 있는 세 Provider를 탐지·등록. Agy는 등록 전 `verify_extension_data_dir`로 `--app_data_dir` 수용 확인(거부 시 `unsupported`로 등록하고 `notes`에 기록). 등록하지 못한 Provider 사유를 `notes`로 보고. Codex 소유 Thread Archive용 핸들 보관 |
+| `main.rs` | Provider별 탐지 결과와 `notes` 출력 |
+| `tests/phase0_policy.rs` | Codex·Agy 정책·실행 조건·Provider 교차 사용 거부·잘못된 설정 시험 4개 추가(총 10개) |
+| `tests/phase0_g2.rs` | G2 실환경 시험 4개 |
+| `tests/phase0/client.rs` | 구독 ID로 알림 거르기, Run 도중 구독이 닫히면 `lastSequence`부터 재구독 |
+
+**실환경 결과** (Windows 11, Claude 2.1.310 `haiku`, Codex 0.164.0-alpha.11.1 `gpt-6-luna`/low, Antigravity 1.4.7 `gemini-3.8-flash-low`/low, 한 Daemon 구성):
+
+| 시험 | 결과 |
+|---|---|
+| `g2_each_provider_completes_and_writes_a_result_file` | 세 Provider 모두 탐지(`notes` 없음) → 각자 Workspace에 `result-<provider>.txt` = `pong` 생성 → `turn_finished`(`completed`) → `process_exited`(자식 회수) → `Succeeded` |
+| `g2_codex_and_agy_provider_failures_are_reported` | 없는 모델: Codex `error`(`configuration`) → `failed` → `Failed`(프로세스 exit 0이어도 실패), Agy `error`(`configuration`) → `failed` → `Failed` |
+| `g2_codex_and_agy_cancel_reports_actual_termination` | 두 Provider 모두 `accepted` → `turn_finished`(`cancelled`) → `process_exited`(`killed`, 자식 회수) → `Cancelled` |
+| `g2_daemon_shutdown_cancels_runs_of_every_provider` | 연결 종료 뒤 Codex·Agy 모두 `Running` → Daemon 종료 시 취소 2·미확인 0 → 모두 `Cancelled` |
+
+같은 최종 코드로 G1 5개도 다시 통과했습니다(경로 정규화가 Claude 실행에도 적용되므로). Workspace 시험 127개 통과, 28개 무시(실환경), clippy `-D warnings`·fmt 통과.
+
+**발견과 조치:**
+
+1. **Antigravity가 Workspace 밖(`~/.gemini/antigravity/scratch/`)에 썼습니다.** "쓰기 성공"으로 보고했지만 파일은 Workspace에 없었습니다. 원인은 Windows `canonicalize`가 만든 확장 길이 경로(`\?\C:\...`)를 Antigravity가 작업 영역으로 인식하지 못한 것입니다. Workspace 경로를 일반 형식으로 정규화하고 `--add-dir`로 작업 영역을 명시해 해결했고, 이후 첫 시도에 Workspace 안에 썼습니다. 시험이 `scratch`에 만든 파일 2개는 지웠습니다. **AGY 담당 참고:** AGY 시험은 파일 쓰기 위치를 검사하지 않아 이 문제를 잡지 못했습니다. HOST 참고: 탐지 결과 경로도 같은 `\?\` 형식입니다.
+2. **느린 구독자 종료:** Codex는 토큰 단위로 이벤트를 매우 빠르게 보내, 한 실행에서 Run이 끝나기 전 구독이 닫혔습니다(연결별 송신 대기열 8개). 계약대로 `lastSequence`부터 재구독하도록 시험 클라이언트를 고쳤습니다. **EXT 담당 참고:** Extension도 같은 재구독 처리가 필요합니다. HOST 참고: Codex 스트림에 비해 대기열이 작을 수 있습니다.
+3. **Antigravity 대화 파일 정리:** agy 1.4.7은 대화를 `conversations/<id>.db`(강제 종료 시 `-wal`·`-shm` 잔존)로 저장합니다. 정리 코드가 `<id>.pb`만 지우고 있어 고쳤습니다. **AGY 담당 참고:** `agy_environment.rs`의 `cleanup_session`도 같은 문제가 있습니다.
+
+### 8.5 시험 세션 정리 현황
+
+- **Antigravity:** 시험 세션 6개(`898cc499`·`0d96778a`·`ba7bdfbf`·`69c76b8d`·`79303ad7`·`8a99e97b`)의 `brain/<id>`와 `conversations/<id>.db(-wal/-shm)`를 지웠습니다. `e386a213-d36d-4557-b06c-4be82ad0029f`(19:51 생성)는 첫 실행 시간대지만 내용으로 시험 세션임을 확인하지 못해 남겼습니다. `conversation_summaries.db`의 요약 기록은 남습니다.
+- **Codex:** 정상 종료한 시험의 Thread는 Adapter가 Archive했습니다. 어설션 실패로 정리 전에 끝난 실행의 Thread는 Archive되지 않았습니다. Adapter는 자기가 만든 Thread만 Archive하므로 새 프로세스에서 처리할 수 없습니다: `01a16d89-0038-76f0-9808-394029b8b859`, `01a16d89-a725-7fa2-87a5-db7aa1e0b16d`, `01a16d8d-d8dd-7cd2-a989-fca583d11bb3`, `01a16d93-e562-7fa0-9027-567f49234a68`, 첫 실행 완료 시험의 Thread 1개(ID 미수집). 이후 완료 시험은 판정 전에 정리하도록 고쳤습니다.
+- **Claude (Archive 대상):** G2 `ec6e79e0-ede3-43b7-8ca3-7054cb1efd8a`, `3ff7f760-79e6-4353-b913-4d6f936387ce`, `741d5dc4-852d-4224-8247-7e35864fb167`, `6f011265-1c46-4e1d-996a-d78874a978d1`, `d1e1169c-db12-485f-a358-2b43970cc55f`. G1 재검증 `cac0203e-5074-4aea-abe0-dd6bc4502940`, `2c8a9a43-6840-4edf-a063-3449a4aaba83`, `88c6b64a-9c99-4a87-827c-5d96c21d85a4`, `194594cb-364c-4498-9e70-3f4e715c5e13`.
+
+### 8.6 G2 남은 조건
+
+세 Provider의 Core 연결은 끝났습니다. G2 판정에는 MASTER(마스터 결정 검증)·RN(RPC)·EXT(Extension 연결) 증거가 더 필요하며 세 작업은 미배정입니다.

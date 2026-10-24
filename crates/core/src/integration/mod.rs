@@ -3,30 +3,40 @@
 //! - [`LocalRunPolicy`]: 운영자가 `serve --policy <file>`로 준 설정 파일만 근거로 Run을 승인합니다.
 //!   Local API 클라이언트가 보낸 경로·권한을 그대로 믿지 않습니다 (§7.2, §9.1).
 //!   정식 정책·Snapshot 서비스는 MASTER(`core/policy`)와 P0 구현이 대체합니다.
-//! - [`ClaudeLauncher`]: 승인 때 기록한 Snapshot으로 Claude 실행 조건을 만듭니다.
-//! - [`discover_claude`]: §7.5 탐지로 확장의 Claude CLI를 찾습니다.
+//! - [`ClaudeLauncher`]·[`CodexLauncher`]·[`AgyLauncher`]: 승인 때 기록한 Snapshot으로 Provider별 실행 조건을 만듭니다.
+//! - [`discover`]: §7.5 탐지로 확장의 Provider CLI를 찾습니다.
 //! - [`TrackedAdapter`]: Daemon 종료 시 활성 Run을 취소하고 실제 종료 이벤트를 확인합니다.
 
 mod policy;
 mod tracked;
 
 pub use policy::{
-    ClaudeLauncher, ClaudePolicy, LocalPolicyConfig, LocalRunPolicy, RunSnapshot, WorkspaceGrant,
+    AgyDataDir, AgyLauncher, AgyPolicy, ClaudeLauncher, ClaudePolicy, CodexLauncher, CodexPolicy,
+    LocalPolicyConfig, LocalRunPolicy, RunSnapshot, WorkspaceGrant,
 };
 pub use tracked::{ShutdownReport, TrackedAdapter};
 
 use std::{
+    collections::HashMap,
     path::PathBuf,
     sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use telos_adapters::{
-    AgentAdapter, ClaudeCodeAdapter, CliDiscoverer, DiscoveryRequest, NativeCliDiscoverer,
-    claude::{ClaudeCodeConfig, cli_rule},
+    AgentAdapter, AgyAdapter, ClaudeCodeAdapter, CliDiscoverer, CodexAdapter, DiscoveryRequest,
+    NativeCliDiscoverer, ProviderCliRule,
+    agy::{AgyConfig, AgyDataDirMode},
+    claude::ClaudeCodeConfig,
+    codex::CodexConfig,
     runtime::ProcessRuntime,
 };
 use telos_schema::{CliDiscovery, CliDiscoveryFailure, CliDiscoveryOutcome};
+
+/// 취소 시 정상 종료를 기다리는 시간. 지나면 강제 종료합니다.
+const CANCEL_GRACE: Duration = Duration::from_secs(5);
+/// Codex App Server 요청 하나의 제한 시간.
+const CODEX_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// 실행 Host의 VS Code `targetPlatform`.
 pub fn target_platform() -> Option<&'static str> {
@@ -56,15 +66,17 @@ fn extension_roots(home: &std::path::Path) -> Vec<PathBuf> {
     roots
 }
 
-/// 확장의 Claude CLI를 찾습니다. `explicit`은 운영자 설정의 명시 경로입니다 (§7.5-4).
-pub async fn discover_claude(
+/// 확장의 Provider CLI를 찾습니다. `rule`은 Provider 모듈의 `cli_rule`, `explicit`은 운영자 설정의 명시 경로입니다 (§7.5-4).
+pub async fn discover(
     runtime: Arc<dyn ProcessRuntime>,
     host_id: &str,
+    provider_id: &str,
+    rule: fn(&str) -> Option<ProviderCliRule>,
     explicit: Option<PathBuf>,
 ) -> CliDiscovery {
     let checked_at = timestamp();
     let unavailable = |failure, reason: &str| CliDiscovery {
-        provider_id: telos_adapters::claude::PROVIDER_ID.into(),
+        provider_id: provider_id.into(),
         host_id: host_id.into(),
         checked_at: checked_at.clone(),
         outcome: CliDiscoveryOutcome::Unavailable {
@@ -79,11 +91,8 @@ pub async fn discover_claude(
             "unknown host platform",
         );
     };
-    let Some(rule) = cli_rule(platform) else {
-        return unavailable(
-            CliDiscoveryFailure::UnsupportedPlatform,
-            "no Claude CLI rule",
-        );
+    let Some(rule) = rule(platform) else {
+        return unavailable(CliDiscoveryFailure::UnsupportedPlatform, "no CLI rule");
     };
     let Some(home) = home_dir() else {
         return unavailable(CliDiscoveryFailure::IoError, "home directory is unknown");
@@ -98,25 +107,8 @@ pub async fn discover_claude(
         checked_at: checked_at.clone(),
     };
     NativeCliDiscoverer::new(runtime)
-        .discover(telos_adapters::claude::PROVIDER_ID, &rule, &request)
+        .discover(provider_id, &rule, &request)
         .await
-}
-
-/// 탐지에 성공했으면 Claude Adapter를 만듭니다. 실패하면 등록하지 않습니다(`provider is not registered`).
-pub fn claude_adapter(
-    discovery: &CliDiscovery,
-    runtime: Arc<dyn ProcessRuntime>,
-    policy: Arc<LocalRunPolicy>,
-) -> Option<Arc<dyn AgentAdapter>> {
-    let cli = discovery.found()?;
-    Some(Arc::new(ClaudeCodeAdapter::new(ClaudeCodeConfig {
-        executable: PathBuf::from(&cli.executable_path),
-        cli_version: cli.cli_version.clone(),
-        host_id: discovery.host_id.clone(),
-        runtime,
-        launcher: Arc::new(ClaudeLauncher::new(policy)),
-        cancel_grace: Duration::from_secs(5),
-    })))
 }
 
 /// Daemon의 실행 구성입니다. 정책 파일이 없으면 모든 Run을 거부합니다(`DenyRuns`).
@@ -124,7 +116,12 @@ pub struct Phase0Execution {
     pub supervisor: Arc<crate::execution::ExecutionSupervisor>,
     /// 등록한 Provider Adapter. 종료 시 활성 Run을 정리합니다.
     pub adapters: Vec<Arc<TrackedAdapter>>,
-    pub claude_discovery: Option<CliDiscovery>,
+    /// 정책에 있는 Provider의 CLI 탐지 결과.
+    pub discoveries: Vec<CliDiscovery>,
+    /// Codex 시험 Thread의 Archive(소유 Thread만)에 씁니다.
+    pub codex: Option<Arc<CodexAdapter>>,
+    /// Provider를 등록하지 않았거나 일부 기능을 막은 사유. 운영자에게 보여 줍니다.
+    pub notes: Vec<String>,
     pub policy_revision: Option<String>,
 }
 
@@ -144,41 +141,160 @@ impl Phase0Execution {
                     Arc::new(DenyRuns),
                 )),
                 adapters: vec![],
-                claude_discovery: None,
+                discoveries: vec![],
+                codex: None,
+                notes: vec![],
                 policy_revision: None,
             });
         };
         let (config, revision) = LocalPolicyConfig::load(path)?;
         let runtime: Arc<dyn ProcessRuntime> = Arc::new(telos_adapters::runtime::NativeRuntime);
-        let discovery = match &config.claude {
-            Some(claude) => {
-                Some(discover_claude(runtime.clone(), &host_id, claude.executable.clone()).await)
-            }
-            None => None,
-        };
+
+        let mut discoveries = HashMap::new();
+        if let Some(claude) = &config.claude {
+            let found = discover(
+                runtime.clone(),
+                &host_id,
+                telos_adapters::claude::PROVIDER_ID,
+                telos_adapters::claude::cli_rule,
+                claude.executable.clone(),
+            )
+            .await;
+            discoveries.insert(telos_adapters::claude::PROVIDER_ID.to_owned(), found);
+        }
+        if let Some(codex) = &config.codex {
+            let found = discover(
+                runtime.clone(),
+                &host_id,
+                telos_adapters::codex::PROVIDER_ID,
+                telos_adapters::codex::cli_rule,
+                codex.executable.clone(),
+            )
+            .await;
+            discoveries.insert(telos_adapters::codex::PROVIDER_ID.to_owned(), found);
+        }
+        if let Some(agy) = &config.agy {
+            let found = discover(
+                runtime.clone(),
+                &host_id,
+                telos_adapters::agy::PROVIDER_ID,
+                telos_adapters::agy::cli_rule,
+                agy.executable.clone(),
+            )
+            .await;
+            discoveries.insert(telos_adapters::agy::PROVIDER_ID.to_owned(), found);
+        }
+
+        let agy_data_dir = config.agy.as_ref().map(|a| a.data_dir);
         let policy = Arc::new(LocalRunPolicy::new(
             config,
             revision.clone(),
-            discovery.clone(),
+            discoveries.clone(),
         ));
-        let adapters: Vec<_> = discovery
-            .as_ref()
-            .and_then(|d| claude_adapter(d, runtime, policy.clone()))
-            .map(TrackedAdapter::new)
-            .into_iter()
-            .collect();
-        let registered = adapters
+        let mut registered: Vec<Arc<dyn AgentAdapter>> = Vec::new();
+        let mut notes = Vec::new();
+        let mut codex_handle = None;
+
+        if let Some(cli) = discoveries
+            .get(telos_adapters::claude::PROVIDER_ID)
+            .and_then(CliDiscovery::found)
+        {
+            registered.push(Arc::new(ClaudeCodeAdapter::new(ClaudeCodeConfig {
+                executable: PathBuf::from(&cli.executable_path),
+                cli_version: cli.cli_version.clone(),
+                host_id: host_id.clone(),
+                runtime: runtime.clone(),
+                launcher: Arc::new(ClaudeLauncher::new(policy.clone())),
+                cancel_grace: CANCEL_GRACE,
+            })));
+        }
+        if let Some(cli) = discoveries
+            .get(telos_adapters::codex::PROVIDER_ID)
+            .and_then(CliDiscovery::found)
+        {
+            let codex = Arc::new(CodexAdapter::new(CodexConfig {
+                executable: PathBuf::from(&cli.executable_path),
+                cli_version: cli.cli_version.clone(),
+                host_id: host_id.clone(),
+                runtime: runtime.clone(),
+                launcher: Arc::new(CodexLauncher::new(policy.clone())),
+                request_timeout: CODEX_REQUEST_TIMEOUT,
+                cancel_grace: CANCEL_GRACE,
+            }));
+            codex_handle = Some(codex.clone());
+            registered.push(codex);
+        }
+        if let (Some(cli), Some(data_dir)) = (
+            discoveries
+                .get(telos_adapters::agy::PROVIDER_ID)
+                .and_then(CliDiscovery::found),
+            agy_data_dir,
+        ) {
+            let executable = PathBuf::from(&cli.executable_path);
+            let (data_dir_mode, option_supported) = match data_dir {
+                AgyDataDir::Default => (AgyDataDirMode::DefaultCli, true),
+                AgyDataDir::Extension => {
+                    // §7.5 확정 규칙: 실행 전 옵션 수용을 확인하고, 거부되면 다른 디렉터리로 바꾸지 않습니다.
+                    let checked = AgyAdapter::verify_extension_data_dir(
+                        runtime.as_ref(),
+                        &executable,
+                        &std::env::temp_dir(),
+                    )
+                    .await;
+                    if let Err(error) = &checked {
+                        notes.push(format!(
+                            "agy: --app_data_dir is not accepted; runs are unsupported ({error})"
+                        ));
+                    }
+                    (AgyDataDirMode::ExtensionShared, checked.is_ok())
+                }
+            };
+            registered.push(Arc::new(AgyAdapter::new(AgyConfig {
+                executable,
+                cli_version: cli.cli_version.clone(),
+                host_id: host_id.clone(),
+                runtime: runtime.clone(),
+                launcher: Arc::new(AgyLauncher::new(policy.clone())),
+                cancel_grace: CANCEL_GRACE,
+                data_dir_mode,
+                data_dir_option_supported: option_supported,
+            })));
+        }
+        for discovery in discoveries.values() {
+            if let CliDiscoveryOutcome::Unavailable {
+                failure, reason, ..
+            } = &discovery.outcome
+            {
+                notes.push(format!(
+                    "{}: not registered ({failure:?}: {reason})",
+                    discovery.provider_id
+                ));
+            }
+        }
+
+        let adapters: Vec<_> = registered.into_iter().map(TrackedAdapter::new).collect();
+        let tracked = adapters
             .iter()
             .map(|a| a.clone() as Arc<dyn AgentAdapter>)
             .collect();
+        let mut discoveries: Vec<_> = discoveries.into_values().collect();
+        discoveries.sort_by(|a, b| a.provider_id.cmp(&b.provider_id));
         Ok(Self {
             supervisor: Arc::new(ExecutionSupervisor::new(
-                project_id, host_id, registered, policy,
+                project_id, host_id, tracked, policy,
             )),
             adapters,
-            claude_discovery: discovery,
+            discoveries,
+            codex: codex_handle,
+            notes,
             policy_revision: Some(revision),
         })
+    }
+
+    pub fn discovery(&self, provider_id: &str) -> Option<&CliDiscovery> {
+        self.discoveries
+            .iter()
+            .find(|d| d.provider_id == provider_id)
     }
 
     /// 활성 Run을 취소하고 종료를 확인합니다. 확인하지 못한 Run이 있으면 보고합니다.

@@ -59,19 +59,24 @@ async fn run() -> Result<(), String> {
         .ok_or("host ID is required")?;
     let policy = options.remove("--policy").map(PathBuf::from);
     let execution = Phase0Execution::build(project_id, host_id, policy.as_deref()).await?;
-    if let Some(discovery) = &execution.claude_discovery {
+    for discovery in &execution.discoveries {
         match &discovery.outcome {
             CliDiscoveryOutcome::Found { cli } => println!(
-                "{}: claude {} ({:?})",
+                "{}: {} {} ({:?})",
                 telos_core::SERVICE_ID,
+                discovery.provider_id,
                 cli.cli_version,
                 cli.source
             ),
             CliDiscoveryOutcome::Unavailable { failure, .. } => println!(
-                "{}: claude unavailable ({failure:?})",
-                telos_core::SERVICE_ID
+                "{}: {} unavailable ({failure:?})",
+                telos_core::SERVICE_ID,
+                discovery.provider_id
             ),
         }
+    }
+    for note in &execution.notes {
+        println!("{}: {note}", telos_core::SERVICE_ID);
     }
     let server = ApiServer::start(
         ApiServerConfig::new(project_root),
