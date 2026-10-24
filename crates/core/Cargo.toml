@@ -14,3 +14,8 @@ telos-schema.workspace = true
 [[bin]]
 name = "telos-weaver"
 path = "src/main.rs"
+
+[dev-dependencies]
+async-trait.workspace = true
+futures.workspace = true
+tokio = { workspace = true, features = ["macros", "rt", "sync"] }
