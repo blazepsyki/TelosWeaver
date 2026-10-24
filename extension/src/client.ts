@@ -130,7 +130,11 @@ export class CoreClient extends EventEmitter {
       });
     });
   }
-  request(method: ApiMethod, params: unknown): Promise<unknown> {
+  request(
+    method: ApiMethod,
+    params: unknown,
+    accepted?: (result: unknown) => void,
+  ): Promise<unknown> {
     if (this.ended)
       return Promise.reject(
         new ConnectionError("unavailable", "Core 연결이 없습니다."),
@@ -159,7 +163,19 @@ export class CoreClient extends EventEmitter {
           ),
         this.timeoutMs,
       );
-      this.pending.set(requestId, { resolve, reject, timer });
+      this.pending.set(requestId, {
+        resolve: (result) => {
+          // Bind subscription IDs before parsing same-chunk notifications (§17, REQ-016).
+          try {
+            accepted?.(result);
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        },
+        reject,
+        timer,
+      });
       this.socket.write(frame, (error) => {
         if (error)
           this.finish(

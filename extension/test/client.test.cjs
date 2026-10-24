@@ -182,3 +182,16 @@ test("disconnect during a partial frame rejects instead of accepting a truncated
     (e) => e.code === "protocol",
   );
 });
+
+test("pending requests remain bounded while subscription responses are delayed", async (t) => {
+  const fixture = await server(() => {});
+  t.after(fixture.close);
+  const client = await CoreClient.connect(fixture.address);
+  t.after(() => client.close());
+  const pending = Promise.allSettled(Array.from({ length: 32 }, () =>
+    client.request("runs.subscribe", { runId: "fixture", afterSequence: 0 })));
+  await assert.rejects(client.request("runs.subscribe", { runId: "overflow", afterSequence: 0 }),
+    (error) => error.code === "limit");
+  client.close();
+  assert.ok((await pending).every((result) => result.status === "rejected"));
+});

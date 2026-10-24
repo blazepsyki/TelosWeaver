@@ -99,33 +99,7 @@ export class CoreConnection extends EventEmitter {
           }
         }
       }
-      if (generation !== this.generation) {
-        client.close();
-        return;
-      }
-      this.update({ phase: "connecting", root: location.root, hello });
-      this.client = client;
-      client.on("closed", (error) => {
-        if (generation !== this.generation) return;
-        this.client = undefined;
-        clearInterval(this.heartbeat);
-        this.update({
-          ...this.state,
-          phase: "error",
-          message: safeMessage(error),
-        });
-        if (
-          error instanceof ConnectionError &&
-          ["unavailable", "timeout"].includes(error.code)
-        )
-          this.scheduleReconnect(generation);
-      });
-      await this.refresh();
-      if (generation !== this.generation) return;
-      this.heartbeat = setInterval(() => {
-        void this.refresh().catch(() => {});
-      }, 5000);
-      this.heartbeat.unref();
+      await this.useClient(location, client, hello, generation);
     } catch (error) {
       if (generation === this.generation) {
         this.client?.close();
@@ -136,6 +110,40 @@ export class CoreConnection extends EventEmitter {
         ? error
         : new ConnectionError("configuration", safeMessage(error));
     }
+  }
+  // Initial connections and reconnects share ownership and Health checks (§17, REQ-016).
+  private async useClient(
+    location: Locations,
+    client: CoreClient,
+    hello: HelloResult,
+    generation: number,
+  ): Promise<void> {
+    if (generation !== this.generation) {
+      client.close();
+      return;
+    }
+    this.client = client;
+    this.update({ phase: "connecting", root: location.root, hello });
+    client.on("closed", (error) => {
+      if (generation !== this.generation || client !== this.client) return;
+      this.client = undefined;
+      clearInterval(this.heartbeat);
+      this.heartbeat = undefined;
+      this.update({ ...this.state, phase: "error", message: safeMessage(error) });
+      if (
+        error instanceof ConnectionError &&
+        ["unavailable", "timeout"].includes(error.code)
+      )
+        this.scheduleReconnect(generation);
+    });
+    await this.refresh();
+    if (generation !== this.generation || client !== this.client) return;
+    // A valid degraded Health is also a successful connection; count consecutive failures only.
+    this.failures = 0;
+    this.heartbeat = setInterval(() => {
+      void this.refresh().catch(() => {});
+    }, 5000);
+    this.heartbeat.unref();
   }
   private async attach(
     location: Locations,
@@ -239,32 +247,7 @@ export class CoreConnection extends EventEmitter {
         try {
           const location = await locations(target.root, target.options.env);
           const { client, hello } = await this.attach(location, target.options);
-          if (generation !== this.generation) {
-            client.close();
-            return;
-          }
-          this.update({ phase: "connecting", root: location.root, hello });
-          this.client = client;
-          client.on("closed", (error) => {
-            if (generation !== this.generation) return;
-            this.client = undefined;
-            clearInterval(this.heartbeat);
-            this.update({
-              ...this.state,
-              phase: "error",
-              message: safeMessage(error),
-            });
-            if (
-              error instanceof ConnectionError &&
-              ["unavailable", "timeout"].includes(error.code)
-            )
-              this.scheduleReconnect(generation);
-          });
-          await this.refresh();
-          this.heartbeat = setInterval(() => {
-            void this.refresh().catch(() => {});
-          }, 5000);
-          this.heartbeat.unref();
+          await this.useClient(location, client, hello, generation);
         } catch (error) {
           if (generation === this.generation) {
             this.update({
