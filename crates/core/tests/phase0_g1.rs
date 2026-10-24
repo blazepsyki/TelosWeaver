@@ -20,7 +20,7 @@ use telos_core::{
     api::{ApiServer, ApiServerConfig},
     integration::Phase0Execution,
 };
-use telos_schema::{TaskSpec, WorkspaceMode, fixtures};
+use telos_schema::{RunStatus, TaskSpec, WorkspaceMode, fixtures};
 
 struct Setup {
     root: PathBuf,
@@ -157,6 +157,40 @@ fn find<'a>(events: &'a [Value], kind: &str) -> Option<&'a Value> {
         .map(|e| &e["payload"])
 }
 
+/// 마지막 이벤트 전달과 실행 감독의 최종 상태 갱신은 경합할 수 있으므로 제한 시간 안에서 다시 조회합니다.
+/// 상태는 계약의 `RunStatus` Wire 값과 정확히 비교합니다 (REQ-015).
+async fn wait_status(client: &mut Client, run_id: &str, expected: RunStatus) -> Value {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+    loop {
+        let inspect = client.call("runs.inspect", json!({"runId": run_id})).await;
+        if inspect["result"]["status"] == json!(expected) {
+            println!("inspect: {inspect}");
+            return inspect;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "expected {expected:?}, last inspect: {inspect}"
+        );
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+}
+
+async fn wait_supervisor_status(setup: &Setup, run_id: &str, expected: RunStatus) {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+    loop {
+        let state = setup.execution.supervisor.inspect(run_id).unwrap();
+        if state.status == expected {
+            println!("supervisor: {state:?}");
+            return;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "expected {expected:?}, last state: {state:?}"
+        );
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+}
+
 /// G1: 시작 → 이벤트 → 완료 → 결과(파일 산출물) → 실행 감독 상태.
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "runs the real Claude Code CLI"]
@@ -197,10 +231,8 @@ async fn g1_completed_run_produces_result_file() {
     let result = std::fs::read_to_string(setup.workspace.join("result.txt")).unwrap();
     assert_eq!(result.trim(), "pong");
 
-    let inspect = client.call("runs.inspect", json!({"runId": run_id})).await;
-    println!("inspect: {inspect}");
+    let inspect = wait_status(&mut client, &run_id, RunStatus::Succeeded).await;
     assert_eq!(inspect["result"]["lastSequence"], events.len());
-    assert_ne!(inspect["result"]["status"], "running");
 }
 
 /// G1: Provider 실패는 실패한 Turn으로 보고되고 성공으로 기록되지 않습니다.
@@ -220,9 +252,8 @@ async fn g1_provider_failure_is_reported() {
     assert_eq!(find(&events, "error").unwrap()["kind"], "configuration");
     assert_eq!(find(&events, "turn_finished").unwrap()["status"], "failed");
     assert_ne!(find(&events, "process_exited").unwrap()["exitCode"], 0);
-    let inspect = client.call("runs.inspect", json!({"runId": run_id})).await;
-    println!("inspect: {inspect}");
-    assert_ne!(inspect["result"]["status"], "running");
+    let inspect = wait_status(&mut client, &run_id, RunStatus::Failed).await;
+    assert_eq!(inspect["result"]["lastSequence"], events.len());
 }
 
 /// G1: 정책이 허용하지 않은 요청은 프로세스를 만들지 않고 거부합니다.
@@ -245,7 +276,7 @@ async fn g1_cancel_reports_actual_termination() {
     let mut client = setup.client().await;
     let t = task(
         "g1-cancel",
-        "Write the numbers from 1 to 400, one per line, with no other text. Do not use tools.",
+        "Write the numbers from 1 to 1500, one per line, with no other text. Do not use tools.",
     );
     let started = start(&mut client, &t, "g1-cancel:1").await;
     let run_id = started["result"]["runId"]
@@ -265,16 +296,24 @@ async fn g1_cancel_reports_actual_termination() {
     }
     let cancel = client.call("runs.cancel", json!({"runId": run_id})).await;
     println!("cancel: {cancel}");
+    assert_eq!(cancel["result"]["accepted"], true, "{cancel}");
     let events = client.events_until_end(Duration::from_secs(60)).await;
     report(&events);
+    assert_eq!(
+        find(&events, "turn_finished").unwrap()["status"],
+        "cancelled",
+        "the cancellation must actually interrupt the turn"
+    );
     let exit = find(&events, "process_exited").unwrap();
-    assert_eq!(exit["childrenReaped"], true);
-    if find(&events, "turn_finished").unwrap()["status"] == "cancelled" {
-        assert!(matches!(
+    assert!(
+        matches!(
             exit["termination"].as_str(),
             Some("terminated_on_request" | "killed")
-        ));
-    }
+        ),
+        "{exit}"
+    );
+    assert_eq!(exit["childrenReaped"], true);
+    wait_status(&mut client, &run_id, RunStatus::Cancelled).await;
 }
 
 /// Daemon 종료: 활성 Run을 취소하고 종료를 확인합니다. API 연결 종료만으로는 취소하지 않습니다.
@@ -285,7 +324,7 @@ async fn g1_daemon_shutdown_cancels_active_runs() {
     let mut client = setup.client().await;
     let t = task(
         "g1-shutdown",
-        "Write the numbers from 1 to 400, one per line, with no other text. Do not use tools.",
+        "Write the numbers from 1 to 1500, one per line, with no other text. Do not use tools.",
     );
     let started = start(&mut client, &t, "g1-shutdown:1").await;
     let run_id = started["result"]["runId"]
@@ -296,11 +335,16 @@ async fn g1_daemon_shutdown_cancels_active_runs() {
     tokio::time::sleep(Duration::from_secs(2)).await;
     let state = setup.execution.supervisor.inspect(&run_id).unwrap();
     println!("after client disconnect: {state:?}");
+    assert_eq!(
+        state.status,
+        RunStatus::Running,
+        "closing the API connection must not cancel the run"
+    );
 
     setup.server.take().unwrap().shutdown().await.unwrap();
     let report = setup.execution.shutdown(Duration::from_secs(20)).await;
     println!("shutdown: {report:?}");
+    assert_eq!(report.cancelled, 1);
     assert!(report.unconfirmed.is_empty());
-    let state = setup.execution.supervisor.inspect(&run_id).unwrap();
-    println!("after shutdown: {state:?}");
+    wait_supervisor_status(&setup, &run_id, RunStatus::Cancelled).await;
 }
