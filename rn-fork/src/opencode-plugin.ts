@@ -1,5 +1,5 @@
-// reason network for opencode: written by `reason network setup`, removed by `reason uninstall`.
-// Reports each session's busy/idle state and what it is doing (its title and todo in progress) to reason network, and
+// telos-rn for opencode: written by `telos-rn setup`, removed by `telos-rn setup --remove`.
+// Reports each session's busy/idle state and what it is doing (its title and todo in progress) to telos-rn, and
 // delivers teammates' messages into idle sessions, on opencode 1.x and 2.x.
 import type { Plugin } from "@opencode-ai/plugin"
 import { execFile } from "node:child_process"
@@ -119,7 +119,7 @@ const STATE: Record<string, string> = {
 
 // opencode 1.x calls `server`, 2.x calls `setup`.
 export default {
-  id: "reason-network",
+  id: "telos-rn",
   server: ReasonNetwork,
   setup: (ctx: any) => {
     // 1.x calls this too, with a context that has no events; it runs `server` instead.

@@ -447,7 +447,7 @@ fn clip(text: &str, max: usize) -> String {
 }
 
 /// The program that shows the question, or finds where to: in a release build only the system's own, so an agent can't
-/// start this machine's engine with one that answers for its person. (Debug builds take `REASON_NETWORK_<NAME>_BIN`.)
+/// start this machine's engine with one that answers for its person. (Debug builds take `TELOS_RN_<NAME>_BIN`.)
 pub(super) fn asker_bin(name: &str, system: &[&str]) -> Option<std::path::PathBuf> {
     if cfg!(debug_assertions) {
         return crate::agent::find_bin(name);
@@ -490,11 +490,11 @@ fn dialog(title: &str, request: &str, question: &str) -> Option<Command> {
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 Add-Type -WarningAction SilentlyContinue -ReferencedAssemblies System.Windows.Forms -TypeDefinition 'public class AskPanel : System.Windows.Forms.Form { protected override bool ShowWithoutActivation { get { return true; } } }'
 $f = New-Object AskPanel
-$f.Text = $env:TINCAN_TITLE; $f.TopMost = $true; $f.StartPosition = 'CenterScreen'; $f.FormBorderStyle = 'FixedDialog'
+$f.Text = $env:TELOS_RN_TITLE; $f.TopMost = $true; $f.StartPosition = 'CenterScreen'; $f.FormBorderStyle = 'FixedDialog'
 $f.MinimizeBox = $false; $f.MaximizeBox = $false; $f.AutoSize = $true; $f.AutoSizeMode = 'GrowAndShrink'; $f.Padding = 12
 $l = New-Object Windows.Forms.FlowLayoutPanel; $l.FlowDirection = 'TopDown'; $l.AutoSize = $true
 $q = New-Object Windows.Forms.Label; $q.UseMnemonic = $false; $q.UseCompatibleTextRendering = $false; $q.AutoSize = $true; $q.MaximumSize = '420,320'
-$req = [Globalization.StringInfo]::new([string]$env:TINCAN_REQUEST); $ask = [Globalization.StringInfo]::new([string]$env:TINCAN_QUESTION)
+$req = [Globalization.StringInfo]::new([string]$env:TELOS_RN_REQUEST); $ask = [Globalization.StringInfo]::new([string]$env:TELOS_RN_QUESTION)
 $reqShown = $req.LengthInTextElements; $askShown = $ask.LengthInTextElements
 # Cut and shown by text elements, so a mark stays with its letter; counted in characters, as the engine counts.
 $cut = { param($s, $k) if ($k -ge $s.LengthInTextElements) { $s.String } elseif ($k -le 0) { [string][char]0x2026 } else { $s.SubstringByTextElements(0, $k).TrimEnd() + [char]0x2026 } }
@@ -515,13 +515,13 @@ $f.AcceptButton = $yes; $f.CancelButton = $no; $f.ActiveControl = $note
 $script:choice = ''
 $yes.Add_Click({ $script:choice = 'approve'; $script:said = $note.Text; $f.Close() })
 $no.Add_Click({ $script:choice = 'deny'; $script:said = $note.Text; $f.Close() })
-$t = New-Object Windows.Forms.Timer; $t.Interval = [int]$env:TINCAN_SECS * 1000; $t.Add_Tick({ $f.Close() }); $t.Start()
+$t = New-Object Windows.Forms.Timer; $t.Interval = [int]$env:TELOS_RN_SECS * 1000; $t.Add_Tick({ $f.Close() }); $t.Start()
 [Windows.Forms.Application]::Run($f)
 if ($script:choice) { "$($script:choice)`n$(& $chars $req $reqShown)`n$(& $chars $ask $askShown)`n$($script:said)" }"#;
     let powershell = asker_bin("powershell", &[r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"])?;
     let mut cmd = super::notify::powershell_at(powershell, PANEL);
-    cmd.env("TINCAN_TITLE", title).env("TINCAN_REQUEST", request).env("TINCAN_QUESTION", question);
-    cmd.env("TINCAN_SECS", OPEN_SECS.to_string());
+    cmd.env("TELOS_RN_TITLE", title).env("TELOS_RN_REQUEST", request).env("TELOS_RN_QUESTION", question);
+    cmd.env("TELOS_RN_SECS", OPEN_SECS.to_string());
     Some(cmd)
 }
 

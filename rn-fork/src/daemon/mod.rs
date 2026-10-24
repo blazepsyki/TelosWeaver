@@ -36,7 +36,7 @@ use tokio::{
 const GIT_TTL: Duration = Duration::from_secs(30);
 const MAX_WAIT: u64 = 600;
 
-/// Runs the daemon. Only one runs per state folder (`REASON_NETWORK_HOME`): a second one exits, or with `service` waits its turn.
+/// Runs the daemon. Only one runs per state folder (`TELOS_RN_HOME`): a second one exits, or with `service` waits its turn.
 pub async fn run(service: bool) -> Result<()> {
     // Windows runs what starts at logon in a console window of its own: carry on in a hidden process instead.
     #[cfg(windows)]
@@ -144,7 +144,7 @@ struct Inner {
 struct Live {
     reg: SessionReg,
     name: String,
-    /// The client connection (`reason network mcp`) that owns it; `None` for sessions known only through hooks.
+    /// The client connection (`telos-rn mcp`) that owns it; `None` for sessions known only through hooks.
     conn: Option<u64>,
     git: GitInfo,
     doing: Option<String>,
@@ -346,7 +346,8 @@ impl Daemon {
     /// Keeps Reason's relay list fresh, unless the team runs its own relay. A new list applies at the next start.
     async fn relays_loop(self: Arc<Self>) {
         loop {
-            if self.team_state().is_none_or(|t| t.meta.body.relay.is_none()) {
+            // Only in a team that uses Reason's relays: a machine in no team reaches nothing outside (TelosWeaver fork).
+            if self.team_state().is_some_and(|t| t.meta.body.relay.is_none()) {
                 crate::relays::refresh().await;
             }
             tokio::time::sleep(crate::relays::EVERY).await;
@@ -384,7 +385,7 @@ impl Daemon {
 /// A daemon on an in-memory store, outside any team, with `cfg`.
 #[cfg(test)]
 fn test_daemon(cfg: Config) -> Daemon {
-    let inbox = std::env::temp_dir().join(format!("reason-network-inbox-{}", ulid::Ulid::generate()));
+    let inbox = std::env::temp_dir().join(format!("telos-rn-inbox-{}", ulid::Ulid::generate()));
     let store = Store::open(std::path::Path::new(":memory:"), inbox).unwrap();
     Daemon::with(cfg, store, SecretKey::generate()).unwrap()
 }

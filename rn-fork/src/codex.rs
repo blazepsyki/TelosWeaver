@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn the_last_turn_event_says_whether_a_turn_runs() {
-        let dir = std::env::temp_dir().join(format!("reason-network-codex-turn-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("telos-rn-codex-turn-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("rollout.jsonl");

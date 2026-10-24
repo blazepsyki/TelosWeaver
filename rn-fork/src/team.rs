@@ -62,7 +62,7 @@ pub struct Invite {
     /// blake3 of the secret; the secret itself only travels in the ticket.
     pub hash: String,
     pub expires: i64,
-    /// Set for `reason network invite --me`: only this person can redeem it (adding a machine of their own).
+    /// Set for `telos-rn invite --me`: only this person can redeem it (adding a machine of their own).
     pub person: Option<String>,
     pub used_by: Option<EndpointId>,
     pub ts: i64,
@@ -71,7 +71,7 @@ pub struct Invite {
     pub reusable: bool,
 }
 
-/// The team link's secret, known to every member so any of them can show the link (`reason network link`).
+/// The team link's secret, known to every member so any of them can show the link (`telos-rn link`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Link {
     pub secret: String,

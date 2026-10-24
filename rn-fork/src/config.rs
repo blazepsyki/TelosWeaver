@@ -21,7 +21,7 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub port: Option<u16>,
     pub inbound: Inbound,
-    /// Folders whose sessions stay off the network, e.g. `"~/personal" = "off"` (`reason-network folder`). The deepest
+    /// Folders whose sessions stay off the network, e.g. `"~/personal" = "off"` (`telos-rn folder`). The deepest
     /// entry that holds a session's folder decides; `off` is the only value so far.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub folders: BTreeMap<String, String>,
@@ -36,7 +36,7 @@ pub const BUSY_OFF: &str = "Reason Network can't tell which session this call co
                             agent works in a folder where it is off; try again in a few minutes";
 
 /// What happens to messages from teammates' agents: `accept` delivers them, `hold` waits for you to approve
-/// (`reason-network held`), `refuse` bounces them.
+/// (`telos-rn held`), `refuse` bounces them.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Inbound {
@@ -77,7 +77,7 @@ impl Default for Inbound {
 impl Config {
     pub fn load() -> Self {
         Self::load_strict().unwrap_or_else(|e| {
-            eprintln!("reason-network: ignoring {} (fix or delete it): {e}", paths::config().display());
+            eprintln!("telos-rn: ignoring {} (fix or delete it): {e}", paths::config().display());
             Config::default()
         })
     }
@@ -353,7 +353,7 @@ mod tests {
     }
 
     fn temp() -> std::path::PathBuf {
-        let d = std::env::temp_dir().join(format!("reason-network-folders-{}", ulid::Ulid::generate()));
+        let d = std::env::temp_dir().join(format!("telos-rn-folders-{}", ulid::Ulid::generate()));
         std::fs::create_dir_all(d.join("real").join("personal").join("sub")).unwrap();
         std::fs::create_dir_all(d.join("x")).unwrap();
         d
@@ -405,7 +405,7 @@ mod tests {
         let d = temp();
         let personal = d.join("real").join("personal");
         std::os::unix::fs::symlink(d.join("x"), personal.join("link")).unwrap();
-        // `/tmp` for `/private/tmp`, or a linked home: the folder as `reason-network folder` saves it, links followed.
+        // `/tmp` for `/private/tmp`, or a linked home: the folder as `telos-rn folder` saves it, links followed.
         std::os::unix::fs::symlink(d.join("real"), d.join("outer")).unwrap();
         let entry = real(&personal).display().to_string();
         let cfg = Config { folders: folders(&[(&entry, "off")]), ..Config::default() };

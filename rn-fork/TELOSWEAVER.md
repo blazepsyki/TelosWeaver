@@ -12,7 +12,7 @@ unchanged. Files modified by TelosWeaver are listed in the patch inventory below
 | Upstream tag | `v0.12.11` |
 | Upstream commit | `b3557ff454cd26a04c2a18804ba83ae5db8b119d` |
 | Import method | `git subtree add --prefix=rn-fork <upstream> v0.12.11 --squash` (2026-10-25) |
-| Lockfile | Upstream `Cargo.lock` kept as imported (446 packages) |
+| Lockfile | Upstream `Cargo.lock` as imported (446 packages); only this package's own name changed (PH0-RN-04) |
 | Workspace | Independent Cargo workspace, excluded from the TelosWeaver root workspace |
 
 ## Fork policy (DEC-07)
@@ -25,8 +25,11 @@ Removed from this fork:
 
 Kept: local daemon, SQLite store, local IPC, Claude Code / Codex session discovery and delivery, MCP server and hooks
 (applied only when the user runs `setup` explicitly), network / relay / team / invite features. Automatic login-service
-registration is not used. The binary name, state directory, MCP server name and environment variable prefix will be
-changed so this fork never shares state with an official Reason Network install.
+registration is not used. The binary name, state directory, MCP server name and environment variable prefix are
+`telos-rn` (`~/.telos-rn`, `TELOS_RN_*`), so this fork never shares state with an official Reason Network install.
+Team links are the bare `rn1-…` string. Wire identifiers (ALPNs `tincan/1` / `tincan/join/1`, the entry-signing
+context, invite key derivation, the `rn1-` ticket format) and the relay list's signed format stay as upstream's, as
+upstream's CONTRIBUTING.md requires; user-facing text still calls the product "Reason Network".
 
 Upstream changes are adopted selectively: review the upstream diff, apply only the needed fixes, then repeat the removal
 checks so removed paths are not reintroduced. Full upstream merges and the upstream auto-update are not used.
@@ -48,12 +51,19 @@ checks so removed paths are not reintroduced. Full upstream merges and the upstr
 | 10 | PH0-RN-03 | Removed Reason sign-in proofs: `proof` / `endpoint` commands, `Request::Proof`, `proof` on `CreateTeam` / `Join` and on the join protocol (`JoinRequest.proof`, `owner_only`), team-state `attestations`, verified names (`MachineInfo.verified`, `has_proof`), the same-account join path (`same_account_needs_owner`). Names in a team are unverified; joining is by invite code or team link only | `src/main.rs`, `src/proto.rs`, `src/client.rs`, `src/daemon/mod.rs`, `src/daemon/teamops.rs`, `src/team.rs`, `src/net.rs`, `src/render.rs`, `src/wizard.rs` |
 | 11 | PH0-RN-03 | Split the JWS check that the relay list uses out of `proof.rs` into `signed.rs` (same pinned key, same rules); the test keys moved to `src/testdata/signer.pk8` / `forger.pk8`. `ring` stays for it | `src/proof.rs` → `src/signed.rs`, `src/relays.rs`, `src/testdata/*` |
 | 12 | PH0-RN-03 | Agent skill text no longer sends users to sign in on reasonmachines.com; comments no longer name the Reason CLI | `src/skill.md`, `src/proto.rs`, `src/daemon/mail.rs` |
+| 13 | PH0-RN-04 | Renamed the package and binary to `telos-rn`; `AGENT_NAME` (MCP server, hook, plugin and extension names) is `telos-rn`; environment variables are `TELOS_RN_*` only (no `REASON_NETWORK_*` / `TINCAN_*` fallback); config backups are `<file>.bak-telos-rn`; the macOS tray autosave name is `telos-rn.tray` | `Cargo.toml`, `Cargo.lock`, `src/main.rs`, `src/paths.rs`, `src/setup.rs`, `src/setup/zcode.rs`, `src/daemon/ask.rs`, `src/daemon/notify.rs`, `src/tray.rs`, `src/*.ts`, `src/skill.md` and comments / test names throughout |
+| 14 | PH0-RN-04 | State in `~/.telos-rn` (or `TELOS_RN_HOME`), pipe `\\.\pipe\telos-rn-<hash>`, short socket dir `/tmp/telos-rn-<uid>`; removed the move-over of `~/.tincan` / `tincan.db` / the legacy socket link | `src/paths.rs` (rewritten), `src/main.rs` |
+| 15 | PH0-RN-04 | Removed the tincan (`LEGACY_NAME`) wiring clean-up in `setup` (old MCP servers, hook / plugin / extension files, old backups, the old binary beside this one) | `src/setup.rs`, `src/main.rs` |
+| 16 | PH0-RN-04 | Team links are the bare ticket (`join_url` returns it; `SITE_URL` removed; decoding still takes a whole upstream link); the invite line is `Join the telos-rn team: <link>`; dropped the "send it to your cloud agent" hint | `src/main.rs`, `src/proto.rs`, `src/wizard.rs`, `src/skill.md` |
+| 17 | PH0-RN-04 | `init` / `join` (and the guided flow) no longer wire agents in: `--no-setup`, `setup::quietly` and `set_up_for` in `--json` are gone; they print how to run `setup` | `src/main.rs`, `src/wizard.rs`, `src/setup.rs` |
+| 18 | PH0-RN-04 | The relay list is fetched only by a machine in a team that uses Reason's relays (never in no team) | `src/daemon/mod.rs`, `src/relays.rs` |
+| 19 | PH0-RN-04 | New `README.md` for the fork; fork banners on upstream `DESIGN.md`, `CONTRIBUTING.md`, `SECURITY.md`; `tests/e2e/README.md` marks the upstream scripts unmaintained; removed the upstream banner image | `README.md`, `DESIGN.md`, `CONTRIBUTING.md`, `SECURITY.md`, `tests/e2e/README.md`, `assets/reason-network-banner.png` (deleted) |
 
-Upstream `README.md`, `DESIGN.md` and `tests/e2e/*.py` still describe upstream behavior (install scripts, service,
-sign-in proofs; `tests/e2e/proofs.py` also holds the relay-list signing helpers the other scripts import); they are
-rewritten or dropped with the rename in PH0-RN-04.
+Upstream `tests/e2e/*.py` still use upstream names and removed features; whether to port or drop each is decided in
+PH0-RN-08.
 
 Planned (see `docs/phase-0/evidence/PH0-RN/RN-00/README.md` in the TelosWeaver repository):
 
-- PH0-RN-04: rename binary / state / MCP server / environment variables; fetch the relay list only when in a team;
-  remove the tincan legacy handling (`LEGACY_NAME`); make `init` / `join` stop wiring agents unless `setup` is run.
+- PH0-RN-05: compare message, identity and store semantics with Spec §12.2; decide whether `codex queue` uses the
+  extension's bundled Codex CLI (DEC-06) instead of the one on `PATH`.
+- PH0-RN-06: versioned local RPC (Spec §12.1), Windows pipe DACL.

@@ -36,7 +36,7 @@ const CODEX_TURN_POLL: Duration = Duration::from_secs(2);
 
 /// How a session on this machine gets a message into its conversation.
 enum Channel {
-    /// Its `reason network mcp` posts into Claude Code's session socket.
+    /// Its `telos-rn mcp` posts into Claude Code's session socket.
     ClaudeSocket(u64),
     /// The agent's own CLI: `codex queue --thread <id> --message`.
     Command(&'static str, Vec<String>),
@@ -686,7 +686,7 @@ impl Daemon {
                 messages
             };
             if !messages.is_empty() || tokio::time::Instant::now() >= deadline {
-                // A `reason network listen` session replies with the CLI.
+                // A `telos-rn listen` session replies with the CLI.
                 let text = render::for_agent(&messages, agent.as_deref() == Some("cli"));
                 return Ok(Inbox { messages, text });
             }
@@ -741,9 +741,7 @@ impl Drop for Polling<'_> {
 }
 
 pub(super) fn unregistered() -> anyhow::Error {
-    anyhow!(
-        "this session isn't registered with Reason Network; restart the agent session, or use the reason-network tools"
-    )
+    anyhow!("this session isn't registered with Reason Network; restart the agent session, or use the telos-rn tools")
 }
 
 /// Keeps a field to plain characters, so nothing a peer sends can reshape what agents are shown.
@@ -1057,7 +1055,7 @@ mod tests {
         send("fyi", false).await.unwrap();
         send("wake", true).await.unwrap();
         // Its turn runs.
-        let rollout = std::env::temp_dir().join(format!("reason-network-watch-{}.jsonl", Ulid::generate()));
+        let rollout = std::env::temp_dir().join(format!("telos-rn-watch-{}.jsonl", Ulid::generate()));
         std::fs::write(&rollout, "{\"type\":\"event_msg\",\"payload\":{\"type\":\"task_started\"}}\n").unwrap();
         d.inner.lock().unwrap().live.get_mut("codex:2").unwrap().transcript = Some(rollout.clone());
 

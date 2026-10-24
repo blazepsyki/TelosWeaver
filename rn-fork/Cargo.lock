@@ -2756,39 +2756,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "reason-network"
-version = "0.12.11"
-dependencies = [
- "anyhow",
- "blake3",
- "clap",
- "cliclack",
- "console",
- "data-encoding",
- "deunicode",
- "futures-lite",
- "getrandom 0.4.3",
- "iroh",
- "iroh-mdns-address-lookup",
- "libc",
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
- "ring",
- "rmcp",
- "rusqlite",
- "schemars",
- "serde",
- "serde_json",
- "tokio",
- "toml",
- "toml_edit",
- "tray-icon",
- "ulid",
- "windows-sys 0.61.2",
-]
-
-[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3483,6 +3450,39 @@ checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "telos-rn"
+version = "0.12.11"
+dependencies = [
+ "anyhow",
+ "blake3",
+ "clap",
+ "cliclack",
+ "console",
+ "data-encoding",
+ "deunicode",
+ "futures-lite",
+ "getrandom 0.4.3",
+ "iroh",
+ "iroh-mdns-address-lookup",
+ "libc",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "ring",
+ "rmcp",
+ "rusqlite",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tokio",
+ "toml",
+ "toml_edit",
+ "tray-icon",
+ "ulid",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

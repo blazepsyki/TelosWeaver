@@ -70,7 +70,7 @@ fn apply_in(home: &Path, exe: &Path, remove: bool, dry: bool) -> Result<Report> 
         } else {
             servers.insert(
                 AGENT_NAME.into(),
-                json!({ "type": "stdio", "command": exe.display().to_string(), "args": ["mcp"], "env": { "REASON_NETWORK_AGENT": "zcode" } }),
+                json!({ "type": "stdio", "command": exe.display().to_string(), "args": ["mcp"], "env": { "TELOS_RN_AGENT": "zcode" } }),
             );
         }
         r.lines.push(changed(&path, write_json(&path, &v, dry)?));
@@ -107,7 +107,7 @@ mod tests {
         let h = scratch();
         let [(native, _), (fallback, _)] = files(&h);
         put(&native, r#"{"provider":"keep","mcp":{"other":7,"servers":{"memory":{"command":"npx"}}}}"#);
-        let exe = Path::new("/opt/reason/reason-network");
+        let exe = Path::new("/opt/reason/telos-rn");
         apply_in(&h, exe, false, false).unwrap();
         let once = std::fs::read(&native).unwrap();
         apply_in(&h, exe, false, false).unwrap();
@@ -118,7 +118,7 @@ mod tests {
         assert_eq!(v["mcp"]["servers"][AGENT_NAME]["args"], json!(["mcp"]));
         assert!(!fallback.exists());
         // By name, wherever the binary is now.
-        apply_in(&h, Path::new("/elsewhere/reason-network"), true, false).unwrap();
+        apply_in(&h, Path::new("/elsewhere/telos-rn"), true, false).unwrap();
         assert_eq!(read(&native)["mcp"]["servers"], json!({"memory": {"command": "npx"}}));
         std::fs::remove_dir_all(h).unwrap();
     }
@@ -129,10 +129,10 @@ mod tests {
         let [(native, _), (fallback, _)] = files(&h);
         put(&native, r#"{"mcp":{"servers":{}}}"#);
         put(&fallback, r#"{"mcpServers":{"memory":{"command":"npx"}}}"#);
-        apply_in(&h, Path::new("/opt/reason-network"), false, false).unwrap();
+        apply_in(&h, Path::new("/opt/telos-rn"), false, false).unwrap();
         assert_eq!(read(&native), json!({"mcp": {"servers": {}}}));
         assert!(read(&fallback)["mcpServers"][AGENT_NAME].is_object());
-        apply_in(&h, Path::new("/opt/reason-network"), true, false).unwrap();
+        apply_in(&h, Path::new("/opt/telos-rn"), true, false).unwrap();
         assert_eq!(read(&fallback), json!({"mcpServers": {"memory": {"command": "npx"}}}));
         std::fs::remove_dir_all(h).unwrap();
     }
@@ -141,7 +141,7 @@ mod tests {
     fn moves_to_agents_when_ours_is_all_zcode_has() {
         let h = scratch();
         let [(native, _), (fallback, _)] = files(&h);
-        let exe = Path::new("/opt/reason-network");
+        let exe = Path::new("/opt/telos-rn");
         apply_in(&h, exe, false, false).unwrap();
         put(&fallback, r#"{"mcpServers":{"memory":{"command":"npx"}}}"#);
         apply_in(&h, exe, false, false).unwrap();
@@ -156,7 +156,7 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
         let h = scratch();
         let [(native, _), (fallback, _)] = files(&h);
-        let exe = Path::new("/opt/reason-network");
+        let exe = Path::new("/opt/telos-rn");
         apply_in(&h, exe, false, false).unwrap();
         let before = std::fs::read(&native).unwrap();
         put(&fallback, r#"{"mcpServers":{"memory":{"command":"npx"}}}"#);
@@ -178,13 +178,13 @@ mod tests {
     fn wired_only_where_zcode_reads() {
         let h = scratch();
         let [(native, _), (fallback, _)] = files(&h);
-        let exe = Path::new("/opt/reason-network");
+        let exe = Path::new("/opt/telos-rn");
         assert!(!wired_in(&h, exe));
         apply_in(&h, exe, false, false).unwrap();
         assert!(wired_in(&h, exe));
-        assert!(!wired_in(&h, Path::new("/elsewhere/reason-network")));
+        assert!(!wired_in(&h, Path::new("/elsewhere/telos-rn")));
         // In `.agents`, ours counts only while ZCode's own file has no server.
-        put(&fallback, &json!({"mcpServers": {AGENT_NAME: {"command": "/opt/reason-network"}}}).to_string());
+        put(&fallback, &json!({"mcpServers": {AGENT_NAME: {"command": "/opt/telos-rn"}}}).to_string());
         put(&native, r#"{"mcp":{"servers":{}}}"#);
         assert!(wired_in(&h, exe));
         put(&native, r#"{"mcp":{"servers":{"memory":{"command":"npx"}}}}"#);
@@ -198,7 +198,7 @@ mod tests {
         let [(native, _), _] = files(&h);
         for bad in ["{", "[]", r#"{"mcp":[]}"#, r#"{"mcp":{"servers":false}}"#] {
             put(&native, bad);
-            assert!(apply_in(&h, Path::new("/opt/reason-network"), false, false).is_err());
+            assert!(apply_in(&h, Path::new("/opt/telos-rn"), false, false).is_err());
             assert_eq!(std::fs::read_to_string(&native).unwrap(), bad);
         }
         std::fs::remove_dir_all(h).unwrap();

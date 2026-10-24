@@ -1,4 +1,4 @@
-//! `reason-network hook <agent> <event>`: run by an agent's hook system. Tells the daemon the session is alive (and busy
+//! `telos-rn hook <agent> <event>`: run by an agent's hook system. Tells the daemon the session is alive (and busy
 //! or idle), and prints whatever makes the agent show incoming mail. It never fails loudly: a broken Reason Network must
 //! not break the agent.
 

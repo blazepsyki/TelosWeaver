@@ -1156,7 +1156,7 @@ mod tests {
 
     #[test]
     fn the_way_to_relays_is_kept_for_those_relays_only() {
-        let file = std::env::temp_dir().join(format!("reason-network-route-{}", ulid::Ulid::generate()));
+        let file = std::env::temp_dir().join(format!("telos-rn-route-{}", ulid::Ulid::generate()));
         let url = |u: &str| -> RelayUrl { u.parse().unwrap() };
         let default = [url("https://relay-sfo1.example.com"), url("https://relay-fra1.example.com")];
         let own = [url("https://relay.team.example.com")];

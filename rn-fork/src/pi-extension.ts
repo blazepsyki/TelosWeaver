@@ -1,6 +1,6 @@
-// reason network for pi: written by `reason network setup`, removed by `reason uninstall`.
-// Gives each session reason network's tools (deferred: kept out of the model's context until it looks for them), tells
-// reason network whether the session is busy and what it is called, and delivers teammates' messages into it.
+// telos-rn for pi: written by `telos-rn setup`, removed by `telos-rn setup --remove`.
+// Gives each session telos-rn's tools (deferred: kept out of the model's context until it looks for them), tells
+// telos-rn whether the session is busy and what it is called, and delivers teammates' messages into it.
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 import { execFile } from "node:child_process"
 
@@ -38,10 +38,10 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     id = ctx.sessionManager.getSessionId()
     cwd = ctx.cwd
-    pi.registerMcpServer("reason-network", {
+    pi.registerMcpServer("telos-rn", {
       command: ENGINE,
       args: ["mcp"],
-      env: { REASON_NETWORK_AGENT: "pi", REASON_NETWORK_SESSION: id },
+      env: { TELOS_RN_AGENT: "pi", TELOS_RN_SESSION: id },
       exposure: "deferred",
       description: "Message teammates' coding agents and see what each of their sessions is working on",
     })
