@@ -1,7 +1,7 @@
-# TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.3)
+# TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.4)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.3 (개정 1.3.7)  
+> **문서 버전:** 1.4  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-24  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -9,7 +9,7 @@
 > **초기 UI:** VS Code Extension  
 > **구현 언어:** Core·Provider Adapter·RN Client·공통 Schema는 Rust, VS Code Extension은 TypeScript  
 > **초기 실행 Provider:** OpenAI Codex, Anthropic Claude Code, Google Antigravity CLI(`agy`)  
-> **기준 자료:** [DEVELOPMENT_v1.2.md](archive/DEVELOPMENT_v1.2.md), [DEVELOPMENT_GAP_ANALYSIS.md](archive/DEVELOPMENT_GAP_ANALYSIS.md)
+> **기준 자료:** [DEVELOPMENT_v1.3.md](archive/DEVELOPMENT_v1.3.md) (개정 1.3.8), [DEVELOPMENT_v1.2.md](archive/DEVELOPMENT_v1.2.md), [DEVELOPMENT_GAP_ANALYSIS.md](archive/DEVELOPMENT_GAP_ANALYSIS.md)
 
 ## 변경 이력
 
@@ -18,7 +18,7 @@
 | v1.0 | 2026-10-15 | 코딩 작업, 위임, Git Worktree, 검증·승인, VS Code UI 설계 |
 | v1.1 | 2026-10-22 | 실행과 통신 분리, Reason Network 평가, 세션 정체성·전달 보장 구분 |
 | v1.2 | 2026-10-22 | 범용 Task·Workspace·Artifact·Validation, RN Fork, 세 Provider의 Managed 실행 |
-| **v1.3** | **2026-10-23** | **TelosWeaver 명칭, 마스터 총괄, 구체적인 입출력·승인·상태 계약, 세션 포크·토큰 효율, 지식·템플릿 단계 분리, 기존 코드와 독립된 새 구현** |
+| v1.3 | 2026-10-23 | TelosWeaver 명칭, 마스터 총괄, 구체적인 입출력·승인·상태 계약, 세션 포크·토큰 효율, 지식·템플릿 단계 분리, 기존 코드와 독립된 새 구현 |
 | v1.3.1 | 2026-10-23 | Core 구현 언어를 TypeScript/Node.js에서 Rust로 변경(DEC-05), 계약 타입을 Rust 표기로 전환, Extension 타입 생성 경로 추가, 기존 harness 코드 삭제 반영(DEC-04) |
 | v1.3.2 | 2026-10-24 | Phase 0 병렬 구현의 작업 ID·수정 경로·공통 파일 소유권·계약 동결·배정·통합 게이트·검증 증거를 구체화 |
 | v1.3.3 | 2026-10-24 | Phase 0 작업용 Git Worktree의 위치·이름 규칙을 추가(§19.5.5) |
@@ -26,6 +26,8 @@
 | v1.3.5 | 2026-10-24 | Provider CLI를 각 에이전트의 VS Code 확장에서 탐지해 Managed 실행에 사용(DEC-06, §7.5). 탐색 위치·해석 순서·기록·인증·동시 사용 규칙, Phase 0 확인 항목, HOST의 공통 탐색 경로, 위험 추가 |
 | v1.3.6 | 2026-10-24 | §7.5 확장 탐지를 버전 비의존 규칙으로 변경(`extensions.json`·`.obsolete` 해석, 폴더 이름 파싱, 파일 이름 검색 조건). Antigravity 실행 파일 위치를 `~/.gemini/bin/agy`로 확정 |
 | v1.3.7 | 2026-10-24 | §7.5에 Antigravity 데이터 디렉터리 검증을 추가. 관찰 결과, `--app_data_dir=antigravity` 가설, AGY-DATA-01~05, 순서, 판정·반영 방법을 PH0-AGY 작업으로 지정 |
+| v1.3.8 | 2026-10-24 | 배정표 수정 범위 완화(§19.5.5, §19.5.9): 담당 에이전트가 자기 작업 행·변경 요청 제출·변경 기록을 직접 갱신하고, 기준·게이트·판정·`verified` 전환은 통합 담당이 유지. 배정표 수정은 `main` 단독 커밋 |
+| **v1.4** | **2026-10-24** | **v1.3.1~1.3.8 정리: Rust Core(DEC-05)와 기존 코드 삭제(DEC-04), Phase 0 병렬 구현 절차(작업 ID·독점 경로·게이트·증거·Worktree·배정표 수정 범위), LF 고정과 WSL 기반 Linux·Remote SSH Host, VS Code 확장 CLI 탐지(DEC-06, 버전 비의존 규칙·Antigravity 데이터 디렉터리 검증). REQ-010 탐지 계약 위치를 §7.5에 연결** |
 
 ## 목차
 
@@ -567,6 +569,8 @@ DEC-06에 따라 Provider CLI는 실행 Host에 설치된 각 에이전트의 VS
 9. **동시 사용:** 확장 UI와 Managed 프로세스가 같은 사용자 설정·세션 저장소를 함께 쓸 때의 충돌은 PROV-10에서 검증합니다. Phase 0 Managed 실행은 확장 UI의 기존 대화를 재개하거나 수정하지 않습니다.
 
 공통 탐색(`extensions.json`·`.obsolete` 해석, 폴더 이름 파싱·버전 비교, 파일 이름 검색, 해시 계산)은 공용 모듈이 담당하고, 확장 ID·실행 파일 상대 경로·버전 명령처럼 Provider별 규칙은 각 Provider Adapter가 담당합니다(§19.5.3). 공용 모듈의 시험은 여러 버전 폴더·`.obsolete`·`extensions.json` 누락·플랫폼 불일치를 포함한 Fixture로 수행합니다.
+
+탐지 결과와 입력의 공통 계약은 `telos_schema::CliDiscovery`(결과 `found`/`unavailable`, 출처·위치 결정 방법·확장 정보·실패 분류)와 `telos_adapters::{ProviderCliRule, DiscoveryRequest, CliDiscoverer}`입니다(Phase 0 REQ-010). 결과는 Capability·Context Snapshot·Extension 표시에 같은 형태로 씁니다.
 
 #### Antigravity 데이터 디렉터리 검증 (PH0-AGY)
 
@@ -1154,9 +1158,9 @@ P0 통과는 §18의 모든 P0 항목과 혼합 단계 항목의 P0 부분을 �
 
 이 절은 **TelosWeaver를 개발하는 에이전트의 작업 분담 규칙**입니다. 제품이 실행 중 Task를 병렬 스케줄링하는 P1 기능과 구분합니다. 작업 ID의 `PH0`는 기술 검증 단계 Phase 0을 뜻하며 MVP 우선순위 `P0`와 다릅니다.
 
-에이전트는 이 절에서 작업 ID를 선택하고, [작업 배정표](phase-0/WORK_ALLOCATION.md)의 단일 통합 담당을 통해 소유권을 확정한 뒤 구현을 시작합니다. 작업 범위·선행 계약은 Spec이 원본이고, 배정표는 담당자·Branch/Worktree·상태·기준 Commit의 운영 기록입니다. 배정표만으로 Spec 범위를 변경하지 않습니다.
+에이전트는 이 절에서 작업 ID를 선택하고, [작업 배정표](phase-0/WORK_ALLOCATION.md)에서 소유권을 확정한 뒤 구현을 시작합니다(§19.5.5). 작업 범위·선행 계약은 Spec이 원본이고, 배정표는 담당자·Branch/Worktree·상태·기준 Commit의 운영 기록입니다. 배정표만으로 Spec 범위를 변경하지 않습니다.
 
-각 활성 작업은 담당자 한 명을 갖습니다. 한 담당자가 여러 작업 ID를 맡을 수 있지만 한 작업 ID에 여러 Writer를 배정하지 않습니다. 일부를 다시 나누려면 경로와 계약을 먼저 분리하여 통합 담당이 배정표에 기록합니다. 배정이 불명확하면 자료 확인·설계 검토까지 수행하고 해당 파일 쓰기에는 진입하지 않습니다.
+각 활성 작업은 담당자 한 명을 갖습니다. 한 담당자가 여러 작업 ID를 맡을 수 있지만 한 작업 ID에 여러 Writer를 배정하지 않습니다. 일부를 다시 나누려면 경로와 계약을 먼저 분리하여 통합 담당이 배정표에 기록합니다(새 작업 행 추가는 통합 담당). 배정이 불명확하면 자료 확인·설계 검토까지 수행하고 해당 파일 쓰기에는 진입하지 않습니다.
 
 #### 19.5.2 G0 — 공통 계약 확정
 
@@ -1184,7 +1188,7 @@ G0 완료 시 공통 인터페이스와 최소 컴파일 가능한 등록 경로
 
 | 작업 ID | 책임·산출물 | 독점 수정 경로 | 선행 조건 |
 |---|---|---|---|
-| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, CLAUDE.md, docs/DEVELOPMENT_v1.3.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md | 최초 지정, G0 준비부터 담당 |
+| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, CLAUDE.md, docs/DEVELOPMENT_v1.4.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md | 최초 지정, G0 준비부터 담당 |
 | PH0-CONTRACT | 공통 Rust 계약·Payload Schema·생성 원본·Wire/Schema 시험, Adapter Trait·공통 오류 | crates/schema/**, schemas/**, crates/adapters/src/lib.rs, crates/adapters/src/unimplemented.rs, crates/adapters/tests/unimplemented.rs | INTEGRATION과 G0 확정 |
 | PH0-HOST | 공용 프로세스 I/O·취소·자식 회수, VS Code 확장 CLI 공통 탐색, 최소 Core API·Supervisor와 Fixture 경로 | crates/adapters/src/runtime/**, crates/adapters/src/discovery/**, crates/adapters/tests/runtime_*.rs, crates/adapters/tests/discovery_*.rs, crates/adapters/tests/support/runtime/**, crates/adapters/tests/fixtures/runtime/**, crates/core/src/api/**, crates/core/src/execution/**, crates/core/tests/host_*.rs, crates/core/tests/fixtures/host/** | G0, 공용 런타임·API 계약 |
 | PH0-CODEX | Codex App Server 접속·신규 실행·이벤트 매핑·오류·취소, Resume/Fork 실험 | crates/adapters/src/codex.rs, crates/adapters/src/codex/**, crates/adapters/tests/codex_*.rs, crates/adapters/tests/fixtures/codex/** | G0, HOST 공개 인터페이스 |
@@ -1215,7 +1219,10 @@ G0 완료 시 공통 인터페이스와 최소 컴파일 가능한 등록 경로
 #### 19.5.5 작업 배정과 계약 변경 절차
 
 - 최초 통합 담당은 사용자 또는 이미 지정된 진행 담당이 한 명 지정합니다. 서로 독립적으로 실행된 에이전트가 모두 통합 담당을 자임하지 않습니다.
-- 배정표는 **대표 저장소의 단일 원본**을 통합 담당만 직렬 갱신합니다. 다른 Worktree나 Clone의 복사본은 소유권 확정 수단이 아닙니다. 에이전트는 작업 ID를 요청하고 확정된 담당·범위·기준 Commit을 확인한 뒤 시작합니다.
+- 배정표는 **대표 저장소의 단일 원본**입니다. 다른 Worktree나 Clone의 복사본은 소유권 확정 수단이 아닙니다. 수정 범위는 다음과 같습니다.
+  - **담당 에이전트:** 자기 작업 행(상태·Branch/Worktree·기준·결과 Commit·인계), 자기가 제출하는 변경 요청 행, 변경 기록 추가. 배정 시작(`unassigned → reserved`)은 커밋 직전에 그 행이 아직 `unassigned`인지 확인합니다.
+  - **통합 담당만:** 관리 항목(대표 저장소·통합 담당·계약 기준 Commit), 게이트 판정, 변경 요청의 채택·완료 판정, 계약 범위·환경 결정 절, 다른 작업의 행, `integrated`·`verified` 전환.
+  - 배정표 수정은 대표 저장소 `main`에서 단독 커밋으로 합니다. 코드 Branch의 커밋에 섞지 않습니다. 이 범위의 수정은 §19.5.3의 INTEGRATION 독점 경로에 대한 예외입니다.
 - 담당·Branch·Worktree·기준 Commit·계약 기준·상태를 기록합니다. 상태는 `unassigned → reserved → in-progress → review → integrated → verified`이며 `blocked`는 기존 담당을 유지합니다. 대기 중인 작업을 다른 에이전트가 가져가지 않습니다.
 - 작업자는 서로 다른 Branch/Worktree를 사용합니다. 같은 작업 트리에 동시에 쓰는 경우 독점 경로 배정을 더 작은 단위로 먼저 확정해야 하며 공통 파일 규칙은 동일합니다. Worktree 분리만으로 논리적 중복 구현이 해결되지는 않습니다.
 - 대표 저장소의 작업용 Git Worktree는 `D:\worktree\TelosWeaver\` 아래에 만듭니다. 경로는 `D:\worktree\TelosWeaver\<작업 ID 소문자>`(예: `ph0-contract`), Branch는 `ph0/<작업 이름>`(예: `ph0/contract`)을 기본으로 하며 실제 값을 배정표에 기록합니다. 대표 저장소는 일방향 백업 동기화 대상이므로 Worktree를 그 안이나 형제 경로에 만들지 않습니다. Worktree의 커밋·Branch는 대표 저장소의 `.git`에 저장되며, 커밋하지 않은 변경은 백업되지 않습니다. 통합이 끝난 Worktree는 `git worktree remove`로 정리하고 배정표에 기록합니다.
@@ -1291,7 +1298,7 @@ Phase 0의 Linux 실행 Host와 단일 Remote SSH 실행 Host는 같은 PC의 WS
 #### 19.5.9 에이전트 착수·인계 체크리스트
 
 1. 현재 Spec의 결정·§3.4·담당 작업 ID·§19.1/§20의 대응 시험을 읽습니다. 표에서 HOST 등 짧은 표기는 같은 `PH0-` 작업 ID를 뜻합니다.
-2. 대표 저장소 배정표에서 중복 담당이 없는지 확인하고, 통합 담당이 담당자·수정 범위·Branch/Worktree·계약 기준을 기록한 뒤 시작합니다.
+2. 대표 저장소 배정표에서 중복 담당이 없는지 확인하고, 자기 작업 행에 담당자·Branch/Worktree·기준 Commit·상태를 기록해 `main`에 커밋한 뒤 시작합니다(§19.5.5).
 3. 자기 Worktree의 기존 변경과 기준 Commit을 확인합니다. 계약 기준과 다르면 먼저 갱신하고, G0 미통과 상태에서 독자적인 공통 계약을 확정하지 않습니다.
 4. 허용 경로의 코드·전용 시험·자기 증거만 수정합니다. 다른 담당 영역이나 공통 파일 변경은 요청으로 전달합니다.
 5. 완료 요청에는 변경 파일·Commit·실행한 시험·미구현/미검증·남은 계약 요청을 제공합니다. `git diff --name-only`와 결과 Commit의 파일 목록을 확인하여 무관한 변경이 섞이지 않게 합니다.

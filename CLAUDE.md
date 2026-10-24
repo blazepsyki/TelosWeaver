@@ -2,7 +2,7 @@
 
 ## 기준 문서
 
-- [docs/DEVELOPMENT_v1.3.md](docs/DEVELOPMENT_v1.3.md)가 유일한 구현 기준입니다. `docs/archive/`는 이력 참고용입니다.
+- [docs/DEVELOPMENT_v1.4.md](docs/DEVELOPMENT_v1.4.md)가 유일한 구현 기준입니다. `docs/archive/`는 이력 참고용입니다.
 - 코드와 Spec이 어긋나면 Spec을 따르고, Spec 변경이 필요하면 코드보다 먼저 사용자와 합의합니다.
 - 코드 주석에 해당 Spec 절(§)과 요구사항 ID(TASK-01, SAFE-13 등)를 남겨 추적성을 유지합니다.
 

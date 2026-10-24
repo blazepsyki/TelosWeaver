@@ -2,14 +2,22 @@
 
 > **프로젝트:** TelosWeaver  
 > **갱신일:** 2026-10-24  
-> **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.3.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
+> **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.4.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
 > **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `ba97e7b`). PH0-HOST 1차 구현을 `d8e8725`로 통합했고(REQ-011 포함), REQ-010 탐지 계약을 `271e7fd`로 추가했습니다. HOST의 엔진 연결·Linux 검증과 G1 준비가 다음 단계입니다. 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
 
 ## 1. 단일 원본과 갱신 주체
 
 대표 저장소의 이 파일을 단일 원본으로 사용합니다. 대표 저장소의 위치는 최초 통합 담당이 착수 시 기록합니다. 다른 Worktree·Clone의 복사본은 참고용이며 그것만 바꿔 소유권을 확보하지 않습니다.
 
-통합 담당 한 명만 이 표를 직렬 갱신합니다. 작업 에이전트는 Spec의 작업 ID를 선택해 배정을 요청하고, 담당·Branch/Worktree·기준 Commit이 확정된 뒤 해당 경로를 수정합니다. 통합 담당이 정해지지 않았다면 최초 착수를 총괄하도록 지정된 진행 담당이 인수 사실을 기록합니다. 서로 다른 에이전트가 독립적으로 같은 역할을 차지하지 않습니다.
+수정 범위는 Spec §19.5.5를 따릅니다.
+
+| 누가 | 고칠 수 있는 곳 |
+|---|---|
+| 담당 에이전트 | 자기 작업 행(상태·Branch/Worktree·기준·결과 Commit·인계), 자기가 제출하는 §4 변경 요청 행, §7 변경 기록 추가 |
+| 통합 담당만 | §1 관리 항목(계약 기준 Commit 등), §3 게이트 판정, §4 요청의 채택·완료 판정, §5·§6, 다른 작업의 행, `integrated`·`verified` 전환 |
+| 공통 조건 | 배정표 수정은 대표 저장소 `main`에서 단독 커밋으로 합니다(코드 Branch에 섞지 않음). 배정 시작(`unassigned → reserved`)은 커밋 직전에 그 행이 아직 `unassigned`인지 확인합니다 |
+
+작업 에이전트는 Spec의 작업 ID를 선택해 자기 행에 담당·Branch/Worktree·기준 Commit을 기록한 뒤 해당 경로를 수정합니다. 통합 담당이 정해지지 않았다면 최초 착수를 총괄하도록 지정된 진행 담당이 인수 사실을 기록합니다. 서로 다른 에이전트가 독립적으로 같은 역할을 차지하지 않습니다.
 
 한 작업 ID에 Writer 한 명만 배정합니다. 같은 담당자가 여러 ID를 맡을 수 있으며, 담당자 ID는 동명이인이나 재시작 세션을 구분할 수 있는 세션·작업 식별자를 포함합니다. 작업 범위와 파일 예외는 Spec을 따르고 이 표에서 임의 확대하지 않습니다.
 
@@ -124,5 +132,7 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 (시각 미기록) | `Codex / PH0-HOST-20261024` | 사용자 착수 지시로 PH0-HOST `reserved → in-progress`. 공용 런타임과 탐색 엔진을 소유 경로에 구현하며 REQ-010·011 공통 변경은 별도 적용안으로 준비. 공식 Workspace 연결 전 독립 Manifest로 검증하며 G0 기준·타 담당 소유권 유지 | `1e415ba` (착수 기반), `ba97e7b` (계약) |
 | 2026-10-24 16:48 | `claude-opus-5.5/session-c9336d2c` | `ph0/host`(`6bb943e`)와 REQ-011을 한 통합 단위로 `d8e8725`에 반영. `libc` 0.2.190 고정(2주 기준), Core `serve` 진입점(기본 `DenyRuns`). 공식 Workspace test 57개·clippy·fmt 통과. PH0-HOST는 REQ-010 연결·Linux 검증이 남아 `in-progress` 유지. REQ-010 채택, PH0-CONTRACT `verified → in-progress` | `d8e8725` |
 | 2026-10-24 17:10 | `claude-opus-5.5/session-c9336d2c` | `ph0/contract`(`4e29f20`)를 `271e7fd`로 통합, `main`에서 재검증(61개 통과, clippy·fmt). 계약 기준 `ba97e7b → 271e7fd`, REQ-010 계약 완료(HOST 엔진 연결 대기), PH0-CONTRACT `in-progress → verified`, Worktree 정리. G1은 PH0-CODEX 배정과 신뢰된 `RunAuthorizer` 연결(MASTER·INTEGRATION)이 필요하고, Linux 검증은 WSL 배포판 설치(사용자 수행)가 필요 | `271e7fd` |
+| 2026-10-24 17:20 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정(Spec v1.3.8): 담당 에이전트가 자기 작업 행·변경 요청 제출·변경 기록을 직접 갱신. 기준·게이트·판정·`verified` 전환은 통합 담당 유지. §1 규칙 갱신. 이전 HOST의 직접 기록(`1e415ba`, `9522d79`)은 이 규칙에 부합 | `271e7fd` |
+| 2026-10-24 17:30 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시로 Spec을 v1.4로 승격: `docs/DEVELOPMENT_v1.3.md` → `docs/DEVELOPMENT_v1.4.md`, 개정 1.3.8 원문을 `docs/archive/DEVELOPMENT_v1.3.md`로 보관. 저장소 안 링크 갱신(PH0-HOST·G0 검토 증거는 링크 경로만 수정). 계약 변경 없음 | `271e7fd` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.

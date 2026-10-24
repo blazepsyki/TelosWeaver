@@ -2,7 +2,7 @@
 
 서로 다른 AI 에이전트(Codex, Claude Code, Agy)를 사용하여 **목표 확인 → 계획 → 위임 → 실행 → 산출물 수집 → 검증 → 승인 판단 → 재작업 또는 완료**를 관리하는 로컬 우선 오케스트레이터입니다.
 
-- 기준 설계: [docs/DEVELOPMENT_v1.3.md](docs/DEVELOPMENT_v1.3.md)
+- 기준 설계: [docs/DEVELOPMENT_v1.4.md](docs/DEVELOPMENT_v1.4.md)
 - 현재 상태: **구현 착수 전 뼈대.** 공통 계약 타입과 구성 단위만 있으며 Provider 실행·Core 런타임은 구현되지 않았습니다.
 
 ## 저장소 구조 (Spec §3.4)

@@ -6,7 +6,7 @@
 > **제출안 기반 Commit:** `e56eb2d`  
 > **제출 Branch:** `review/g0-contract-requests-20261024`  
 > **검토 Worktree:** `D:\worktree\TelosWeaver\g0-review-requests-20261024`  
-> **절차:** [Spec §19.5](../../../DEVELOPMENT_v1.3.md#195-phase-0-병렬-구현--작업-분할과-소유권), [배정표 §4](../../WORK_ALLOCATION.md#4-계약공통-파일-변경-요청)  
+> **절차:** [Spec §19.5](../../../DEVELOPMENT_v1.4.md#195-phase-0-병렬-구현--작업-분할과-소유권), [배정표 §4](../../WORK_ALLOCATION.md#4-계약공통-파일-변경-요청)  
 > **상태:** 통합 담당에게 제출할 변경 요청입니다. 계약 채택·코드 수정·G0 재판정 완료가 아닙니다.
 
 ## 1. 요청의 범위와 처리 주체

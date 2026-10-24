@@ -8,7 +8,7 @@
 | Branch / Worktree | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` |
 | Spec·계약 기준 | `23605b0` (Spec v1.3.7), `ba97e7b` (G0 개정 1) |
 | 착수·구현 Commit | `9522d79` (착수 기록), `159617e` (구현), `53ad1de` (최종 경계 검사 보완) |
-| 기준 문서 | [Spec](../../../DEVELOPMENT_v1.3.md), [배정표](../../WORK_ALLOCATION.md) |
+| 기준 문서 | [Spec](../../../DEVELOPMENT_v1.4.md), [배정표](../../WORK_ALLOCATION.md) |
 
 사용자의 착수 지시에 따라 전용 Worktree에서 구현했습니다. 공통 Schema, Adapter Trait, Cargo.toml·Cargo.lock, Adapter 루트 모듈 등록, Core main.rs는 직접 수정하지 않았습니다. REQ-010·011의 확정·반영과 게이트 판정은 기존 담당자가 처리합니다. 이 기록은 G1·G3 통과 판정이 아닙니다.
 
