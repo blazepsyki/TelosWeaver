@@ -31,7 +31,10 @@ struct State {
 #[derive(Clone)]
 struct Approval {
     native_id: Value,
+    request: Value,
 }
+type InputResult = (String, Result<(), AdapterError>);
+pub(super) type ApprovalCheck = Arc<dyn Fn(&Value) -> Result<(), AdapterError> + Send + Sync>;
 pub(super) struct RunEntry {
     pub started: RunStarted,
     rpc: Arc<RpcClient>,
@@ -44,8 +47,9 @@ pub(super) struct RunEntry {
     approvals: Mutex<HashMap<String, Approval>>,
     approval_serial: AtomicU64,
     answers: Mutex<HashMap<String, ApprovalAnswer>>,
-    inputs: Mutex<HashMap<String, (String, Result<(), AdapterError>)>>,
+    inputs: Mutex<HashMap<String, InputResult>>,
     actions: tokio::sync::Mutex<()>,
+    approval_check: ApprovalCheck,
 }
 impl RunEntry {
     pub fn new(
@@ -55,6 +59,7 @@ impl RunEntry {
         turn: String,
         launch: CodexLaunch,
         version: String,
+        approval_check: ApprovalCheck,
     ) -> Arc<Self> {
         let run = Arc::new(Self {
             started: RunStarted {
@@ -79,6 +84,7 @@ impl RunEntry {
             answers: Mutex::new(HashMap::new()),
             inputs: Mutex::new(HashMap::new()),
             actions: tokio::sync::Mutex::new(()),
+            approval_check,
         });
         run.push(
             ProviderEventPayload::SessionStarted(SessionStartedPayload {
@@ -253,6 +259,9 @@ impl RunEntry {
             .get(id)
             .cloned()
             .ok_or_else(|| error(FailureKind::Configuration, "unknown Codex approval request"))?;
+        if decision == ApprovalAnswer::Allow {
+            (self.approval_check)(&approval.request)?;
+        }
         self.rpc
             .respond(
                 approval.native_id,
@@ -313,6 +322,7 @@ impl RunEntry {
                 request_id.clone(),
                 Approval {
                     native_id: id.clone(),
+                    request: message.clone(),
                 },
             );
         }
@@ -457,20 +467,22 @@ impl RunEntry {
             })
             .await;
         let cancelled = self.cancelled.load(Ordering::Acquire);
-        if let Some(failure) = &failure {
-            if !cancelled {
-                self.push(
-                    ProviderEventPayload::Error(ErrorPayload {
-                        kind: failure.failure_kind().unwrap_or(FailureKind::Unknown),
-                        message: failure.to_string(),
-                        terminal: false,
-                    })
-                    .into(),
-                    true,
-                );
-            }
+        if let Some(failure) = &failure
+            && !cancelled
+        {
+            self.push(
+                ProviderEventPayload::Error(ErrorPayload {
+                    kind: failure.failure_kind().unwrap_or(FailureKind::Unknown),
+                    message: failure.to_string(),
+                    terminal: false,
+                })
+                .into(),
+                true,
+            );
         }
-        let status = if cancelled {
+        let status = if let Some(status) = mapper.status.filter(|_| failure.is_none()) {
+            status
+        } else if cancelled {
             TurnStatus::Cancelled
         } else if failure.is_some() {
             TurnStatus::Failed

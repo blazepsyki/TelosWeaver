@@ -82,6 +82,18 @@ impl CodexLaunch {
 }
 pub trait CodexLaunchResolver: Send + Sync {
     fn resolve(&self, task: &TaskSpec, context: &RunContext) -> Result<CodexLaunch, AdapterError>;
+    /// Allow requires a trusted check of this exact native action and immutable Run context.
+    fn authorize_approval(
+        &self,
+        _task: &TaskSpec,
+        _context: &RunContext,
+        _request: &Value,
+    ) -> Result<(), AdapterError> {
+        Err(AdapterError::UnsupportedCapability {
+            capability: "approval_authorization".into(),
+            reason: "a trusted native approval policy is not configured".into(),
+        })
+    }
 }
 pub struct CodexConfig {
     pub executable: PathBuf,
@@ -251,12 +263,12 @@ impl AgentAdapter for CodexAdapter {
             (
                 name.into(),
                 Capability {
-                    state: CapabilityState::Unverified,
+                    state: if target=="win32-x64"&&config.cli_version=="codex-cli 0.164.0-alpha.11.1"&&matches!(name,"managed"|"stream"|"cancel"|"resume"|"native_fork"){CapabilityState::Supported}else{CapabilityState::Unverified},
                     provider_version: config.cli_version.clone(),
                     host_id: host_id.into(),
                     checked_at: timestamp(),
-                    evidence_level: EvidenceLevel::MockTested,
-                    reason: Some("support must be checked for this CLI version and Host".into()),
+                    evidence_level: if target=="win32-x64"&&config.cli_version=="codex-cli 0.164.0-alpha.11.1"&&matches!(name,"managed"|"stream"|"cancel"|"resume"|"native_fork"){EvidenceLevel::EnvironmentTested}else{EvidenceLevel::MockTested},
+                    reason: Some("Windows x64 0.164.0-alpha.11.1 basic execution/resume/fork/cancel have local evidence; other versions, steering and approval need environment checks".into()),
                 },
             )
         })
@@ -434,7 +446,11 @@ async fn start_once(
     let client = connect(config, launch.cwd.clone()).await?;
     let mut created_thread = None;
     let result=async {
-        let overrides=client.isolated_config().await?;
+        let mut overrides=client.isolated_config().await?;
+        overrides["sandbox_workspace_write.writable_roots"]=json!([]);
+        overrides["sandbox_workspace_write.network_access"]=json!(false);
+        overrides["sandbox_workspace_write.exclude_tmpdir_env_var"]=json!(true);
+        overrides["sandbox_workspace_write.exclude_slash_tmp"]=json!(true);
         let sandbox=match launch.sandbox {CodexSandbox::ReadOnly=>"read-only",CodexSandbox::WorkspaceWrite=>"workspace-write"};
         let mut params=json!({"model":launch.model,"cwd":launch.cwd,"approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":sandbox,"config":overrides,"baseInstructions":"Complete only the requested task within the provided workspace. Do not access unrelated projects or sessions.","developerInstructions":"Do not delegate or use external MCP services. Follow the supplied permission policy.","serviceTier":"default","runtimeWorkspaceRoots":[launch.cwd]});
         let method=match context.session.mode {
@@ -455,25 +471,26 @@ async fn start_once(
         let response=client.request("turn/start",json!({"threadId":thread,"input":[{"type":"text","text":launch.prompt}],"model":launch.model,"effort":launch.effort,"approvalPolicy":"on-request","approvalsReviewer":"user"})).await?;
         let turn=response.pointer("/turn/id").and_then(Value::as_str).filter(|id|!id.is_empty()).ok_or_else(||error(FailureKind::ProtocolParse,"Codex did not return a turn ID"))?.to_owned();
         let events=client.take_events()?;
-        let run=RunEntry::new(context.run_id.clone(),client.clone(),thread,turn,launch.clone(),config.cli_version.clone());
+        let launcher=config.launcher.clone();let approval_task=task.clone();let approval_context=context.clone();
+        let approval_check=Arc::new(move|request:&Value|launcher.authorize_approval(&approval_task,&approval_context,request));
+        let run=RunEntry::new(context.run_id.clone(),client.clone(),thread,turn,launch.clone(),config.cli_version.clone(),approval_check);
         let started=run.started.clone();inner.registry.lock().unwrap().runs.insert(context.run_id.clone(),run.clone());
         let grace=config.cancel_grace;tokio::spawn(async move {run.supervise(events,grace).await;});
         Ok(started)
     }.await;
     if result.is_err() {
-        if let Some(thread) = created_thread {
-            if client
+        if let Some(thread) = created_thread
+            && client
                 .request("thread/archive", json!({"threadId":thread}))
                 .await
                 .is_ok()
-            {
-                inner
-                    .registry
-                    .lock()
-                    .unwrap()
-                    .owned_threads
-                    .insert(thread, true);
-            }
+        {
+            inner
+                .registry
+                .lock()
+                .unwrap()
+                .owned_threads
+                .insert(thread, true);
         }
         let _ = client.close(Duration::ZERO).await;
     }

@@ -23,6 +23,8 @@ pub(super) struct Mapper {
     rendered: HashSet<String>,
     started: HashSet<String>,
     completed: HashSet<String>,
+    usage: Option<UsagePayload>,
+    total: Option<UsagePayload>,
     pub finished: bool,
     pub status: Option<TurnStatus>,
 }
@@ -34,6 +36,8 @@ impl Mapper {
             rendered: HashSet::new(),
             started: HashSet::new(),
             completed: HashSet::new(),
+            usage: None,
+            total: None,
             finished: false,
             status: None,
         }
@@ -150,33 +154,44 @@ impl Mapper {
                 }
             }
             "thread/tokenUsage/updated" => {
-                let usage = params
-                    .pointer("/tokenUsage/last")
-                    .and_then(Value::as_object)
-                    .ok_or_else(|| {
-                        error(FailureKind::ProtocolParse, "invalid Codex token usage")
-                    })?;
-                let count = |key: &str| -> Result<Option<u64>, AdapterError> {
-                    match usage.get(key) {
-                        None | Some(Value::Null) => Ok(None),
-                        Some(value) => value.as_u64().map(Some).ok_or_else(|| {
-                            error(FailureKind::ProtocolParse, "invalid Codex token count")
-                        }),
+                let last = usage_counts(&params["tokenUsage"]["last"])?;
+                let total = usage_counts(&params["tokenUsage"]["total"])?;
+                if self.total.as_ref() == Some(&total) {
+                    return Ok(result);
+                }
+                // `last` is one model response, while `total` includes earlier Turns.
+                // Anchor the first response of this Turn, then add only total deltas.
+                let usage = if let (Some(previous), Some(accumulated)) = (&self.total, &self.usage)
+                {
+                    UsagePayload {
+                        input_tokens: add_usage(
+                            accumulated.input_tokens,
+                            previous.input_tokens,
+                            total.input_tokens,
+                        )?,
+                        output_tokens: add_usage(
+                            accumulated.output_tokens,
+                            previous.output_tokens,
+                            total.output_tokens,
+                        )?,
+                        cache_read_tokens: add_usage(
+                            accumulated.cache_read_tokens,
+                            previous.cache_read_tokens,
+                            total.cache_read_tokens,
+                        )?,
+                        cache_write_tokens: add_usage(
+                            accumulated.cache_write_tokens,
+                            previous.cache_write_tokens,
+                            total.cache_write_tokens,
+                        )?,
+                        ..last
                     }
+                } else {
+                    last
                 };
-                result.push(
-                    ProviderEventPayload::Usage(UsagePayload {
-                        scope: UsageScope::Cumulative,
-                        source: UsageSource::ProviderReported,
-                        input_tokens: count("inputTokens")?,
-                        output_tokens: count("outputTokens")?,
-                        cache_read_tokens: count("cachedInputTokens")?,
-                        cache_write_tokens: count("cacheWriteInputTokens")?,
-                        cache_included_in_input: None,
-                        cost_usd: None,
-                    })
-                    .into(),
-                );
+                self.total = Some(total);
+                self.usage = Some(usage.clone());
+                result.push(ProviderEventPayload::Usage(usage).into());
             }
             "error" => {
                 let remote = params.get("error").unwrap_or(params);
@@ -241,6 +256,49 @@ impl Mapper {
             _ => {}
         }
         Ok(result)
+    }
+}
+fn usage_counts(value: &Value) -> Result<UsagePayload, AdapterError> {
+    let usage = value
+        .as_object()
+        .ok_or_else(|| error(FailureKind::ProtocolParse, "invalid Codex token usage"))?;
+    let count = |key: &str| match usage.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(value) => value
+            .as_u64()
+            .map(Some)
+            .ok_or_else(|| error(FailureKind::ProtocolParse, "invalid Codex token count")),
+    };
+    Ok(UsagePayload {
+        scope: UsageScope::Cumulative,
+        source: UsageSource::ProviderReported,
+        input_tokens: count("inputTokens")?,
+        output_tokens: count("outputTokens")?,
+        cache_read_tokens: count("cachedInputTokens")?,
+        cache_write_tokens: count("cacheWriteInputTokens")?,
+        cache_included_in_input: None,
+        cost_usd: None,
+    })
+}
+fn add_usage(
+    accumulated: Option<u64>,
+    previous: Option<u64>,
+    current: Option<u64>,
+) -> Result<Option<u64>, AdapterError> {
+    match (accumulated, previous, current) {
+        (Some(accumulated), Some(previous), Some(current)) => {
+            let delta = current.checked_sub(previous).ok_or_else(|| {
+                error(
+                    FailureKind::ProtocolParse,
+                    "Codex total token usage regressed",
+                )
+            })?;
+            accumulated
+                .checked_add(delta)
+                .map(Some)
+                .ok_or_else(|| error(FailureKind::ResourceLimit, "Codex token usage overflowed"))
+        }
+        _ => Ok(None),
     }
 }
 pub(super) fn required<'a>(value: &'a Value, key: &str) -> Result<&'a str, AdapterError> {

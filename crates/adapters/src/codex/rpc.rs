@@ -289,7 +289,15 @@ impl RpcClient {
         let mut overrides = serde_json::Map::new();
         if let Some(servers) = effective.get("mcp_servers").and_then(Value::as_object) {
             for name in servers.keys() {
-                overrides.insert(format!("mcp_servers.{name}.enabled"), json!(false));
+                let key = if name
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+                {
+                    name.clone()
+                } else {
+                    serde_json::to_string(name).unwrap()
+                };
+                overrides.insert(format!("mcp_servers.{key}.enabled"), json!(false));
             }
         }
         for (key, value) in [

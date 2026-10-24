@@ -114,11 +114,11 @@ impl ProcessHandle for MockHandle {
                     _=>{
                         self.event("item/agentMessage/delta",json!({"itemId":"message-fixture","delta":"ok"}));
                         self.event("item/completed",json!({"item":{"type":"agentMessage","id":"message-fixture","text":"ok"}}));
-                        self.event("thread/tokenUsage/updated",json!({"tokenUsage":{"last":{"inputTokens":5,"outputTokens":1,"cachedInputTokens":2}}}));self.complete("completed");
+                        self.event("thread/tokenUsage/updated",json!({"tokenUsage":{"last":{"inputTokens":5,"outputTokens":1,"cachedInputTokens":2},"total":{"inputTokens":5,"outputTokens":1,"cachedInputTokens":2}}}));self.complete("completed");
                     }
                 }
             }
-            Some("turn/interrupt")=>{self.emit(json!({"id":id,"result":{}}));if !matches!(self.mode,Mode::IgnoreInterrupt){self.complete("interrupted");}},
+            Some("turn/interrupt")=>{self.emit(json!({"id":id,"result":{}}));if matches!(self.mode,Mode::Hold){self.complete("interrupted");}},
             Some("turn/steer")=>{self.emit(json!({"id":id,"result":{"turnId":"turn-fixture"}}));self.event("item/agentMessage/delta",json!({"itemId":"message-fixture","delta":"steered"}));self.complete("completed");},
             Some("thread/archive")=>self.emit(json!({"id":id,"result":{}})),
             None if id==900=>{let denied=params.is_null()&&request.pointer("/result/decision").and_then(Value::as_str)!=Some("accept");self.event("item/completed",json!({"item":{"type":"fileChange","id":"tool-fixture","status":if denied{"declined"}else{"completed"}}}));self.complete("completed");},
@@ -339,6 +339,12 @@ async fn interactive_approval_is_correlated_and_repeated_answers_are_idempotent(
             break event.payload["requestId"].as_str().unwrap().to_owned();
         }
     };
+    assert!(matches!(
+        adapter
+            .answer_approval(&context.run_id, &request, ApprovalAnswer::Allow)
+            .await,
+        Err(AdapterError::UnsupportedCapability { .. })
+    ));
     adapter
         .answer_approval(&context.run_id, &request, ApprovalAnswer::Deny)
         .await
@@ -405,15 +411,16 @@ async fn resume_fork_and_archive_preserve_thread_ownership() {
         );
         collect(&adapter, &context.run_id).await;
         if mode == SessionMode::NativeFork {
-            let requests = runtime.requests.lock().unwrap();
-            assert_eq!(
-                requests
-                    .iter()
-                    .find(|r| r["method"] == "thread/fork")
-                    .unwrap()["params"]["lastTurnId"],
-                "parent-turn"
-            );
-            drop(requests);
+            {
+                let requests = runtime.requests.lock().unwrap();
+                assert_eq!(
+                    requests
+                        .iter()
+                        .find(|r| r["method"] == "thread/fork")
+                        .unwrap()["params"]["lastTurnId"],
+                    "parent-turn"
+                );
+            }
             adapter
                 .archive("fork-fixture", std::env::temp_dir())
                 .await
@@ -438,3 +445,90 @@ fn platform_rules_follow_extension_layout() {
 
 #[path = "tests/environment.rs"]
 mod environment;
+
+#[test]
+fn actual_multi_step_usage_is_cumulative_per_run_not_per_thread() {
+    let frames = include_str!("../../tests/fixtures/codex/usage-multi-step.jsonl")
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    for offset in [0_u64, 100000] {
+        let mut mapper = protocol::Mapper::new("thread-fixture".into(), "turn-fixture".into());
+        let mut last = None;
+        for original in &frames {
+            let mut frame = original.clone();
+            for key in [
+                "inputTokens",
+                "outputTokens",
+                "cachedInputTokens",
+                "cacheWriteInputTokens",
+            ] {
+                let count = frame["params"]["tokenUsage"]["total"][key]
+                    .as_u64()
+                    .unwrap();
+                frame["params"]["tokenUsage"]["total"][key] = json!(count + offset);
+            }
+            let mapped = mapper
+                .map(frame["method"].as_str().unwrap(), &frame["params"])
+                .unwrap();
+            last = Some(mapped.into_iter().last().unwrap().payload);
+            assert!(
+                mapper
+                    .map(frame["method"].as_str().unwrap(), &frame["params"])
+                    .unwrap()
+                    .is_empty()
+            );
+        }
+        let ProviderEventPayload::Usage(usage) = last.unwrap() else {
+            panic!("usage expected")
+        };
+        assert_eq!(usage.input_tokens, Some(24000));
+        assert_eq!(usage.output_tokens, Some(51));
+        assert_eq!(usage.cache_read_tokens, Some(11776));
+        assert_eq!(usage.cost_usd, None);
+    }
+}
+#[test]
+fn usage_regression_and_foreign_turns_fail_closed() {
+    let mut mapper = protocol::Mapper::new("thread-fixture".into(), "turn-fixture".into());
+    let mut frame: Value = serde_json::from_str(
+        include_str!("../../tests/fixtures/codex/usage-multi-step.jsonl")
+            .lines()
+            .next()
+            .unwrap(),
+    )
+    .unwrap();
+    let mut foreign = frame["params"].clone();
+    foreign["turnId"] = json!("unrelated");
+    assert!(
+        mapper
+            .map("thread/tokenUsage/updated", &foreign)
+            .unwrap()
+            .is_empty()
+    );
+    mapper
+        .map("thread/tokenUsage/updated", &frame["params"])
+        .unwrap();
+    frame["params"]["tokenUsage"]["total"]["inputTokens"] = json!(1);
+    assert_eq!(
+        mapper
+            .map("thread/tokenUsage/updated", &frame["params"])
+            .err()
+            .unwrap()
+            .failure_kind(),
+        Some(FailureKind::ProtocolParse)
+    );
+}
+#[tokio::test]
+async fn cancel_racing_with_completion_preserves_native_result() {
+    let (adapter, _) = configured(Mode::Good, CodexApprovals::Deny);
+    let (task, context) = inputs();
+    adapter.start_run(&task, &context).await.unwrap();
+    let _ = adapter.cancel_run(&context.run_id).await;
+    let events = collect(&adapter, &context.run_id).await;
+    assert!(
+        events.iter().any(
+            |e| e.kind == ProviderEventKind::TurnFinished && e.payload["status"] == "completed"
+        )
+    );
+}
