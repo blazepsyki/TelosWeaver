@@ -52,7 +52,9 @@ G0 통과는 계약이 정해졌다는 뜻이며 Provider·RN·Core API의 실�
 - **줄바꿈:** `core.autocrlf=true` 환경에서 새 Worktree가 CRLF로 체크아웃되어, Schema 재생성 시 내용 변경 없이 수정된 파일로 표시됩니다. `.gitattributes`는 Spec §19.5.3의 어느 작업 경로에도 없어 변경 요청 REQ-001로 등록했습니다.
 - **미사용 의존성:** `telos-rn-client`의 `serde`·`serde_json`은 재노출 후 현재 쓰이지 않습니다. PH0-RN의 전송 구현에서 쓸 예정이라 유지합니다.
 
-## 5. 다음 단계
+## 5. 다음 단계 (G0 시점 기록)
+
+> 이 절은 G0 판정 당시의 계획입니다. 이후 대표 Provider는 Claude로 바뀌었고(배정표 §6) G1은 §7에서 판정했습니다. 현재 다음 단계는 §8을 따릅니다.
 
 - G1: 공용 런타임(HOST)과 대표 Provider Codex의 실제 경로 연결.
 - 나머지 7개 작업은 배정 요청을 받아 기록한 뒤 `ae31eb2`를 계약 기준으로 착수합니다.
@@ -125,3 +127,33 @@ PH0-CLAUDE 증거 §5와 같은 방식으로 처리합니다. 작업 폴더는 `
 | `34413139-43ee-434f-8df0-aebd54c45c1d` | `g1_provider_failure_is_reported` |
 | `1479a52f-205b-4f62-8396-ba8199901b0e` | `g1_cancel_reports_actual_termination` |
 | `ebfa12d6-d49e-43c1-a703-9ed8e7d3c416` | `g1_daemon_shutdown_cancels_active_runs` |
+
+## 8. 현재 다음 단계: G2 구성 통합
+
+> 2026-10-24 갱신 · 기준 `main` `8d45641`
+
+### 8.1 현황
+
+| 구성 | Adapter 구현 | Core 연결 (`telos_core::integration`) |
+|---|---|---|
+| Claude | integrated (`41139e0`) | **연결됨** (`d3130c1`, G1 판정) |
+| Codex | integrated (`c00d2b0`) | **미연결.** `Phase0Execution`은 Claude만 등록합니다 |
+| Antigravity | integrated (`b0f5b5e`) | **미연결** |
+| MASTER·RN·EXT | 미배정 | — |
+
+### 8.2 Codex·Agy Core 연결 계획 (INTEGRATION)
+
+Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 정리의 공통 경로를 Provider별로 나누어 씁니다.
+
+1. **운영자 정책:** `LocalPolicyConfig`에 `codex`·`agy` 절을 추가하고, `LocalRunPolicy`가 Task의 Provider에 맞는 절로 모델·권한을 검사합니다. Snapshot에는 그 Provider의 탐지 결과를 기록합니다.
+   - Codex: 허용 모델·`effort`, Sandbox는 Workspace 권한에 맞춤(`writable: false` → `read-only`), 승인은 기본 `Deny`, 실행 제한 시간.
+   - Agy: 허용 모델·`--effort`·`--mode`, 데이터 디렉터리는 기본 확장 디렉터리(Spec §7.5 확정 규칙).
+2. **실행 조건 Port:** `CodexLauncher`(`CodexLaunchResolver`, `authorize_approval`은 Phase 0에서 거부 유지), `AgyLauncher`(`AgyLaunchResolver`)를 `ClaudeLauncher`처럼 승인 Snapshot으로만 구성합니다.
+3. **탐지와 구성:** `codex::cli_rule`·`agy::cli_rule`로 탐지하고 결과로 `CodexConfig`·`AgyConfig`를 만듭니다. Agy는 등록 전에 `verify_extension_data_dir`로 `--app_data_dir` 수용을 확인하고, 거부되면 다른 디렉터리로 바꾸지 않고 `unsupported`로 둡니다.
+4. **종료 정리:** 세 Adapter 모두 `TrackedAdapter`로 감싸 Daemon 종료 시 활성 Run을 정리합니다.
+5. **G2 실환경 시험** (`crates/core/tests/phase0_g2.rs`, `#[ignore]`): 한 Daemon에 세 Provider를 등록하고 Local API로 Provider별 완료·실패·취소를 실행합니다. 경량 모델(배정표 §6)과 시험 세션 정리 규칙(Claude Archive, Codex 소유 Thread Archive, Agy 시험 세션 정리)을 따릅니다.
+
+### 8.3 G2의 나머지 조건
+
+- MASTER(마스터 결정 검증)·RN(RPC)·EXT(Extension 연결)는 미배정입니다. G2는 이 연결 증거까지 필요합니다(Spec §19.5.8).
+- HOST: G1 확인과 REQ-013 ③(`targetPlatform: "undefined"`) 처리 중입니다.
