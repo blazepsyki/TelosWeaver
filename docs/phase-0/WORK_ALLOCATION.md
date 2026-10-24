@@ -24,8 +24,8 @@
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0) | G0 통과. 다음: 배정 요청 처리, G1(HOST + Codex) 통합 |
-| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | verified | `ph0/contract` / Worktree 정리됨 | `556e62f` | `fd0b206` (통합 `cc142cf`) | G0 계약 완료. 이후 계약 변경은 §4 요청으로 처리 |
+| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `7d296a8` (G0 개정 1 런타임) | G0 개정 1 진행 중. 다른 작업 배정은 개정 기준 확정 후 |
+| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | in-progress | `ph0/contract` / `D:\worktree\TelosWeaver\ph0-contract` | `7d296a8` | 1차 `fd0b206` (통합 `cc142cf`) | G0 개정 1: REQ-004~009 처리 중 |
 | PH0-HOST | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. `telos_adapters::runtime`·`telos_schema::api` 구현 |
 | PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용. G1 대표 Provider |
 | PH0-CLAUDE | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
@@ -112,5 +112,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 12:32 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정: WSL 구성 시점을 PH0-HOST 공용 런타임 구현 착수 시(늦어도 G2 전)로 지정. G0 계약은 다른 에이전트가 검토 중이며 결과는 §4 변경 요청으로 받음 | `ae31eb2` |
 | 2026-10-24 (시각 미기록, 제출자 기록) | `Codex / G0-REVIEW-20261024` | 사용자 요청으로 G0 독립 검토의 REQ-002~009 등록안·상세 요청서 작성. 별도 검토 Branch에서 제출하며 대표 저장소 반영·채택·구현·기준 변경은 기존 통합 담당이 처리 | `ae31eb2` (검토 대상), `e56eb2d` (제출안 기반) |
 | 2026-10-24 12:59 | `claude-opus-5.5/session-c9336d2c` | 검토 제출안을 `952bb26`으로 접수. REQ-002~006·009 채택, REQ-007·008 수정 채택([G0 개정 1](evidence/PH0-INTEGRATION/G0_REVISION_1.md)). 처리 순서: INTEGRATION 런타임 인터페이스 → CONTRACT → 재통합 | `ae31eb2` |
+| 2026-10-24 13:02 | `claude-opus-5.5/session-c9336d2c` | G0 개정 1 INTEGRATION 부분 완료(`7d296a8`, REQ-002·003 인터페이스). PH0-CONTRACT `verified → in-progress`, Worktree `D:worktreeTelosWeaverph0-contract` 재생성. 개정 기준 확정 전까지 `ae31eb2`가 유효 기준 | `7d296a8` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
