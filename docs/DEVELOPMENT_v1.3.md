@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.3)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.3 (개정 1.3.5)  
+> **문서 버전:** 1.3 (개정 1.3.6)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-24  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -24,6 +24,7 @@
 | v1.3.3 | 2026-10-24 | Phase 0 작업용 Git Worktree의 위치·이름 규칙을 추가(§19.5.5) |
 | v1.3.4 | 2026-10-24 | 줄바꿈 LF 고정(`.gitattributes`)과 Linux·Remote SSH 실행 Host를 WSL로 확보하는 절차를 INTEGRATION 경로에 추가(§19.5.3, §19.5.8) |
 | v1.3.5 | 2026-10-24 | Provider CLI를 각 에이전트의 VS Code 확장에서 탐지해 Managed 실행에 사용(DEC-06, §7.5). 탐색 위치·해석 순서·기록·인증·동시 사용 규칙, Phase 0 확인 항목, HOST의 공통 탐색 경로, 위험 추가 |
+| v1.3.6 | 2026-10-24 | §7.5 확장 탐지를 버전 비의존 규칙으로 변경(`extensions.json`·`.obsolete` 해석, 폴더 이름 파싱, 파일 이름 검색 조건). Antigravity 실행 파일 위치를 `~/.gemini/bin/agy`로 확정 |
 
 ## 목차
 
@@ -546,23 +547,25 @@ Headless 스트림 입력은 Turn별로 직렬화하고 `result`를 소비한 �
 
 DEC-06에 따라 Provider CLI는 실행 Host에 설치된 각 에이전트의 VS Code 확장에서 찾습니다. Core는 찾은 실행 파일로 **새 Managed 프로세스**를 시작합니다. 확장이 이미 실행 중인 프로세스·대화에 붙거나 그 UI를 조작하지 않으며, 그런 연동은 Attached(§12, P1)로 구분합니다.
 
-| Provider | 확장 ID | 실행 파일 | 2026-10-24 Windows 확인 결과 |
+| Provider | 확장 ID | 실행 파일 위치 (버전 없는 규칙) | 2026-10-24 Windows 확인 결과 |
 |---|---|---|---|
-| Codex | `openai.chatgpt` | 확장 폴더의 `bin/<platform>/codex[.exe]` | `openai.chatgpt-26.1007.21434-win32-x64`의 `bin/windows-x86_64/codex.exe`, `codex-cli 0.162.0-alpha.17.2`. 같은 패키지에 `bin/linux-x86_64/codex`도 있음 |
-| Claude Code | `anthropic.claude-code` | 확장 폴더의 `resources/native-binary/claude[.exe]` | `anthropic.claude-code-2.1.309-win32-x64`, `2.1.309 (Claude Code)` |
-| Antigravity | `google.google-antigravity` | 확장이 내려받아 관리하는 `agy`. 확장은 바이너리를 포함하지 않고 `agy --hub`로 자체 백그라운드 서버를 띄움 | 확장 1.9.0. `%LOCALAPPDATA%\agy\bin\agy` 1.0.6이 존재하나 확장 관리 위치와 같은지는 미확인 |
+| Codex | `openai.chatgpt` | `<확장 폴더>/bin/<os>-<arch>/codex[.exe]` (`<os>-<arch>`: `windows-x86_64`, `linux-x86_64` 등) | 확장 26.1007.21434(`win32-x64`), `bin/windows-x86_64/codex.exe`, `codex-cli 0.162.0-alpha.17.2`. 같은 패키지에 `bin/linux-x86_64/codex`도 있음 |
+| Claude Code | `anthropic.claude-code` | `<확장 폴더>/resources/native-binary/claude[.exe]` (플랫폼별 패키지) | 확장 2.1.309(`win32-x64`), `2.1.309 (Claude Code)` |
+| Antigravity | `google.google-antigravity` | 확장 폴더 밖 `~/.gemini/bin/agy[.exe]`. 확장은 바이너리를 포함하지 않고 이 위치에 내려받아 관리하며(확장 코드의 `getInstalledTargetPath`) `agy --hub`로 자체 백그라운드 서버를 띄움 | 확장 1.9.0, `C:\Users\<user>\.gemini\bin\agy.exe` 1.4.7. PATH에는 없음 |
 
-이 위치는 각 확장의 **비공개 내부 구조**를 관찰한 결과이며 공식 계약이 아닙니다. 확장 업데이트로 바뀔 수 있으므로 다음 규칙을 따릅니다.
+이 위치는 각 확장의 **비공개 내부 구조**를 관찰한 결과이며 공식 계약이 아닙니다. 확장 업데이트로 바뀔 수 있으므로 버전에 의존하지 않는 규칙으로 해석하고 다음을 따릅니다.
 
 1. **탐색 위치:** 실행 Host의 확장 폴더를 찾습니다. 로컬은 `~/.vscode/extensions`(Insiders는 `~/.vscode-insiders/extensions`), Remote SSH·WSL 실행 Host는 그 Host의 `~/.vscode-server/extensions`입니다. UI Host의 확장으로 원격 실행 Host의 CLI를 대신하지 않습니다(§3.3).
-2. **해석 순서:** ① 사용자·Host 설정의 명시 경로 → ② 확장이 포함·관리하는 실행 파일(같은 확장이 여러 버전이면 VS Code가 사용하는 최신 버전) → ③ PATH. 어느 경로를 썼는지 출처로 기록하며, ③으로 대체할 때도 그 사실을 표시합니다.
-3. **확인:** 찾은 파일은 버전 명령으로 실행 가능 여부와 버전을 확인합니다. 확인하지 못하면 해당 Provider의 Capability를 `unsupported`(사유 포함)로 두고 다른 경로로 조용히 바꾸지 않습니다.
-4. **기록:** Run의 Context Snapshot과 Capability에 확장 ID·확장 버전·실행 파일 경로·CLI 버전·파일 해시를 남깁니다(§6.1). 경로는 Run 시작 시 고정하며 실행 중 확장이 업데이트되어도 같은 Run에서 다른 파일로 바꾸지 않습니다.
-5. **복사 금지:** 확장의 실행 파일을 다른 위치로 복사·재배포하지 않습니다. 업데이트로 기존 버전 폴더가 사라지면 다음 Run부터 다시 탐지합니다.
-6. **인증과 상태:** 인증은 CLI가 쓰는 사용자 설정을 그대로 사용하며 Core가 토큰을 읽거나 복사하지 않습니다(§14.1). 확장에서 로그인한 상태가 CLI 실행에도 유효한지는 Provider별로 Phase 0에서 확인합니다. Antigravity 확장은 `--app_data_dir=antigravity`로 별도 데이터 디렉터리를 쓰므로, Managed 실행이 어떤 데이터 디렉터리·인증을 쓸지 Phase 0에서 정하고 기록합니다.
-7. **동시 사용:** 확장 UI와 Managed 프로세스가 같은 사용자 설정·세션 저장소를 함께 쓸 때의 충돌은 PROV-10에서 검증합니다. Phase 0 Managed 실행은 확장 UI의 기존 대화를 재개하거나 수정하지 않습니다.
+2. **확장 폴더 해석 (버전 비의존):** 경로에 버전을 고정하지 않습니다. 확장 폴더의 `extensions.json`에서 확장 ID로 항목을 찾아 `relativeLocation`(현재 활성 폴더)과 `version`을 읽습니다. `extensions.json`이 없거나 항목이 없으면 `<확장 ID>-*` 폴더를 나열해 `.obsolete`에 있는 폴더를 빼고, 폴더 이름 `<확장 ID>-<version>[-<targetPlatform>]`을 파싱해 실행 Host 플랫폼과 맞는 가장 높은 버전을 고릅니다. 읽은 버전은 선택 근거와 기록에만 쓰고 경로 규칙에는 쓰지 않습니다.
+3. **실행 파일 해석:** 위 표의 상대 경로를 먼저 확인합니다. 없으면 확장 폴더 안에서 실행 파일 이름(`codex[.exe]`, `claude[.exe]`)으로 찾되, 후보가 정확히 하나일 때만 쓰고 그 사실을 기록합니다. 여러 개이거나 없으면 추측하지 않고 미탐지로 처리합니다.
+4. **해석 순서:** ① 사용자·Host 설정의 명시 경로 → ② 확장이 포함·관리하는 실행 파일(위 2·3) → ③ PATH. 어느 경로를 썼는지 출처로 기록하며, ③으로 대체할 때도 그 사실을 표시합니다.
+5. **확인:** 찾은 파일은 버전 명령으로 실행 가능 여부와 버전을 확인합니다. 확인하지 못하면 해당 Provider의 Capability를 `unsupported`(사유 포함)로 두고 다른 경로로 조용히 바꾸지 않습니다.
+6. **기록:** Run의 Context Snapshot과 Capability에 확장 ID·확장 버전·실행 파일 경로·CLI 버전·파일 해시를 남깁니다(§6.1). 경로는 Run 시작 시 고정하며 실행 중 확장이 업데이트되어도 같은 Run에서 다른 파일로 바꾸지 않습니다.
+7. **복사 금지:** 확장의 실행 파일을 다른 위치로 복사·재배포하지 않습니다. 업데이트로 기존 버전 폴더가 사라지면 다음 Run부터 다시 탐지합니다.
+8. **인증과 상태:** 인증은 CLI가 쓰는 사용자 설정을 그대로 사용하며 Core가 토큰을 읽거나 복사하지 않습니다(§14.1). 확장에서 로그인한 상태가 CLI 실행에도 유효한지는 Provider별로 Phase 0에서 확인합니다. Antigravity 확장은 `--app_data_dir=antigravity`로 별도 데이터 디렉터리를 쓰므로, Managed 실행이 어떤 데이터 디렉터리·인증을 쓸지 Phase 0에서 정하고 기록합니다.
+9. **동시 사용:** 확장 UI와 Managed 프로세스가 같은 사용자 설정·세션 저장소를 함께 쓸 때의 충돌은 PROV-10에서 검증합니다. Phase 0 Managed 실행은 확장 UI의 기존 대화를 재개하거나 수정하지 않습니다.
 
-공통 탐색(확장 폴더 열거·버전 선택·해시 계산)은 공용 모듈이 담당하고, 확장 ID·실행 파일 상대 경로·버전 명령처럼 Provider별 규칙은 각 Provider Adapter가 담당합니다(§19.5.3).
+공통 탐색(`extensions.json`·`.obsolete` 해석, 폴더 이름 파싱·버전 비교, 파일 이름 검색, 해시 계산)은 공용 모듈이 담당하고, 확장 ID·실행 파일 상대 경로·버전 명령처럼 Provider별 규칙은 각 Provider Adapter가 담당합니다(§19.5.3). 공용 모듈의 시험은 여러 버전 폴더·`.obsolete`·`extensions.json` 누락·플랫폼 불일치를 포함한 Fixture로 수행합니다.
 
 ## 8. 세션 수명·포크·토큰 효율
 

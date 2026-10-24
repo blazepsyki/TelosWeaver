@@ -29,7 +29,7 @@
 | PH0-HOST | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. `telos_adapters::runtime`·`telos_schema::api` 구현, VS Code 확장 CLI 공통 탐색(`crates/adapters/src/discovery/**`, Spec §7.5). `discovery` 모듈 등록·탐지 결과 타입은 착수 시 §4로 요청 |
 | PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `openai.chatgpt` 확장의 `bin/<platform>/codex`(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용. G1 대표 Provider |
 | PH0-CLAUDE | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `anthropic.claude-code` 확장의 `resources/native-binary/claude`(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
-| PH0-AGY | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. `google.google-antigravity` 확장이 관리하는 `agy`의 위치·데이터 디렉터리 확인부터(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
+| PH0-AGY | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `google.google-antigravity` 확장이 관리하는 `~/.gemini/bin/agy`(Spec §7.5). 확장의 `--app_data_dir=antigravity`와 Managed 실행의 데이터 디렉터리·인증 관계 확인부터. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
 | PH0-MASTER | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. `DecisionPayload`·`DecisionContext`·`DecisionOutcome`과 공통 실패 Fixture 사용 |
 | PH0-RN | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Fork 도입 방식·기준 SHA 기록, `telos_schema::rn` 계약 구현 |
 | PH0-EXT | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 생성 타입과 `telos_schema::api` 문서 계약으로 테스트 대역 개발 |
@@ -115,5 +115,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 13:02 | `claude-opus-5.5/session-c9336d2c` | G0 개정 1 INTEGRATION 부분 완료(`7d296a8`, REQ-002·003 인터페이스). PH0-CONTRACT `verified → in-progress`, Worktree `D:\worktree\TelosWeaver\ph0-contract` 재생성. 개정 기준 확정 전까지 `ae31eb2`가 유효 기준 | `7d296a8` |
 | 2026-10-24 13:11 | `claude-opus-5.5/session-c9336d2c` | `ph0/contract`(`98177db`)를 `ba97e7b`로 통합, `main`에서 재검증(27개 통과). 계약 기준 `ae31eb2 → ba97e7b`, PH0-CONTRACT `in-progress → verified`, REQ-004~009 완료, REQ-002·003 계약 완료(HOST 구현 대기). Worktree 정리 | `ba97e7b` |
 | 2026-10-24 13:21 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정 DEC-06 반영(Spec v1.3.5): Provider CLI를 VS Code 확장에서 탐지. HOST에 공통 탐색 경로 추가, 세 Provider 인계에 확장 실행 파일 기록, WSL 절차 §2.9를 원격 확장 기준으로 수정. 공통 계약 코드 변경 없음 | `ba97e7b` |
+| 2026-10-24 13:38 | `claude-opus-5.5/session-c9336d2c` | Spec v1.3.6: 확장 탐지를 버전 비의존 규칙으로 변경, Antigravity 실행 파일을 `~/.gemini/bin/agy`로 확정(사용자의 중복 설치 정리 후 재확인). AGY 인계·WSL 절차 갱신 | `ba97e7b` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.

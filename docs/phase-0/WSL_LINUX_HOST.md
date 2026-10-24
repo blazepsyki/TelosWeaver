@@ -106,12 +106,13 @@ Spec DEC-06·§7.5에 따라 Provider CLI는 실행 Host에 설치된 각 에이
 
 1. Windows VS Code에서 Remote-SSH `telos-wsl`로 접속한 창에서 Codex(`openai.chatgpt`)·Claude Code(`anthropic.claude-code`)·Antigravity(`google.google-antigravity`) 확장을 **원격(SSH: telos-wsl)에 설치**합니다. 설치 위치는 WSL의 `~/.vscode-server/extensions`입니다.
 2. 원격 창의 각 확장에서 로그인합니다. Windows의 인증 파일·토큰을 복사하지 않습니다 (Spec §13.1, §14.1).
-3. 확장 폴더에서 실행 파일과 버전을 확인합니다. Antigravity는 확장이 `agy`를 내려받아 관리하므로 실제 위치를 찾아 기록합니다.
+3. 실행 파일과 버전을 확인합니다. Antigravity는 확장이 `~/.gemini/bin/agy`에 내려받아 관리합니다.
 
 ```bash
 ls ~/.vscode-server/extensions | grep -E 'openai\.chatgpt|anthropic\.claude-code|google\.google-antigravity'
 ~/.vscode-server/extensions/openai.chatgpt-*/bin/linux-x86_64/codex --version
 ~/.vscode-server/extensions/anthropic.claude-code-*/resources/native-binary/claude --version
+~/.gemini/bin/agy --version
 ```
 
 경로 패턴은 2026-10-24 Windows 확장에서 관찰한 것이며 Linux 패키지에서는 다를 수 있습니다. 실제 경로·확장 버전·CLI 버전은 해당 Provider 작업의 증거에 기록하고, 다르면 Spec §7.5 갱신을 PH0-INTEGRATION에 요청합니다.
