@@ -13,7 +13,7 @@ use telos_schema::{
 };
 
 mod agy;
-mod claude;
+pub mod claude;
 mod codex;
 pub mod runtime;
 mod unimplemented;
