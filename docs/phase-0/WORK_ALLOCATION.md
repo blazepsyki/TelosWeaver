@@ -183,5 +183,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 23:57 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정으로 Spec v1.5 개정(`docs/DEVELOPMENT_v1.4.md` → `docs/DEVELOPMENT_v1.5.md`, v1.4 원문은 `docs/archive/` 로컬 보관): DEC-07을 Reason CLI 연동·자동 업데이트·계정 로그인 제거로 좁히고 §12.1·§12.3~12.5·RN-09~12·RN-POC-13~15·PH0-RN-03 조정, §12.5 경계 확정. §6에 "RN 범위" 추가. 저장소 안 Spec 링크 갱신 | `9dcc77c` |
 | 2026-10-25 00:08 | `claude-opus-5.5/session-c9336d2c` | PH0-RN `reserved → in-progress`, 서브 태스크 PH0-RN-00 착수(Branch `ph0/rn-00`). 원본은 저장소 밖 임시 폴더에 받아 읽기만 하며 빌드·설치·실행하지 않음 | `2ea5eff` |
 | 2026-10-25 00:13 | `claude-opus-5.5/session-c9336d2c` | PH0-RN-00 완료·통합: 원본 `540b690`(v0.12.11 이후 2커밋) 조사, 제거 3종·유지 기능의 파일·호출·부작용 처리표와 외부 접속 목록, 후속 경계(v0.12.11 기준 subtree, 중계 목록 조회 조정, 자동 서비스 등록 제거, Codex CLI 위치, Pipe DACL, RPC 계약). `ph0/rn-00` 정리 | `4e83d93` |
+| 2026-10-25 00:19 | `claude-opus-5.5/session-c9336d2c` | PH0-RN-01 착수(Branch `ph0/rn-01`): 원본 v0.12.11 subtree 도입, 출처·기준 기록, 수정 전 빌드·시험. 원본 설치 스크립트·setup·Daemon은 실행하지 않음 | `b1294a5` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
