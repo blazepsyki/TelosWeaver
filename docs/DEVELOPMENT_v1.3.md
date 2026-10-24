@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.3)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.3 (개정 1.3.3)  
+> **문서 버전:** 1.3 (개정 1.3.4)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-24  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -22,6 +22,7 @@
 | v1.3.1 | 2026-10-23 | Core 구현 언어를 TypeScript/Node.js에서 Rust로 변경(DEC-05), 계약 타입을 Rust 표기로 전환, Extension 타입 생성 경로 추가, 기존 harness 코드 삭제 반영(DEC-04) |
 | v1.3.2 | 2026-10-24 | Phase 0 병렬 구현의 작업 ID·수정 경로·공통 파일 소유권·계약 동결·배정·통합 게이트·검증 증거를 구체화 |
 | v1.3.3 | 2026-10-24 | Phase 0 작업용 Git Worktree의 위치·이름 규칙을 추가(§19.5.5) |
+| v1.3.4 | 2026-10-24 | 줄바꿈 LF 고정(`.gitattributes`)과 Linux·Remote SSH 실행 Host를 WSL로 확보하는 절차를 INTEGRATION 경로에 추가(§19.5.3, §19.5.8) |
 
 ## 목차
 
@@ -1121,7 +1122,7 @@ G0 완료 시 공통 인터페이스와 최소 컴파일 가능한 등록 경로
 
 | 작업 ID | 책임·산출물 | 독점 수정 경로 | 선행 조건 |
 |---|---|---|---|
-| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitmodules, README.md, CLAUDE.md, docs/DEVELOPMENT_v1.3.md, docs/phase-0/WORK_ALLOCATION.md | 최초 지정, G0 준비부터 담당 |
+| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, CLAUDE.md, docs/DEVELOPMENT_v1.3.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md | 최초 지정, G0 준비부터 담당 |
 | PH0-CONTRACT | 공통 Rust 계약·Payload Schema·생성 원본·Wire/Schema 시험, Adapter Trait·공통 오류 | crates/schema/**, schemas/**, crates/adapters/src/lib.rs, crates/adapters/src/unimplemented.rs, crates/adapters/tests/unimplemented.rs | INTEGRATION과 G0 확정 |
 | PH0-HOST | 공용 프로세스 I/O·취소·자식 회수, 최소 Core API·Supervisor와 Fixture 경로 | crates/adapters/src/runtime/**, crates/adapters/tests/runtime_*.rs, crates/adapters/tests/support/runtime/**, crates/adapters/tests/fixtures/runtime/**, crates/core/src/api/**, crates/core/src/execution/**, crates/core/tests/host_*.rs, crates/core/tests/fixtures/host/** | G0, 공용 런타임·API 계약 |
 | PH0-CODEX | Codex App Server 접속·신규 실행·이벤트 매핑·오류·취소, Resume/Fork 실험 | crates/adapters/src/codex.rs, crates/adapters/src/codex/**, crates/adapters/tests/codex_*.rs, crates/adapters/tests/fixtures/codex/** | G0, HOST 공개 인터페이스 |
@@ -1211,6 +1212,8 @@ PROV 범위는 해당 Provider의 실제 지원 상태와 환경을 기록하는
 | G3 Phase 0 수용 | §19.1의 모든 필수 조건과 Windows/Linux·Remote SSH 해당 환경 증거, 미지원 기능 판정 확보 | INTEGRATION이 근거를 모아 보고 |
 
 개별 작업이 `integrated`가 되어도 G3 통과 전 Phase 0 전체 완료를 선언하지 않습니다. G3의 환경 조건은 Spec이 정한 대상 범위이며 모든 Provider를 모든 OS 조합에서 검증했다는 식으로 확대하지 않습니다. 실행하지 못한 필수 환경은 미검증으로 남기고 게이트 통과를 보류합니다.
+
+Phase 0의 Linux 실행 Host와 단일 Remote SSH 실행 Host는 같은 PC의 WSL2 배포판으로 확보하며 구성·검증 절차는 [WSL Linux Host 절차](phase-0/WSL_LINUX_HOST.md)를 따릅니다. Remote SSH 증거는 VS Code Remote-SSH로 WSL의 SSH 서버에 접속한 경로에서만 인정하고 Remote-WSL 확장 경로는 Linux 증거로만 씁니다. 같은 물리 장비·Loopback 네트워크라는 한계는 각 증거에 기록합니다.
 
 각 `docs/phase-0/evidence/<작업 ID>/README.md`에는 다음을 기록합니다.
 

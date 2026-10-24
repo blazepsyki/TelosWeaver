@@ -1,0 +1,6 @@
+# 줄바꿈은 LF로 고정합니다. 생성물·Checksum이 체크아웃 환경(core.autocrlf)에 따라 바뀌지 않게 합니다.
+* text=auto eol=lf
+
+# Windows 배치 파일만 CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
