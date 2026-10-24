@@ -46,7 +46,7 @@ crates/
                  integration/   Phase 0 통합 구성: 운영자 정책 승인, Provider 탐지·등록, 종료 정리
 schemas/       telos-schema에서 생성한 JSON Schema (커밋 대상)
 extension/     VS Code Extension, TypeScript (§17) — 생성 타입만 사용, Core 연결은 미구현
-rn-fork/       Reason Network Fork 자리 — 아직 도입 전
+rn-fork/       Reason Network Fork(원본 v0.12.11, subtree) — DEC-07 정리 진행 중, 독립 Cargo Workspace
 (docs/archive/의 이전 설계 문서는 로컬에만 보관하며 원격 저장소에 올리지 않습니다)
 docs/          설계 문서, phase-0/에 배정표·WSL 절차·작업별 검증 증거
 ```
