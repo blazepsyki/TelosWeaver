@@ -9,24 +9,106 @@
     "vscode": "^1.100.0"
   },
   "main": "./dist/extension.js",
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
     "commands": [
       {
+        "command": "telosWeaver.connect",
+        "title": "TelosWeaver: Core 연결",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "telosWeaver.startCore",
+        "title": "TelosWeaver: Core 시작 / 연결",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "telosWeaver.disconnect",
+        "title": "TelosWeaver: 연결 해제 (Core 유지)"
+      },
+      {
+        "command": "telosWeaver.refresh",
+        "title": "TelosWeaver: 상태 새로 고침",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "telosWeaver.selectCore",
+        "title": "TelosWeaver: Core 실행 파일 선택"
+      },
+      {
+        "command": "telosWeaver.watchRun",
+        "title": "TelosWeaver: Run 출력 구독",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
         "command": "telosWeaver.showOutput",
-        "title": "TelosWeaver: Show Output"
+        "title": "TelosWeaver: 출력 보기"
       }
-    ]
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "telosWeaver.status",
+          "name": "TelosWeaver"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "TelosWeaver",
+      "properties": {
+        "telosWeaver.corePath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "실행 Host에 빌드한 telos-weaver 실행 파일의 절대 경로입니다."
+        },
+        "telosWeaver.projectId": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "새 Core의 Project ID. 비우면 projectKey로 생성하고 기존 연결은 Core의 ID를 확인합니다."
+        },
+        "telosWeaver.hostId": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "실행 Host ID. 원격 시작에는 반드시 지정합니다."
+        }
+      }
+    }
   },
   "scripts": {
     "gen:types": "node scripts/gen-types.mjs",
     "build": "npm run gen:types && tsc -p .",
-    "watch": "tsc -p . --watch"
+    "watch": "tsc -p . --watch",
+    "test": "npm run build && node --test test/*.test.cjs",
+    "test:core": "npm run build && node --test test/live-core.cjs",
+    "test:host": "npm run build && node scripts/test-host.cjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/vscode": "^1.100.0",
     "json-schema-to-typescript": "^16.0.0",
     "typescript": "^6.0.3"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Core 실행과 인증 연결은 신뢰한 Workspace에서 사용합니다.",
+      "restrictedConfigurations": [
+        "telosWeaver.corePath",
+        "telosWeaver.projectId",
+        "telosWeaver.hostId"
+      ]
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Core는 실행 Host의 실제 파일시스템을 사용합니다."
+    }
   }
 }
