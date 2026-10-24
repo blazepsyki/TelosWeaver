@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.3)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.3 (개정 1.3.6)  
+> **문서 버전:** 1.3 (개정 1.3.7)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-24  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -25,6 +25,7 @@
 | v1.3.4 | 2026-10-24 | 줄바꿈 LF 고정(`.gitattributes`)과 Linux·Remote SSH 실행 Host를 WSL로 확보하는 절차를 INTEGRATION 경로에 추가(§19.5.3, §19.5.8) |
 | v1.3.5 | 2026-10-24 | Provider CLI를 각 에이전트의 VS Code 확장에서 탐지해 Managed 실행에 사용(DEC-06, §7.5). 탐색 위치·해석 순서·기록·인증·동시 사용 규칙, Phase 0 확인 항목, HOST의 공통 탐색 경로, 위험 추가 |
 | v1.3.6 | 2026-10-24 | §7.5 확장 탐지를 버전 비의존 규칙으로 변경(`extensions.json`·`.obsolete` 해석, 폴더 이름 파싱, 파일 이름 검색 조건). Antigravity 실행 파일 위치를 `~/.gemini/bin/agy`로 확정 |
+| v1.3.7 | 2026-10-24 | §7.5에 Antigravity 데이터 디렉터리 검증을 추가. 관찰 결과, `--app_data_dir=antigravity` 가설, AGY-DATA-01~05, 순서, 판정·반영 방법을 PH0-AGY 작업으로 지정 |
 
 ## 목차
 
@@ -562,10 +563,41 @@ DEC-06에 따라 Provider CLI는 실행 Host에 설치된 각 에이전트의 VS
 5. **확인:** 찾은 파일은 버전 명령으로 실행 가능 여부와 버전을 확인합니다. 확인하지 못하면 해당 Provider의 Capability를 `unsupported`(사유 포함)로 두고 다른 경로로 조용히 바꾸지 않습니다.
 6. **기록:** Run의 Context Snapshot과 Capability에 확장 ID·확장 버전·실행 파일 경로·CLI 버전·파일 해시를 남깁니다(§6.1). 경로는 Run 시작 시 고정하며 실행 중 확장이 업데이트되어도 같은 Run에서 다른 파일로 바꾸지 않습니다.
 7. **복사 금지:** 확장의 실행 파일을 다른 위치로 복사·재배포하지 않습니다. 업데이트로 기존 버전 폴더가 사라지면 다음 Run부터 다시 탐지합니다.
-8. **인증과 상태:** 인증은 CLI가 쓰는 사용자 설정을 그대로 사용하며 Core가 토큰을 읽거나 복사하지 않습니다(§14.1). 확장에서 로그인한 상태가 CLI 실행에도 유효한지는 Provider별로 Phase 0에서 확인합니다. Antigravity 확장은 `--app_data_dir=antigravity`로 별도 데이터 디렉터리를 쓰므로, Managed 실행이 어떤 데이터 디렉터리·인증을 쓸지 Phase 0에서 정하고 기록합니다.
+8. **인증과 상태:** 인증은 CLI가 쓰는 사용자 설정을 그대로 사용하며 Core가 토큰을 읽거나 복사하지 않습니다(§14.1). 확장에서 로그인한 상태가 CLI 실행에도 유효한지는 Provider별로 Phase 0에서 확인합니다. Antigravity 확장은 `--app_data_dir=antigravity`로 별도 데이터 디렉터리를 쓰므로, Managed 실행이 어떤 데이터 디렉터리·인증을 쓸지 아래 "Antigravity 데이터 디렉터리 검증"에 따라 Phase 0에서 정하고 기록합니다.
 9. **동시 사용:** 확장 UI와 Managed 프로세스가 같은 사용자 설정·세션 저장소를 함께 쓸 때의 충돌은 PROV-10에서 검증합니다. Phase 0 Managed 실행은 확장 UI의 기존 대화를 재개하거나 수정하지 않습니다.
 
 공통 탐색(`extensions.json`·`.obsolete` 해석, 폴더 이름 파싱·버전 비교, 파일 이름 검색, 해시 계산)은 공용 모듈이 담당하고, 확장 ID·실행 파일 상대 경로·버전 명령처럼 Provider별 규칙은 각 Provider Adapter가 담당합니다(§19.5.3). 공용 모듈의 시험은 여러 버전 폴더·`.obsolete`·`extensions.json` 누락·플랫폼 불일치를 포함한 Fixture로 수행합니다.
+
+#### Antigravity 데이터 디렉터리 검증 (PH0-AGY)
+
+**관찰 (2026-10-24, Windows, 확장 1.9.0, `agy` 1.4.7):**
+
+- 확장은 `agy --hub --hub-port=<port> --app_data_dir=antigravity --csrf_token=<token>` 형태로 CLI를 실행합니다(확장 `extension.js`).
+- `--app_data_dir`는 `agy --help`에 나오지 않는 **비공개 옵션**입니다. CLI 버전이 바뀌면 사라지거나 의미가 달라질 수 있습니다.
+- 데이터 디렉터리는 두 개입니다.
+  - `~/.gemini/antigravity`: 확장이 씁니다. `conversations`, `brain`, `worktrees`, `conversation_summaries.db` 등이 있습니다.
+  - `~/.gemini/antigravity-cli`: CLI를 단독 실행할 때의 기본값입니다. `settings.json`, `history.jsonl`, `keybindings.json` 등이 있습니다.
+
+**가설:** Managed 실행에 `--app_data_dir=antigravity`를 넘기면 확장과 같은 데이터 디렉터리와 로그인 상태를 쓸 수 있습니다.
+
+**검증 항목:**
+
+| ID | 확인 내용 |
+|---|---|
+| AGY-DATA-01 | `--hub` 없이 `-p`/`--output-format stream-json`과 함께 이 옵션이 받아들여지는지 확인합니다. 알 수 없는 옵션으로 실패하는지, 조용히 무시되는지도 구분합니다 |
+| AGY-DATA-02 | 확장에서 로그인한 상태로 인증이 유효한지 확인합니다. 인증 정보가 데이터 디렉터리 안에 있는지, 밖(공용 설정이나 OS 자격 증명 저장소)에 있는지 기록합니다. 위치는 파일 이름과 존재 여부만 확인하고 내용은 읽지 않습니다 |
+| AGY-DATA-03 | 실행 뒤 어느 디렉터리에 대화·로그·상태 파일이 생겼는지, 확장 UI의 대화 기록에 Managed 실행이 나타나는지 확인합니다 |
+| AGY-DATA-04 | 확장의 허브 프로세스가 떠 있는 상태에서 동시에 실행할 때 잠금 충돌(`conversation_summaries.db` 등), 허브 상태 변경, 확장 오류가 있는지 확인합니다 (PROV-10, 규칙 9) |
+| AGY-DATA-05 | `settings.json`이 CLI 쪽 디렉터리에만 있으므로, 권한·모드·모델 설정이 디렉터리에 따라 다르게 적용되는지 확인합니다 (§7.4 시작 전 권한 설정) |
+
+**순서:** ① 확장을 끈 상태에서 옵션을 넘겨 실행합니다(01·02·03, 05). ② 확장을 켠 상태에서 동시에 실행합니다(04). ③ 옵션 없이 기본 디렉터리로 실행해 결과를 비교합니다. 실험에는 쓰기 도구가 필요 없는 짧은 프롬프트와 버려도 되는 Workspace를 씁니다. 확장의 기존 대화를 재개하거나 수정하지 않습니다(규칙 9).
+
+**판정과 반영:**
+
+- 결과에 따라 Managed 실행의 데이터 디렉터리를 정합니다. 선택지는 확장 디렉터리(옵션 지정), 기본 디렉터리(옵션 없음), 사용 불가 세 가지입니다. 기본 디렉터리로 가더라도 별도 로그인을 위해 토큰을 복사하지 않습니다.
+- 옵션을 쓰기로 하면 Adapter는 실행 전 버전 확인(규칙 5)에서 옵션이 받아들여지는지도 확인합니다. 받아들여지지 않으면 다른 디렉터리로 조용히 바꾸지 않고 Capability를 `unsupported`(사유 포함)로 둡니다.
+- 쓴 데이터 디렉터리는 Run의 Context Snapshot에 기록합니다(규칙 6).
+- PH0-AGY는 결과를 `docs/phase-0/evidence/PH0-AGY/README.md`에 남기고, 확정된 규칙을 이 절에 반영해 달라고 PH0-INTEGRATION에 변경 요청합니다.
 
 ## 8. 세션 수명·포크·토큰 효율
 
