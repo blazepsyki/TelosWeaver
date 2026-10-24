@@ -1,9 +1,10 @@
-//! 운영자 설정 기반 Phase 0 실행 승인과 Claude 실행 조건.
+//! 운영자 설정 기반 Phase 0 실행 승인과 Provider별 실행 조건.
 
 use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use async_trait::async_trait;
@@ -11,7 +12,9 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use telos_adapters::{
     AdapterError,
+    agy::{AgyLaunch, AgyLaunchResolver},
     claude::{ClaudeLaunch, ClaudeLaunchResolver},
+    codex::{CodexApprovals, CodexLaunch, CodexLaunchResolver, CodexSandbox},
 };
 use telos_schema::{
     CliDiscovery, FailureKind, RunContext, SessionMode, SessionRequest, TaskSpec, WorkspaceMode,
@@ -23,7 +26,7 @@ use crate::execution::{RunAuthorizer, RunPermit, api_error, new_id};
 /// 설정 파일 상한. 운영자 설정이며 큰 입력을 받지 않습니다.
 const MAX_CONFIG_BYTES: u64 = 256 * 1024;
 
-/// 읽기 전용 Workspace에서 끄는 도구입니다.
+/// 읽기 전용 Workspace에서 끄는 Claude 도구입니다.
 const WRITE_TOOLS: &[&str] = &["Write", "Edit", "NotebookEdit", "Bash"];
 
 #[derive(Debug, Clone, Deserialize)]
@@ -36,6 +39,10 @@ pub struct LocalPolicyConfig {
     pub workspaces: Vec<WorkspaceGrant>,
     #[serde(default)]
     pub claude: Option<ClaudePolicy>,
+    #[serde(default)]
+    pub codex: Option<CodexPolicy>,
+    #[serde(default)]
+    pub agy: Option<AgyPolicy>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -44,7 +51,7 @@ pub struct WorkspaceGrant {
     pub id: String,
     /// 실행 Host의 절대 경로. 시작 시 정규화합니다.
     pub path: PathBuf,
-    /// `false`이면 `read_only` Task만 허용하고 쓰기 도구를 끕니다.
+    /// `false`이면 `read_only` Task만 허용하고 쓰기를 막습니다.
     pub writable: bool,
 }
 
@@ -63,6 +70,45 @@ pub struct ClaudePolicy {
     #[serde(default)]
     pub setting_sources: Option<String>,
     /// §7.5-4 명시 경로. 없으면 확장에서 찾습니다.
+    #[serde(default)]
+    pub executable: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CodexPolicy {
+    /// 허용 모델. 첫 번째가 기본값입니다. 다른 모델로 조용히 바꾸지 않습니다.
+    pub models: Vec<String>,
+    /// 추론 강도 (예: `low`).
+    pub effort: String,
+    /// Run 제한 시간(초).
+    pub run_timeout_secs: u64,
+    #[serde(default)]
+    pub executable: Option<PathBuf>,
+}
+
+/// Antigravity 데이터 디렉터리 (Spec §7.5 확정 규칙).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AgyDataDir {
+    /// `--app_data_dir=antigravity`: 확장의 로그인 상태를 씁니다. 기본값.
+    #[default]
+    Extension,
+    /// 옵션 생략: CLI 기본 디렉터리. 확장 대화 목록과 분리됩니다.
+    Default,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AgyPolicy {
+    pub models: Vec<String>,
+    #[serde(default)]
+    pub effort: Option<String>,
+    /// 쓰기 가능 Workspace에서 쓰는 실행 모드(`accept-edits` 등). 읽기 전용 Run은 CLI 기본(검토 요청)으로 둡니다.
+    #[serde(default)]
+    pub mode: Option<String>,
+    #[serde(default)]
+    pub data_dir: AgyDataDir,
     #[serde(default)]
     pub executable: Option<PathBuf>,
 }
@@ -106,7 +152,7 @@ impl LocalPolicyConfig {
             if !canonical.is_dir() {
                 return Err(format!("workspace '{}' is not a directory", grant.id));
             }
-            grant.path = canonical;
+            grant.path = plain_path(canonical);
         }
         if let Some(claude) = &self.claude {
             if claude.models.is_empty() {
@@ -116,7 +162,47 @@ impl LocalPolicyConfig {
                 return Err("claude.permissionMode bypassPermissions is not allowed".into());
             }
         }
+        if let Some(codex) = &self.codex {
+            if codex.models.is_empty() || codex.effort.is_empty() {
+                return Err("codex.models and codex.effort must not be empty".into());
+            }
+            if codex.run_timeout_secs == 0 {
+                return Err("codex.runTimeoutSecs must be positive".into());
+            }
+        }
+        if let Some(agy) = &self.agy {
+            if agy.models.is_empty() {
+                return Err("agy.models must not be empty".into());
+            }
+            if agy
+                .mode
+                .as_deref()
+                .is_some_and(|m| m.contains("dangerously") || m == "bypassPermissions")
+            {
+                return Err("agy.mode must not bypass permissions".into());
+            }
+        }
         Ok(())
+    }
+
+    /// Provider별 허용 모델. 정책에 없는 Provider는 `None`입니다.
+    fn models(&self, provider: &str) -> Option<&[String]> {
+        match provider {
+            telos_adapters::claude::PROVIDER_ID => self.claude.as_ref().map(|p| &p.models[..]),
+            telos_adapters::codex::PROVIDER_ID => self.codex.as_ref().map(|p| &p.models[..]),
+            telos_adapters::agy::PROVIDER_ID => self.agy.as_ref().map(|p| &p.models[..]),
+            _ => None,
+        }
+    }
+}
+
+/// Windows `canonicalize`가 만드는 확장 길이 드라이브 경로(`\\?\C:\...`)를 일반 형식(`C:\...`)으로 바꿉니다.
+/// Antigravity는 확장 길이 경로를 작업 영역으로 인식하지 못하고 자체 scratch 폴더에 씁니다(G2 실환경 관찰).
+/// UNC(`\\?\UNC\...`) 등 다른 형식은 그대로 둡니다.
+fn plain_path(path: PathBuf) -> PathBuf {
+    match path.to_str().and_then(|s| s.strip_prefix(r"\\?\")) {
+        Some(rest) if rest.as_bytes().get(1) == Some(&b':') => PathBuf::from(rest),
+        _ => path,
     }
 }
 
@@ -139,22 +225,27 @@ pub struct RunSnapshot {
 pub struct LocalRunPolicy {
     config: LocalPolicyConfig,
     revision: String,
-    claude_cli: Option<CliDiscovery>,
+    discoveries: HashMap<String, CliDiscovery>,
     snapshots: Mutex<HashMap<String, RunSnapshot>>,
 }
 
 impl LocalRunPolicy {
+    /// `discoveries`는 Provider ID별 CLI 탐지 결과입니다.
     pub fn new(
         config: LocalPolicyConfig,
         revision: String,
-        claude_cli: Option<CliDiscovery>,
+        discoveries: HashMap<String, CliDiscovery>,
     ) -> Self {
         Self {
             config,
             revision,
-            claude_cli,
+            discoveries,
             snapshots: Mutex::new(HashMap::new()),
         }
+    }
+
+    pub fn config(&self) -> &LocalPolicyConfig {
+        &self.config
     }
 
     pub fn revision(&self) -> &str {
@@ -174,17 +265,13 @@ impl LocalRunPolicy {
         {
             return Err(forbidden("permission profile is not granted"));
         }
-        if task.agent.provider != telos_adapters::claude::PROVIDER_ID {
-            return Err(forbidden("provider is not granted"));
-        }
-        let claude = self
+        let models = self
             .config
-            .claude
-            .as_ref()
+            .models(&task.agent.provider)
             .ok_or_else(|| forbidden("provider is not granted"))?;
         let model = match &task.agent.model {
-            None => claude.models[0].clone(),
-            Some(model) if claude.models.contains(model) => model.clone(),
+            None => models[0].clone(),
+            Some(model) if models.contains(model) => model.clone(),
             Some(_) => return Err(forbidden("model is not granted")),
         };
         if task.workspace.mode != WorkspaceMode::Directory {
@@ -214,8 +301,36 @@ impl LocalRunPolicy {
             provider: task.agent.provider.clone(),
             model,
             policy_revision: self.revision.clone(),
-            cli: self.claude_cli.clone(),
+            cli: self.discoveries.get(&task.agent.provider).cloned(),
         })
+    }
+
+    /// 실행 조건을 만들기 전에 Run이 승인 Snapshot과 일치하는지 확인합니다.
+    fn authorized(
+        &self,
+        provider: &str,
+        task: &TaskSpec,
+        context: &RunContext,
+    ) -> Result<RunSnapshot, AdapterError> {
+        let snapshot = self
+            .snapshot(&context.context_snapshot_id)
+            .ok_or_else(|| refuse("run is not authorized"))?;
+        if snapshot.provider != provider
+            || snapshot.task_id != task.id
+            || snapshot.task_revision != task.revision
+            || snapshot.workspace_id != context.workspace_id
+            || snapshot.policy_revision != context.policy_revision
+        {
+            return Err(refuse("run does not match its authorization"));
+        }
+        Ok(snapshot)
+    }
+}
+
+fn refuse(message: &str) -> AdapterError {
+    AdapterError::Failure {
+        kind: FailureKind::Configuration,
+        message: message.into(),
     }
 }
 
@@ -241,7 +356,7 @@ impl RunAuthorizer for LocalRunPolicy {
     }
 }
 
-/// 승인 Snapshot으로만 실행 조건을 만듭니다. Snapshot이 없거나 Task가 다르면 실행하지 않습니다.
+/// 승인 Snapshot으로만 Claude 실행 조건을 만듭니다.
 pub struct ClaudeLauncher {
     policy: Arc<LocalRunPolicy>,
 }
@@ -254,21 +369,9 @@ impl ClaudeLauncher {
 
 impl ClaudeLaunchResolver for ClaudeLauncher {
     fn resolve(&self, task: &TaskSpec, context: &RunContext) -> Result<ClaudeLaunch, AdapterError> {
-        let refuse = |message: &str| AdapterError::Failure {
-            kind: FailureKind::Configuration,
-            message: message.into(),
-        };
-        let snapshot = self
-            .policy
-            .snapshot(&context.context_snapshot_id)
-            .ok_or_else(|| refuse("run is not authorized"))?;
-        if snapshot.task_id != task.id
-            || snapshot.task_revision != task.revision
-            || snapshot.workspace_id != context.workspace_id
-            || snapshot.policy_revision != context.policy_revision
-        {
-            return Err(refuse("run does not match its authorization"));
-        }
+        let snapshot =
+            self.policy
+                .authorized(telos_adapters::claude::PROVIDER_ID, task, context)?;
         let claude = self
             .policy
             .config
@@ -292,6 +395,88 @@ impl ClaudeLaunchResolver for ClaudeLauncher {
             disallowed_tools: disallowed,
             tools: claude.tools.clone(),
             setting_sources: claude.setting_sources.clone(),
+        })
+    }
+}
+
+/// 승인 Snapshot으로만 Codex 실행 조건을 만듭니다. 실행 중 승인 요청은 Phase 0에서 거부합니다.
+pub struct CodexLauncher {
+    policy: Arc<LocalRunPolicy>,
+}
+
+impl CodexLauncher {
+    pub fn new(policy: Arc<LocalRunPolicy>) -> Self {
+        Self { policy }
+    }
+}
+
+impl CodexLaunchResolver for CodexLauncher {
+    fn resolve(&self, task: &TaskSpec, context: &RunContext) -> Result<CodexLaunch, AdapterError> {
+        let snapshot = self
+            .policy
+            .authorized(telos_adapters::codex::PROVIDER_ID, task, context)?;
+        let codex = self
+            .policy
+            .config
+            .codex
+            .as_ref()
+            .ok_or_else(|| refuse("provider is not granted"))?;
+        Ok(CodexLaunch {
+            cwd: snapshot.workspace_path,
+            prompt: prompt(task),
+            model: snapshot.model,
+            effort: codex.effort.clone(),
+            sandbox: if snapshot.read_only {
+                CodexSandbox::ReadOnly
+            } else {
+                CodexSandbox::WorkspaceWrite
+            },
+            approvals: CodexApprovals::Deny,
+            run_timeout: Duration::from_secs(codex.run_timeout_secs),
+        })
+    }
+    // `authorize_approval`은 기본 구현(미지원 거부)을 그대로 씁니다.
+}
+
+/// 승인 Snapshot으로만 Antigravity 실행 조건을 만듭니다.
+pub struct AgyLauncher {
+    policy: Arc<LocalRunPolicy>,
+}
+
+impl AgyLauncher {
+    pub fn new(policy: Arc<LocalRunPolicy>) -> Self {
+        Self { policy }
+    }
+}
+
+impl AgyLaunchResolver for AgyLauncher {
+    fn resolve(&self, task: &TaskSpec, context: &RunContext) -> Result<AgyLaunch, AdapterError> {
+        let snapshot = self
+            .policy
+            .authorized(telos_adapters::agy::PROVIDER_ID, task, context)?;
+        let agy = self
+            .policy
+            .config
+            .agy
+            .as_ref()
+            .ok_or_else(|| refuse("provider is not granted"))?;
+        let cwd = snapshot.workspace_path;
+        Ok(AgyLaunch {
+            cwd: cwd.clone(),
+            prompt: prompt(task),
+            model: Some(snapshot.model),
+            effort: agy.effort.clone(),
+            // 읽기 전용 Run은 CLI 기본(검토 요청)으로 두어 쓰기 도구가 Headless에서 거부되게 합니다 (§7.4).
+            mode: if snapshot.read_only {
+                None
+            } else {
+                agy.mode.clone()
+            },
+            // Antigravity는 cwd만으로 작업 영역을 정하지 않고 자체 scratch 폴더에 쓸 수 있으므로,
+            // 승인된 Workspace를 작업 영역으로 명시합니다 (§7.2, G2 실환경 관찰).
+            add_dirs: vec![cwd.clone()],
+            disable_slash_commands: true,
+            extra_args: vec![],
         })
     }
 }
