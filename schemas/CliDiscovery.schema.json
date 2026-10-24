@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CliDiscovery",
+  "description": "한 Provider·한 실행 Host의 탐지 기록.",
+  "type": "object",
+  "properties": {
+    "checkedAt": {
+      "description": "RFC 3339 시각. Core가 요청에 넣은 값을 그대로 씁니다.",
+      "type": "string"
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/CliDiscoveryOutcome"
+    },
+    "providerId": {
+      "description": "Adapter ID (`AgentAdapter::id`).",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "providerId",
+    "hostId",
+    "checkedAt",
+    "outcome"
+  ],
+  "$defs": {
+    "BinaryLocation": {
+      "description": "실행 파일 위치를 정한 방법 (§7.5-3).",
+      "oneOf": [
+        {
+          "description": "Provider 규칙의 확장 내부 상대 경로.",
+          "type": "string",
+          "const": "relative-path"
+        },
+        {
+          "description": "확장이 확장 폴더 밖에 내려받아 관리하는 경로 (예: Antigravity `~/.gemini/bin/agy`).",
+          "type": "string",
+          "const": "managed-path"
+        },
+        {
+          "description": "상대 경로가 없어 확장 폴더 안을 파일 이름으로 찾았고 후보가 정확히 하나였습니다.",
+          "type": "string",
+          "const": "name-search"
+        },
+        {
+          "description": "명시 경로나 PATH 항목을 그대로 썼습니다.",
+          "type": "string",
+          "const": "direct"
+        }
+      ]
+    },
+    "CliDiscoveryFailure": {
+      "description": "탐지 실패 분류. 상세 원인은 `reason`에 요약하며 파일 내용·토큰을 넣지 않습니다.",
+      "oneOf": [
+        {
+          "description": "세 출처 모두에서 후보가 없습니다.",
+          "type": "string",
+          "const": "not_found"
+        },
+        {
+          "description": "파일 이름 검색 후보가 여러 개입니다. 추측하지 않습니다.",
+          "type": "string",
+          "const": "ambiguous"
+        },
+        {
+          "description": "`extensions.json`·`.obsolete`를 해석할 수 없거나 경로가 확장 폴더를 벗어납니다.",
+          "type": "string",
+          "const": "invalid_metadata"
+        },
+        {
+          "description": "경로가 실행 가능한 일반 파일이 아니거나 UTF-8로 기록할 수 없습니다.",
+          "type": "string",
+          "const": "invalid_path"
+        },
+        {
+          "description": "버전 명령이 시작·종료·출력 검사에 실패했거나 제한 시간을 넘었습니다.",
+          "type": "string",
+          "const": "version_check_failed"
+        },
+        {
+          "description": "확인 중 실행 파일 해시가 바뀌었습니다.",
+          "type": "string",
+          "const": "changed_during_discovery"
+        },
+        {
+          "description": "실행 Host 플랫폼에 Provider 규칙이 없습니다.",
+          "type": "string",
+          "const": "unsupported_platform"
+        },
+        {
+          "description": "그 밖의 I/O 오류.",
+          "type": "string",
+          "const": "io_error"
+        }
+      ]
+    },
+    "CliDiscoveryOutcome": {
+      "description": "탐지 결과. `found`는 [`DiscoveredCli`]의 필드를, `unavailable`은 실패 정보만 가집니다.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "cli": {
+              "$ref": "#/$defs/DiscoveredCli"
+            },
+            "status": {
+              "type": "string",
+              "const": "found"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "cli"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "failure": {
+              "$ref": "#/$defs/CliDiscoveryFailure"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "source": {
+              "description": "실패한 단계의 출처. 명시 경로의 확인 실패는 다른 출처로 넘어가지 않으므로 `explicit`입니다 (§7.5-5).",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CliSource"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "type": "string",
+              "const": "unavailable"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "failure",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "CliSource": {
+      "description": "실행 파일을 고른 출처 (§7.5-4 해석 순서).",
+      "oneOf": [
+        {
+          "description": "사용자·Host 설정의 명시 경로.",
+          "type": "string",
+          "const": "explicit"
+        },
+        {
+          "description": "확장이 포함하거나 관리하는 실행 파일.",
+          "type": "string",
+          "const": "extension"
+        },
+        {
+          "description": "PATH 대체.",
+          "type": "string",
+          "const": "path"
+        }
+      ]
+    },
+    "DiscoveredCli": {
+      "type": "object",
+      "properties": {
+        "cliVersion": {
+          "description": "버전 명령 출력의 첫 비어 있지 않은 줄.",
+          "type": "string"
+        },
+        "executablePath": {
+          "type": "string"
+        },
+        "extension": {
+          "description": "`source = extension`일 때만 있습니다.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExtensionInstall"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "location": {
+          "$ref": "#/$defs/BinaryLocation"
+        },
+        "sha256": {
+          "description": "소문자 16진수 SHA-256. 버전 확인 전후 값이 같아야 합니다.",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/CliSource"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "location",
+        "executablePath",
+        "cliVersion",
+        "sha256"
+      ]
+    },
+    "ExtensionInstall": {
+      "type": "object",
+      "properties": {
+        "extensionId": {
+          "description": "예: `openai.chatgpt`.",
+          "type": "string"
+        },
+        "installPath": {
+          "type": "string"
+        },
+        "resolution": {
+          "$ref": "#/$defs/ExtensionResolution"
+        },
+        "targetPlatform": {
+          "description": "VS Code `targetPlatform` (예: `win32-x64`). 플랫폼 공용 패키지는 생략합니다.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "extensionId",
+        "version",
+        "installPath",
+        "resolution"
+      ]
+    },
+    "ExtensionResolution": {
+      "description": "확장 폴더를 정한 방법 (§7.5-2).",
+      "oneOf": [
+        {
+          "description": "`extensions.json`의 `relativeLocation`.",
+          "type": "string",
+          "const": "metadata"
+        },
+        {
+          "description": "`<확장 ID>-<version>[-<targetPlatform>]` 폴더 이름 파싱 (`.obsolete` 제외).",
+          "type": "string",
+          "const": "folder-scan"
+        }
+      ]
+    }
+  }
+}

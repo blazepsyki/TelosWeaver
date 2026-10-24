@@ -97,3 +97,46 @@
 - `ArtifactVersionRef`에 미정의 필드 거부를 적용해 이를 포함한 `TaskResult`·`RnMessageEnvelope`의 Schema도 엄격해졌습니다.
 - Local API 주소·토큰 파일·ACL의 실제 동작, 공용 런타임의 취소 안전성·출력 처리는 HOST가 구현하고 요청서의 수용 시험으로 확인해야 합니다.
 - `DecisionContext` 밖의 신뢰된 조회 인터페이스는 MASTER가 `core/policy`에 정의합니다.
+
+## 6. REQ-010 CLI 탐지 계약
+
+> 2026-10-24 · `claude-opus-5.5/session-c9336d2c` · `ph0/contract` · 기준 `0094720` (HOST 1차 통합 `d8e8725` 이후)
+
+PH0-HOST의 [REQ-010](../PH0-HOST/README.md#req-010-cli-탐색-계약과-모듈-등록) 요청을 처리했습니다. 공통 탐색 결과를 다른 작업이 같은 형태로 쓰도록 결과 DTO와 입력·Port를 확정합니다. 탐색 엔진 연결은 하지 않았습니다.
+
+### 6.1 수정 파일
+
+| 경로 | 내용 |
+|---|---|
+| `crates/schema/src/discovery.rs` (신규) | 결과 DTO: `CliDiscovery`, `CliDiscoveryOutcome`(`status` 태그 `found`/`unavailable`), `DiscoveredCli`, `ExtensionInstall`, `CliSource`, `ExtensionResolution`, `BinaryLocation`, `CliDiscoveryFailure` |
+| `crates/schema/src/lib.rs` | 모듈 등록, `CliDiscovery` Schema 추가(43개) |
+| `schemas/CliDiscovery.schema.json` (신규) | 생성물 |
+| `crates/adapters/src/lib.rs` | 입력·Port: `ProviderCliRule`, `CliBinaryRule`(`InExtension`/`Managed`), `DiscoveryRequest`, `CliDiscoverer` trait |
+| `crates/schema/tests/contracts.rs`, `crates/adapters/tests/unimplemented.rs` | Wire 형식·혼합/미정의 필드 거부·Port 객체 안전성 시험 |
+
+### 6.2 정한 계약
+
+- **결과는 오류가 아니라 값입니다.** `CliDiscoverer::discover`는 항상 `CliDiscovery`를 돌려주고, 실패는 `unavailable { failure, source?, reason }`으로 기록합니다. 명시 경로 확인이 실패하면 `source = explicit`이며 다른 출처로 넘어가지 않습니다(§7.5-4·5).
+- **기록 항목(§7.5-6):** 출처(`explicit`/`extension`/`path`), 위치 결정 방법(`relative-path`/`managed-path`/`name-search`/`direct`), 실행 경로, CLI 버전, SHA-256, 확장 ID·버전·`targetPlatform`·설치 경로·폴더 결정 방법(`metadata`/`folder-scan`).
+- **실패 분류:** `not_found`, `ambiguous`, `invalid_metadata`, `invalid_path`(비 UTF-8 경로 포함), `version_check_failed`, `changed_during_discovery`, `unsupported_platform`, `io_error`.
+- **Provider 규칙:** 각 Provider 모듈이 `pub fn cli_rule(target_platform: &str) -> Option<ProviderCliRule>`를 제공합니다. Antigravity는 `CliBinaryRule::Managed { home_relative_path: ".gemini/bin/agy" }`처럼 확장 폴더 밖 관리 경로를 표현합니다.
+- **요청:** 실행 Host ID, VS Code `targetPlatform`, 명시 경로, 우선순위 순서의 확장 폴더, Home, PATH 값(`None`이면 PATH 대체 안 함), `checked_at`. 시각은 Core가 넣어 엔진이 시계를 갖지 않습니다.
+- 모든 결과 구조체는 미정의 필드를 거부합니다(REQ-009 정책과 같음).
+
+### 6.3 HOST 인계 (엔진 연결)
+
+- HOST는 `discovery` 모듈에 `CliDiscoverer` 구현(예: `NativeCliDiscoverer`, 공용 `ProcessRuntime` 주입)을 추가하고, 내부 `io::Error`를 위 실패 분류로 매핑합니다.
+- 모듈 등록은 엔진 연결과 한 단위로 합니다. **이 연결에 한해 HOST가 `crates/adapters/src/lib.rs`에 `mod discovery;`(또는 `pub mod`)와 구현 타입의 `pub use` 줄을 추가하는 것을 허용합니다.** 다른 lib.rs 변경은 CONTRACT 요청으로 처리합니다.
+- `discovery_*` 시험의 `#[path]` 소스 포함을 공개 API 호출로 바꿉니다.
+- 엔진의 `SelectionSource`·`ExtensionInstall.from_metadata`는 각각 `CliSource`·`ExtensionResolution`에 대응합니다. 엔진에는 위치 결정 방법(`BinaryLocation`)과 `targetPlatform` 기록이 아직 없으므로 연결 시 추가합니다.
+
+### 6.4 시험
+
+| 명령 | 결과 | 종류 |
+|---|---|---|
+| `UPDATE_SCHEMAS=1 cargo test -p telos-schema --all-features` 후 재실행 | Schema 43개 일치, contracts 18개 통과 | Contract·생성 |
+| `cargo test --workspace --locked` | 61개 통과 | Contract·HOST 기존 시험 |
+| `cargo clippy --workspace --all-targets --locked -- -D warnings`, `cargo fmt --all --check` | 통과 | 정적 검사 |
+| `cd extension && npm ci && npm run build` | TypeScript 43개 생성, 빌드 통과 | 생성 |
+
+실제 확장 폴더·CLI로 한 시험은 없습니다. 실제 탐색 결과는 HOST 연결 후 각 Provider 작업이 `environment-tested`로 기록합니다.

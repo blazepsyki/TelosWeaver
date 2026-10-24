@@ -3,13 +3,13 @@
 //! 메서드가 존재한다는 것이 기능 지원을 뜻하지 않습니다. 미지원 제어는
 //! [`AdapterError::UnsupportedCapability`]를 반환합니다.
 
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, ffi::OsString, fmt, path::PathBuf};
 
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use telos_schema::{
-    ApprovalAnswer, Capability, FailureKind, ProviderEvent, RunContext, RunInspection, RunStarted,
-    TaskSpec,
+    ApprovalAnswer, Capability, CliDiscovery, FailureKind, ProviderEvent, RunContext,
+    RunInspection, RunStarted, TaskSpec,
 };
 
 mod agy;
@@ -83,6 +83,65 @@ impl fmt::Display for AdapterError {
 }
 
 impl std::error::Error for AdapterError {}
+
+/// Provider CLI 탐지 (Spec §7.5, REQ-010).
+///
+/// - 각 Provider 모듈은 `pub fn cli_rule(target_platform: &str) -> Option<ProviderCliRule>`를 제공합니다.
+///   실행 Host 플랫폼에 규칙이 없으면 `None`이며, 호출자는 `unavailable`(`unsupported_platform`)로 기록합니다.
+/// - 공통 탐색(`extensions.json`·`.obsolete` 해석, 버전 폴더 비교, 파일 이름 검색, 해시)은
+///   [`CliDiscoverer`] 구현이 담당합니다. 실제 구현은 PH0-HOST의 `discovery` 모듈입니다.
+/// - Adapter는 탐지 결과의 `executable_path`를 생성자 등으로 받아 쓰며, 같은 Run 동안 바꾸지 않습니다 (§7.5-6).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderCliRule {
+    /// VS Code 확장 ID (예: `openai.chatgpt`).
+    pub extension_id: String,
+    pub binary: CliBinaryRule,
+    /// 파일 이름 검색과 PATH 대체에 쓰는 실행 파일 이름 (예: `codex.exe`).
+    pub binary_name: OsString,
+    /// 버전 명령 인자 (예: `--version`).
+    pub version_args: Vec<OsString>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CliBinaryRule {
+    /// 확장 폴더 안의 상대 경로. 없으면 확장 폴더 안을 `binary_name`으로 찾고 후보가 하나일 때만 씁니다.
+    InExtension { relative_path: PathBuf },
+    /// 확장이 확장 폴더 밖에 내려받아 관리하는 실행 파일. [`DiscoveryRequest::home_dir`] 기준 상대 경로입니다.
+    /// 확장이 설치되어 있을 때만 이 출처를 씁니다.
+    Managed { home_relative_path: PathBuf },
+}
+
+/// 한 실행 Host에서의 탐지 요청. 경로는 모두 그 Host 기준입니다 (§3.3).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiscoveryRequest {
+    pub host_id: String,
+    /// 실행 Host의 VS Code `targetPlatform` (예: `win32-x64`, `linux-x64`).
+    pub target_platform: String,
+    /// 사용자·Host 설정의 명시 경로. 있으면 확인 실패 시에도 다른 출처로 넘어가지 않습니다.
+    pub explicit_path: Option<PathBuf>,
+    /// 우선순위 순서의 확장 폴더 (§7.5-1).
+    pub extension_roots: Vec<PathBuf>,
+    pub home_dir: PathBuf,
+    /// PATH 대체에 쓸 값. `None`이면 PATH 대체를 하지 않습니다. 상대 경로 항목은 무시합니다.
+    pub path_env: Option<OsString>,
+    /// 결과의 `checked_at`에 그대로 씁니다 (RFC 3339).
+    pub checked_at: String,
+}
+
+/// 공통 탐지 Port. 실패는 오류가 아니라 [`CliDiscovery`]의 `unavailable` 결과로 돌려줍니다.
+///
+/// - 해석 순서는 명시 경로 → 확장 → PATH입니다 (§7.5-4).
+/// - `found`는 버전 명령 확인과 해시 계산이 끝난 결과입니다. 확인 전후 해시가 다르면 `changed_during_discovery`입니다.
+/// - 실행 파일을 복사하거나 확장의 인증·상태 파일을 읽지 않습니다 (§7.5-7·8).
+#[async_trait]
+pub trait CliDiscoverer: Send + Sync {
+    async fn discover(
+        &self,
+        provider_id: &str,
+        rule: &ProviderCliRule,
+        request: &DiscoveryRequest,
+    ) -> CliDiscovery;
+}
 
 /// Core는 여러 Provider를 `Arc<dyn AgentAdapter>`로 다룹니다.
 ///

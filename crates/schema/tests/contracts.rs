@@ -399,3 +399,77 @@ fn rn_messages_wire_format() {
     assert_eq!(health.status, RnHealthStatus::Ok);
     assert_eq!(serde_json::to_value(&response).unwrap(), wire);
 }
+
+// --- CLI 탐지 (REQ-010) ---
+
+#[test]
+fn cli_discovery_found_wire_format() {
+    let wire = json!({
+        "providerId": "codex",
+        "hostId": "wsl-ubuntu-2604",
+        "checkedAt": "2026-10-24T08:00:00Z",
+        "outcome": {
+            "status": "found",
+            "cli": {
+                "source": "extension",
+                "location": "relative-path",
+                "executablePath": "/home/u/.vscode-server/extensions/openai.chatgpt-26.1007.21434-linux-x64/bin/linux-x86_64/codex",
+                "cliVersion": "codex-cli 0.162.0-alpha.17.2",
+                "sha256": "0".repeat(64),
+                "extension": {
+                    "extensionId": "openai.chatgpt",
+                    "version": "26.1007.21434",
+                    "targetPlatform": "linux-x64",
+                    "installPath": "/home/u/.vscode-server/extensions/openai.chatgpt-26.1007.21434-linux-x64",
+                    "resolution": "metadata"
+                }
+            }
+        }
+    });
+    let discovery: CliDiscovery = serde_json::from_value(wire.clone()).unwrap();
+    let cli = discovery.found().unwrap();
+    assert_eq!(cli.source, CliSource::Extension);
+    assert_eq!(
+        cli.extension.as_ref().unwrap().resolution,
+        ExtensionResolution::Metadata
+    );
+    assert_eq!(serde_json::to_value(&discovery).unwrap(), wire);
+}
+
+#[test]
+fn cli_discovery_unavailable_wire_format() {
+    let wire = json!({
+        "providerId": "agy",
+        "hostId": "wsl-ubuntu-2604",
+        "checkedAt": "2026-10-24T08:00:00Z",
+        "outcome": {
+            "status": "unavailable",
+            "failure": "version_check_failed",
+            "source": "explicit",
+            "reason": "version process exited with code 1"
+        }
+    });
+    let discovery: CliDiscovery = serde_json::from_value(wire.clone()).unwrap();
+    assert!(discovery.found().is_none());
+    assert_eq!(serde_json::to_value(&discovery).unwrap(), wire);
+}
+
+#[test]
+fn cli_discovery_rejects_mixed_or_unknown_fields() {
+    let mixed = json!({
+        "providerId": "claude",
+        "hostId": "windows-local",
+        "checkedAt": "2026-10-24T08:00:00Z",
+        "outcome": { "status": "unavailable", "failure": "not_found", "reason": "none", "cli": {} }
+    });
+    assert!(serde_json::from_value::<CliDiscovery>(mixed).is_err());
+
+    let unknown = json!({
+        "providerId": "claude",
+        "hostId": "windows-local",
+        "checkedAt": "2026-10-24T08:00:00Z",
+        "token": "x",
+        "outcome": { "status": "unavailable", "failure": "not_found", "reason": "none" }
+    });
+    assert!(serde_json::from_value::<CliDiscovery>(unknown).is_err());
+}
