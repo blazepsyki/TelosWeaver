@@ -72,3 +72,55 @@ fn unsupported_maps_to_failure_kind() {
         None
     );
 }
+
+// --- CLI 탐지 Port (REQ-010). 실제 탐색은 PH0-HOST의 `discovery_*` 시험이 검사합니다. ---
+
+struct NotFound;
+
+#[async_trait::async_trait]
+impl telos_adapters::CliDiscoverer for NotFound {
+    async fn discover(
+        &self,
+        provider_id: &str,
+        _rule: &telos_adapters::ProviderCliRule,
+        request: &telos_adapters::DiscoveryRequest,
+    ) -> telos_schema::CliDiscovery {
+        telos_schema::CliDiscovery {
+            provider_id: provider_id.into(),
+            host_id: request.host_id.clone(),
+            checked_at: request.checked_at.clone(),
+            outcome: telos_schema::CliDiscoveryOutcome::Unavailable {
+                failure: telos_schema::CliDiscoveryFailure::NotFound,
+                source: None,
+                reason: "no candidate".into(),
+            },
+        }
+    }
+}
+
+#[tokio::test]
+async fn cli_discoverer_is_object_safe_and_reports_failure_as_outcome() {
+    use telos_adapters::{CliBinaryRule, CliDiscoverer, DiscoveryRequest, ProviderCliRule};
+
+    let discoverer: Arc<dyn CliDiscoverer> = Arc::new(NotFound);
+    let rule = ProviderCliRule {
+        extension_id: "google.google-antigravity".into(),
+        binary: CliBinaryRule::Managed {
+            home_relative_path: ".gemini/bin/agy".into(),
+        },
+        binary_name: "agy".into(),
+        version_args: vec!["--version".into()],
+    };
+    let request = DiscoveryRequest {
+        host_id: "wsl-ubuntu-2604".into(),
+        target_platform: "linux-x64".into(),
+        explicit_path: None,
+        extension_roots: vec!["/home/u/.vscode-server/extensions".into()],
+        home_dir: "/home/u".into(),
+        path_env: None,
+        checked_at: "2026-10-24T08:00:00Z".into(),
+    };
+    let result = discoverer.discover("agy", &rule, &request).await;
+    assert_eq!(result.host_id, "wsl-ubuntu-2604");
+    assert!(result.found().is_none());
+}

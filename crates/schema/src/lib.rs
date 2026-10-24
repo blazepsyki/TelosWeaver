@@ -7,6 +7,7 @@
 pub mod api;
 mod artifact;
 mod decision;
+mod discovery;
 mod events;
 mod failure;
 #[cfg(feature = "fixtures")]
@@ -22,6 +23,7 @@ mod validation;
 
 pub use artifact::*;
 pub use decision::*;
+pub use discovery::*;
 pub use events::*;
 pub use failure::*;
 pub use limits::*;
@@ -50,6 +52,7 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
         ("RunStarted", schema_for!(RunStarted)),
         ("ProviderEvent", schema_for!(ProviderEvent)),
         ("ProviderEventPayload", schema_for!(ProviderEventPayload)),
+        ("CliDiscovery", schema_for!(CliDiscovery)),
         // 마스터 결정 검증 (§4.2)
         ("DecisionPayload", schema_for!(DecisionPayload)),
         ("DecisionContext", schema_for!(DecisionContext)),
