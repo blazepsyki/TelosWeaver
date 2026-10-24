@@ -92,6 +92,9 @@ pub(crate) fn discover_extension(
         Err(e) => return Err(e),
     };
     let obsolete = json_file(&root.join(".obsolete"))?.unwrap_or_else(|| serde_json::json!({}));
+    if !obsolete.is_object() {
+        return Err(invalid(".obsolete must be an object"));
+    }
     let is_obsolete = |name: &str| obsolete.get(name).and_then(Value::as_bool) == Some(true);
     if let Some(metadata) = json_file(&root.join("extensions.json"))? {
         let entries = metadata

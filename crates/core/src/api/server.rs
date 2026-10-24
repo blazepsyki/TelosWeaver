@@ -323,12 +323,24 @@ async fn connection<S: AsyncRead + AsyncWrite + Unpin + Send + 'static>(
                 "core.hello is required",
             ))
         } else {
+            let unknown_method = value
+                .get("method")
+                .filter(|method| method.is_string())
+                .is_some_and(|method| serde_json::from_value::<ApiMethod>(method.clone()).is_err());
             match serde_json::from_value::<ApiRequest>(value) {
                 Err(_) => Err(api_error(
-                    ApiErrorCode::UnsupportedMethod,
+                    if unknown_method {
+                        ApiErrorCode::UnsupportedMethod
+                    } else {
+                        ApiErrorCode::InvalidRequest
+                    },
                     "unknown method or invalid request",
                 )),
                 Ok(request) => match request.method {
+                    ApiMethod::Hello if authenticated => Err(api_error(
+                        ApiErrorCode::Conflict,
+                        "connection is already authenticated",
+                    )),
                     ApiMethod::Hello => {
                         match serde_json::from_value::<HelloParams>(request.params) {
                             Ok(params) if credentials.authenticates(params.token.expose()) => {

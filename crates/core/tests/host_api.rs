@@ -100,6 +100,16 @@ async fn authentication_health_unknown_method_and_token_rotation() {
     assert_eq!(rejected["error"]["code"], "unauthenticated");
     assert!(!rejected.to_string().contains(&token));
     client.hello(&token).await;
+    client
+        .send(
+            "duplicate-hello",
+            "core.hello",
+            json!({"clientName":"fixture","clientVersion":"0","token":token}),
+        )
+        .await;
+    assert_eq!(client.receive().await["error"]["code"], "conflict");
+    client.write.write_all(format!("{}\n",json!({"protocolVersion":API_PROTOCOL_VERSION,"requestId":"missing-params","method":"core.health"})).as_bytes()).await.unwrap();
+    assert_eq!(client.receive().await["error"]["code"], "invalid_request");
     client.send("health", "core.health", json!({})).await;
     assert_eq!(client.receive().await["result"]["status"], "degraded");
     client.send("unknown", "other.method", json!({})).await;

@@ -61,12 +61,21 @@ fn broken_or_ambiguous_metadata_is_not_silently_ignored() {
     let root = root();
     fs::write(root.join("extensions.json"), "[").unwrap();
     assert!(discovery::discover_extension(&root, "sample.agent", "win32-x64").is_err());
+    fs::write(root.join("extensions.json"), "[]").unwrap();
+    fs::write(root.join(".obsolete"), "[]").unwrap();
+    assert!(discovery::discover_extension(&root, "sample.agent", "win32-x64").is_err());
+    fs::write(root.join(".obsolete"), "{}").unwrap();
     fs::write(
         root.join("extensions.json"),
         r#"[{"identifier":{"id":"sample.agent"}},{"identifier":{"id":"sample.agent"}}]"#,
     )
     .unwrap();
-    assert!(discovery::discover_extension(&root, "sample.agent", "win32-x64").is_err());
+    assert!(
+        discovery::discover_extension(&root, "sample.agent", "win32-x64")
+            .unwrap_err()
+            .to_string()
+            .contains("multiple active")
+    );
 }
 #[test]
 fn binary_search_requires_unique_native_candidate() {
