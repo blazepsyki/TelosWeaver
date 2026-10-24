@@ -178,6 +178,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 (시각 미기록) | `Codex / PH0-EXT-20261024` | 사용자 직접 배정으로 PH0-EXT unassigned → reserved. Branch ph0/ext·전용 Worktree와 기준 main 207c125·계약 3a37919를 기록. 구현 전 Core 실행 파일·시작 정책·인증/주소·UI·시험 조건을 확인하며 코드 구현은 시작하지 않음. RN·HOST·게이트 판정과 Linux 대기 지시는 유지 | `207c125` |
 | 2026-10-24 23:38 | `claude-opus-5.5/session-c9336d2c` | 사용자 배정으로 PH0-RN `unassigned → reserved`(통합 담당이 겸임, 서브 태스크 단일 Writer). 원본 `reason-machines/reason-network` 구조·문서 조사, 착수 전 사용자 결정 항목 정리 중 | `207c125` |
 | 2026-10-24 (시각 미기록) | `Codex / PH0-EXT-20261024` | PH0-EXT 사전 준비 `1c328fc` 제출. 현재 Extension 골격·Core API 0.2·주소/인증·타입 생성·Node 환경을 확인하고 Core 공급·시작·실환경 시험 3개 권장안 정리. reserved 유지, 구현·Core 시작·모델 호출·소스 변경 없음 | `1c328fc`, 계약 `3a37919` |
-| 2026-10-24 23:46 | `claude-opus-5.5/session-c9336d2c` | 정정: 의존성 "배포 2주 이상" 기준은 사용자 규칙이 아니라 통합 담당이 다른 도구 지침을 잘못 적용한 것이므로 철회. 이미 고정한 `sha2` 0.11.0·`libc` 0.2.190은 동작 문제가 없어 유지. 사용자 결정: RN Fork는 `rn-fork/`에 subtree(squash)로 도입. RN 유지 범위(DEC-07)는 재검토 중 | `0d1c6bb` |
+| 2026-10-24 23:46 | `claude-opus-5.5/session-c9336d2c` | 정정: 의존성 "배포 2주 이상" 기준은 사용자 규칙이 아니라 통합 담당이 다른 도구 지침을 잘못 적용한 것이므로 철회. 이미 고정한 `sha2` 0.11.0·`libc` 0.2.190은 동작 문제가 없어 유지. 사용자 결정: RN Fork는 `rn-fork/`에 subtree(squash)로 도입. RN 유지 범위(DEC-07)는 재검토 중 | `cf40447` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
