@@ -12,7 +12,7 @@ use telos_schema::{
     RunInspection, RunStarted, TaskSpec,
 };
 
-mod agy;
+pub mod agy;
 pub mod claude;
 mod codex;
 mod discovery;
