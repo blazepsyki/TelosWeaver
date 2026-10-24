@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.3)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.3 (개정 1.3.4)  
+> **문서 버전:** 1.3 (개정 1.3.5)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-24  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -23,6 +23,7 @@
 | v1.3.2 | 2026-10-24 | Phase 0 병렬 구현의 작업 ID·수정 경로·공통 파일 소유권·계약 동결·배정·통합 게이트·검증 증거를 구체화 |
 | v1.3.3 | 2026-10-24 | Phase 0 작업용 Git Worktree의 위치·이름 규칙을 추가(§19.5.5) |
 | v1.3.4 | 2026-10-24 | 줄바꿈 LF 고정(`.gitattributes`)과 Linux·Remote SSH 실행 Host를 WSL로 확보하는 절차를 INTEGRATION 경로에 추가(§19.5.3, §19.5.8) |
+| v1.3.5 | 2026-10-24 | Provider CLI를 각 에이전트의 VS Code 확장에서 탐지해 Managed 실행에 사용(DEC-06, §7.5). 탐색 위치·해석 순서·기록·인증·동시 사용 규칙, Phase 0 확인 항목, HOST의 공통 탐색 경로, 위험 추가 |
 
 ## 목차
 
@@ -66,6 +67,7 @@ TelosWeaver는 서로 다른 AI 에이전트를 사용하여 **목표 확인 →
 | DEC-03 | 마스터 에이전트가 작업과 실행 정책을 총괄합니다. | 마스터가 판단하고 Core가 권한·예산·상태를 검사하여 집행합니다. |
 | DEC-04 | 기존 Rust harness 코드는 저장소에서 삭제했으며 새 구현과 무관합니다. | 기존 모듈·설정·로그·TUI/Web의 재사용·호환·이관을 요구하지 않습니다. 필요하면 Git 이력에서만 참고합니다. |
 | DEC-05 | Core는 RN Fork와 같은 Rust로 구현합니다. | Core·Adapter·RN Client·공통 Schema를 Cargo Workspace로 구성합니다. VS Code Extension만 TypeScript이며 공통 타입은 Rust에서 생성합니다. Core와 RN의 프로세스·DB 분리는 유지합니다. |
+| DEC-06 | Provider 실행은 사용자가 설치한 각 에이전트의 VS Code 확장(Codex·Claude Code·Antigravity)이 내부에서 쓰는 CLI를 찾아 사용합니다. | 별도 CLI 설치를 전제로 하지 않습니다. 확장이 포함·관리하는 실행 파일을 탐지해 Core가 소유하는 Managed 프로세스로 실행합니다(§7.5). 확장이 이미 띄운 세션의 제어는 Attached(P1)이며 이 결정과 구분합니다. |
 
 추가 확정 방향은 세션 포크와 문맥 전달 전략을 토큰 효율 설계에 포함하는 것입니다. 포크 지원 여부와 효율은 Provider별로 검증하며 절감률을 사전에 보장하지 않습니다.
 
@@ -415,6 +417,8 @@ Workspace 전체를 무조건 모델 입력에 넣지 않습니다. 관련 파�
 
 근거는 [Codex App Server](https://learn.chatgpt.com/docs/app-server), [Claude Code CLI reference](https://code.claude.com/docs/en/cli-reference), [Agy Headless](https://www.antigravity.google/docs/cli/headless/), [Agy 대화 관리](https://antigravity.google/docs/cli/conversations)입니다. 이 표는 설치 환경의 지원 확인 결과가 아닙니다.
 
+위 Managed 연동에 쓰는 실행 파일은 각 Provider의 VS Code 확장이 포함하거나 관리하는 CLI입니다(DEC-06). 탐지 규칙은 §7.5를 따릅니다.
+
 Capability는 `supported`·`unsupported`·`unverified`와 Provider 버전·Host·확인 시각·증거·제한 사유를 가집니다. 필수 기능이 미검증이면 실행 전 탐지 또는 제한된 PoC를 거치며, 선택 기능의 미지원은 이유와 대체 경로를 표시합니다.
 
 ### 7.2 공통 실행·제어 계약
@@ -537,6 +541,28 @@ Turn 완료, 프로세스 종료, Task 검증 성공은 별도 사건입니다. 
 Headless 스트림 입력은 Turn별로 직렬화하고 `result`를 소비한 다음 후속 입력을 보냅니다. `stdin`을 열어 둔 채 프로세스 종료만 기다리지 않습니다. `result.status`, Tool Event, 진단, 최종 Validation을 함께 확인합니다.
 
 기준 Headless 문서의 `control_request`/`control_response` 제약을 고려합니다. 승인 화면을 만들었다고 실시간 응답이 가능하다고 가정하지 않습니다. 시작 전 권한 설정, 요청 거부, 지원 가능한 재계획을 사용하며 전체 권한 검사를 생략하지 않습니다.
+
+### 7.5 VS Code 확장의 CLI 탐지와 실행
+
+DEC-06에 따라 Provider CLI는 실행 Host에 설치된 각 에이전트의 VS Code 확장에서 찾습니다. Core는 찾은 실행 파일로 **새 Managed 프로세스**를 시작합니다. 확장이 이미 실행 중인 프로세스·대화에 붙거나 그 UI를 조작하지 않으며, 그런 연동은 Attached(§12, P1)로 구분합니다.
+
+| Provider | 확장 ID | 실행 파일 | 2026-10-24 Windows 확인 결과 |
+|---|---|---|---|
+| Codex | `openai.chatgpt` | 확장 폴더의 `bin/<platform>/codex[.exe]` | `openai.chatgpt-26.1007.21434-win32-x64`의 `bin/windows-x86_64/codex.exe`, `codex-cli 0.162.0-alpha.17.2`. 같은 패키지에 `bin/linux-x86_64/codex`도 있음 |
+| Claude Code | `anthropic.claude-code` | 확장 폴더의 `resources/native-binary/claude[.exe]` | `anthropic.claude-code-2.1.309-win32-x64`, `2.1.309 (Claude Code)` |
+| Antigravity | `google.google-antigravity` | 확장이 내려받아 관리하는 `agy`. 확장은 바이너리를 포함하지 않고 `agy --hub`로 자체 백그라운드 서버를 띄움 | 확장 1.9.0. `%LOCALAPPDATA%\agy\bin\agy` 1.0.6이 존재하나 확장 관리 위치와 같은지는 미확인 |
+
+이 위치는 각 확장의 **비공개 내부 구조**를 관찰한 결과이며 공식 계약이 아닙니다. 확장 업데이트로 바뀔 수 있으므로 다음 규칙을 따릅니다.
+
+1. **탐색 위치:** 실행 Host의 확장 폴더를 찾습니다. 로컬은 `~/.vscode/extensions`(Insiders는 `~/.vscode-insiders/extensions`), Remote SSH·WSL 실행 Host는 그 Host의 `~/.vscode-server/extensions`입니다. UI Host의 확장으로 원격 실행 Host의 CLI를 대신하지 않습니다(§3.3).
+2. **해석 순서:** ① 사용자·Host 설정의 명시 경로 → ② 확장이 포함·관리하는 실행 파일(같은 확장이 여러 버전이면 VS Code가 사용하는 최신 버전) → ③ PATH. 어느 경로를 썼는지 출처로 기록하며, ③으로 대체할 때도 그 사실을 표시합니다.
+3. **확인:** 찾은 파일은 버전 명령으로 실행 가능 여부와 버전을 확인합니다. 확인하지 못하면 해당 Provider의 Capability를 `unsupported`(사유 포함)로 두고 다른 경로로 조용히 바꾸지 않습니다.
+4. **기록:** Run의 Context Snapshot과 Capability에 확장 ID·확장 버전·실행 파일 경로·CLI 버전·파일 해시를 남깁니다(§6.1). 경로는 Run 시작 시 고정하며 실행 중 확장이 업데이트되어도 같은 Run에서 다른 파일로 바꾸지 않습니다.
+5. **복사 금지:** 확장의 실행 파일을 다른 위치로 복사·재배포하지 않습니다. 업데이트로 기존 버전 폴더가 사라지면 다음 Run부터 다시 탐지합니다.
+6. **인증과 상태:** 인증은 CLI가 쓰는 사용자 설정을 그대로 사용하며 Core가 토큰을 읽거나 복사하지 않습니다(§14.1). 확장에서 로그인한 상태가 CLI 실행에도 유효한지는 Provider별로 Phase 0에서 확인합니다. Antigravity 확장은 `--app_data_dir=antigravity`로 별도 데이터 디렉터리를 쓰므로, Managed 실행이 어떤 데이터 디렉터리·인증을 쓸지 Phase 0에서 정하고 기록합니다.
+7. **동시 사용:** 확장 UI와 Managed 프로세스가 같은 사용자 설정·세션 저장소를 함께 쓸 때의 충돌은 PROV-10에서 검증합니다. Phase 0 Managed 실행은 확장 UI의 기존 대화를 재개하거나 수정하지 않습니다.
+
+공통 탐색(확장 폴더 열거·버전 선택·해시 계산)은 공용 모듈이 담당하고, 확장 ID·실행 파일 상대 경로·버전 명령처럼 Provider별 규칙은 각 Provider Adapter가 담당합니다(§19.5.3).
 
 ## 8. 세션 수명·포크·토큰 효율
 
@@ -740,7 +766,7 @@ Attached Session은 Core가 소유하지 않을 수 있습니다. 구조화 결�
 
 ### 13.1 설정 계층
 
-일반 설정은 제품 기본값 → 사용자/Host → 프로젝트 → 명시적 Task 값 순서로 해석합니다. 실행 파일 경로·인증·도구 탐지는 Host 범위에서 수행합니다. 프로젝트의 논리 설정에 플랫폼별 명령 문자열을 무분별하게 복제하지 않고 실제 실행 차이는 Adapter에서 처리합니다.
+일반 설정은 제품 기본값 → 사용자/Host → 프로젝트 → 명시적 Task 값 순서로 해석합니다. 실행 파일 경로·인증·도구 탐지는 Host 범위에서 수행하며, Provider CLI는 §7.5의 VS Code 확장 탐지 규칙을 따릅니다. 프로젝트의 논리 설정에 플랫폼별 명령 문자열을 무분별하게 복제하지 않고 실제 실행 차이는 Adapter에서 처리합니다.
 
 권한은 단순한 후순위 덮어쓰기가 아닙니다. 최종 허용 범위는 사용자·Host·프로젝트 상한, Plan에서 부여한 권한, 부모의 위임 범위, Task 요청의 교집합입니다. 저장소 설정과 외부 메시지만으로 상한을 확대하지 않습니다.
 
@@ -1036,6 +1062,7 @@ P0는 최초 실사용, P1은 첫 확장과 협업 고도화, P2는 후속 운�
 Phase 0은 §19.5의 작업 묶음으로 나누어 병렬 구현할 수 있습니다. 착수 전에 통합 담당·계약 기준·수정 경로를 확정합니다. 아래 체크리스트는 제품 기술 검증의 목표이며 개별 에이전트의 파일 소유권 목록은 아닙니다.
 
 - [ ] 세 Provider의 탐지·버전·신규 Managed 실행·스트림·완료·실패·취소를 확인합니다.
+- [ ] 세 Provider의 VS Code 확장에서 CLI 실행 파일을 탐지하고(§7.5), 확장 로그인 상태가 Managed 실행에 유효한지와 Antigravity의 데이터 디렉터리 처리를 확인합니다. Windows 로컬과 Remote SSH 실행 Host(`~/.vscode-server/extensions`)를 각각 확인합니다.
 - [ ] 마스터 후보가 구조화 결정을 반환하고 Core가 잘못된 결정·중복·권한 초과를 거부하는 최소 경로를 확인합니다.
 - [ ] Agy의 Turn 직렬화·도구 거부·Exit Code와 결과 차이를 확인합니다.
 - [ ] RN Fork Windows/Linux Build, Health·Version·Discovery·통제된 Message RPC를 재현합니다.
@@ -1124,7 +1151,7 @@ G0 완료 시 공통 인터페이스와 최소 컴파일 가능한 등록 경로
 |---|---|---|---|
 | PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, CLAUDE.md, docs/DEVELOPMENT_v1.3.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md | 최초 지정, G0 준비부터 담당 |
 | PH0-CONTRACT | 공통 Rust 계약·Payload Schema·생성 원본·Wire/Schema 시험, Adapter Trait·공통 오류 | crates/schema/**, schemas/**, crates/adapters/src/lib.rs, crates/adapters/src/unimplemented.rs, crates/adapters/tests/unimplemented.rs | INTEGRATION과 G0 확정 |
-| PH0-HOST | 공용 프로세스 I/O·취소·자식 회수, 최소 Core API·Supervisor와 Fixture 경로 | crates/adapters/src/runtime/**, crates/adapters/tests/runtime_*.rs, crates/adapters/tests/support/runtime/**, crates/adapters/tests/fixtures/runtime/**, crates/core/src/api/**, crates/core/src/execution/**, crates/core/tests/host_*.rs, crates/core/tests/fixtures/host/** | G0, 공용 런타임·API 계약 |
+| PH0-HOST | 공용 프로세스 I/O·취소·자식 회수, VS Code 확장 CLI 공통 탐색, 최소 Core API·Supervisor와 Fixture 경로 | crates/adapters/src/runtime/**, crates/adapters/src/discovery/**, crates/adapters/tests/runtime_*.rs, crates/adapters/tests/discovery_*.rs, crates/adapters/tests/support/runtime/**, crates/adapters/tests/fixtures/runtime/**, crates/core/src/api/**, crates/core/src/execution/**, crates/core/tests/host_*.rs, crates/core/tests/fixtures/host/** | G0, 공용 런타임·API 계약 |
 | PH0-CODEX | Codex App Server 접속·신규 실행·이벤트 매핑·오류·취소, Resume/Fork 실험 | crates/adapters/src/codex.rs, crates/adapters/src/codex/**, crates/adapters/tests/codex_*.rs, crates/adapters/tests/fixtures/codex/** | G0, HOST 공개 인터페이스 |
 | PH0-CLAUDE | Claude Print/Stream 실행·Session/Turn 연결·오류·취소, Resume/Fork 실험 | crates/adapters/src/claude.rs, crates/adapters/src/claude/**, crates/adapters/tests/claude_*.rs, crates/adapters/tests/fixtures/claude/** | G0, HOST 공개 인터페이스 |
 | PH0-AGY | Agy Headless·NDJSON·Turn 직렬화·소프트 거부·취소, 재개/분기 판정 | crates/adapters/src/agy.rs, crates/adapters/src/agy/**, crates/adapters/tests/agy_*.rs, crates/adapters/tests/fixtures/agy/** | G0, HOST 공개 인터페이스 |
@@ -1191,7 +1218,7 @@ flowchart LR
 | 작업 ID | 최소 완료 결과·대응 시험 | 이 작업에 포함하지 않는 범위 |
 |---|---|---|
 | PH0-CONTRACT | Rust/Wire/Schema 일치, 결정 Payload·Local API 계약, 공통 실패 Fixture, G0 기준 기록 | Core 정책 실행·Provider 프로세스·UI 구현 |
-| PH0-HOST | 프로세스 I/O·구독 전 종료·이벤트 보존·취소/자식 회수·최소 API의 로컬 시험, PROV-03/08의 공용 기반 | CLI별 Protocol 매핑, 완성된 Scheduler·SQLite·MCP·Workspace Manager |
+| PH0-HOST | 프로세스 I/O·구독 전 종료·이벤트 보존·취소/자식 회수·최소 API의 로컬 시험, PROV-03/08의 공용 기반, VS Code 확장 폴더 공통 탐색(§7.5) | CLI별 Protocol 매핑, 완성된 Scheduler·SQLite·MCP·Workspace Manager |
 | PH0-CODEX | PROV-01~04/06~09를 Codex 환경에서 검증, PROV-05·FORK-POC-01~02 실험 결과 | 공통 Trait·OS 런타임 변경, Claude/Agy, 기존 IDE Attached |
 | PH0-CLAUDE | 동일 공통 시험을 Claude 환경에서 검증, Resume/Fork 실험 | 공통 Trait·OS 런타임 변경, Codex/Agy, 기존 IDE Attached |
 | PH0-AGY | 동일 공통 시험과 Turn 직렬화·Tool 거부·Exit Code/결과 차이 검증, 재개/Fork 지원 판정 | 미검증 Headless Fork 보장, 기존 IDE 제어, 타 Provider |
@@ -1243,7 +1270,7 @@ Phase 0의 Linux 실행 Host와 단일 Remote SSH 실행 Host는 같은 PC의 WS
 
 | ID | 검증 | 단계·통과 조건 |
 |---|---|---|
-| PROV-01 | 실행 탐지·버전·Host | Phase 0, 실제 경로·버전 기록 |
+| PROV-01 | 실행 탐지·버전·Host | Phase 0, VS Code 확장의 CLI 탐지(§7.5)와 확장 ID·버전·실제 경로·CLI 버전 기록 |
 | PROV-02 | 신규 Managed Session | Phase 0, 별도 Native ID와 Run 연결 |
 | PROV-03 | 스트림·stderr·부분 이벤트 | Phase 0, 파싱·표시와 제어 이벤트 보존 |
 | PROV-04 | Session/Turn 저장 | Phase 0, Run과 원본 ID 연결 |
@@ -1358,6 +1385,7 @@ sequenceDiagram
 |---|---|
 | 마스터의 잘못된 결정·과도한 위임 | 구조화 Schema, 권한·DAG·예산 검사, Epoch·멱등성 |
 | Provider Protocol·옵션 변경 | Adapter 격리, 버전 고정·Capability·Contract Test |
+| VS Code 확장 내부 구조·업데이트 변경 | 비공식 경로임을 명시, 확장 버전별 탐지 Fixture, 사용자 명시 경로 우선, 미탐지 시 `unsupported`와 사유 표시, Run 중 경로 고정 |
 | Rust Core와 TypeScript Extension의 타입 불일치 | 공통 Schema 단일 원본, 생성 타입 사용, 생성물 Contract Test |
 | 실행 완료·검증·전달 혼동 | 별도 타입·상태·판정과 음성 시험 |
 | 포크의 문맥 과대·편향·효율 오판 | Fresh/Capsule 대안, 독립 Review, 전체 사용량·품질 측정 |

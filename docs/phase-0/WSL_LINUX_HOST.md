@@ -102,7 +102,19 @@ WSL2의 기본 localhost 전달로 Windows의 `127.0.0.1:2222`가 WSL에 연결�
 
 ### 2.9 Provider CLI
 
-Codex·Claude Code·Agy는 WSL 안에 따로 설치하고 WSL에서 직접 인증합니다. Windows의 인증 파일·토큰을 복사하지 않습니다 (§13.1, §14.1). 설치 경로·버전은 해당 Provider 작업의 증거에 기록합니다.
+Spec DEC-06·§7.5에 따라 Provider CLI는 실행 Host에 설치된 각 에이전트의 VS Code 확장에서 찾습니다. Windows 쪽 확장은 WSL 실행 Host의 CLI를 대신하지 않습니다.
+
+1. Windows VS Code에서 Remote-SSH `telos-wsl`로 접속한 창에서 Codex(`openai.chatgpt`)·Claude Code(`anthropic.claude-code`)·Antigravity(`google.google-antigravity`) 확장을 **원격(SSH: telos-wsl)에 설치**합니다. 설치 위치는 WSL의 `~/.vscode-server/extensions`입니다.
+2. 원격 창의 각 확장에서 로그인합니다. Windows의 인증 파일·토큰을 복사하지 않습니다 (Spec §13.1, §14.1).
+3. 확장 폴더에서 실행 파일과 버전을 확인합니다. Antigravity는 확장이 `agy`를 내려받아 관리하므로 실제 위치를 찾아 기록합니다.
+
+```bash
+ls ~/.vscode-server/extensions | grep -E 'openai\.chatgpt|anthropic\.claude-code|google\.google-antigravity'
+~/.vscode-server/extensions/openai.chatgpt-*/bin/linux-x86_64/codex --version
+~/.vscode-server/extensions/anthropic.claude-code-*/resources/native-binary/claude --version
+```
+
+경로 패턴은 2026-10-24 Windows 확장에서 관찰한 것이며 Linux 패키지에서는 다를 수 있습니다. 실제 경로·확장 버전·CLI 버전은 해당 Provider 작업의 증거에 기록하고, 다르면 Spec §7.5 갱신을 PH0-INTEGRATION에 요청합니다.
 
 ## 3. 코드 동기화
 
