@@ -224,4 +224,40 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 
 ### 8.6 G2 남은 조건
 
-세 Provider의 Core 연결은 끝났습니다. G2 판정에는 MASTER(마스터 결정 검증)·RN(RPC)·EXT(Extension 연결) 증거가 더 필요하며 세 작업은 미배정입니다.
+세 Provider의 Core 연결은 끝났습니다. G2 판정에는 MASTER(마스터 결정 검증)·RN(RPC)·EXT(Extension 연결) 증거가 더 필요하며 세 작업은 미배정입니다. (G2 진행 중 기록)
+
+현황(2026-10-25): MASTER는 `e14de42`, EXT는 `43ce639`로 통합했습니다. G2에 남은 조건은 RN(PH0-RN-05~08, Local RPC·Client·Core 연결)입니다.
+
+### 8.7 PH0-EXT 검토·통합 (`43ce639`)
+
+`ph0/ext`(`a5c5397`, 코드 `4ad8dcf`, 인계 `7118a69`)를 검토해 통합했습니다. 변경은 소유 경로인 `extension/**`와 `docs/phase-0/evidence/PH0-EXT/`뿐이며 Rust·Cargo·공통 Schema·RN은 바뀌지 않았습니다. 배정표 커밋 `c3f246d`·`ef25b1d`는 담당 에이전트가 `main`에 직접 기록했습니다(§1의 담당자 갱신 규칙 범위).
+
+**계약 대조**
+
+| 항목 | 결과 |
+|---|---|
+| Project Key·경로 정규화 | `locations.ts`가 `telos_schema::api::normalize_project_root`·`project_key`와 같은 규칙(`\\?\UNC\` → `//`, `\\?\` 제거, 소문자, 끝 `/` 제거, SHA-256 앞 16자) |
+| Pipe·Socket·토큰 위치 | Core `server.rs`·Schema 문서와 같음(`\\.\pipe\telos-weaver-<key>`, `XDG_RUNTIME_DIR`/`/tmp/telos-weaver-<uid>`, `%LOCALAPPDATA%\telos-weaver\<key>\api-token`). Unix에서 Core는 `geteuid`·`HOME`, Extension은 `getuid`·`os.homedir()`을 써서 setuid 같은 특수 환경에서만 다를 수 있음 |
+| 토큰 | Core가 쓰는 64자 소문자 hex와 같은 형식·길이 검사, 내용은 오류에 노출하지 않음 |
+| Core 실행 | `serve --project-root --project-id --host-id`만 사용(정책·shell 없음), `--version` 출력 `telos-weaver x.y.z` 검사, `detached`·`unref`로 UI와 독립 |
+| 프로토콜 | API `0.2`, 프레임 1 MiB, UTF-8 엄격 디코딩, 요청 ID 상관·시간 초과·대기 32개 상한 |
+| 설정 보안 | `corePath`·`hostId`는 `machine` 범위라 Workspace 설정이 덮어쓸 수 없음. Untrusted Workspace에서는 세 설정 모두 제한되고 연결 명령이 비활성 |
+
+**재검증 (Windows 11, `ph0/ext`와 병합본 `main` 각각)**
+
+| 명령 | 결과 |
+|---|---|
+| `npm ci --ignore-scripts` | 통과, 취약점 0 |
+| `npm test` | 18개 통과 |
+| `npm run test:core` (Worktree·`main`에서 각각 빌드한 Core) | 1개 통과(인증·Degraded·DenyRuns 거부·연결 해제 후 생존·PID 재사용) |
+| `npm run test:host` (VS Code 1.143.1, 격리 프로필) | 통과, 확인 항목 5개, `coreSurvivedHostExit=true`, 결과 `%TEMP%\telos-ext-host-GUnhJj` |
+| Rust Workspace `cargo test --workspace` (`main`) | 142개 통과 |
+| 시험 후 프로세스 | `telos-weaver` 프로세스 없음. Provider·모델 호출 없음 |
+
+**비차단 발견 → REQ-016** (배정표 §4)
+
+1. `CoreConnection.failures`가 재연결 성공 후에도 0으로 돌아가지 않아, 한 세션에서 Core가 다섯 번 재시작되면 이후 자동 재연결이 멈춥니다(`connect()`에서만 초기화).
+2. Heartbeat(5초)마다 `connected` 상태가 다시 발생해 Output에 "연결됨"이 반복 기록됩니다(256 KiB 상한으로 잘리지만 Run 출력이 밀려남).
+3. `RunFeed`가 구독 응답을 기다리는 동안 다른 구독의 알림까지 대기열(64개 상한)에 넣어, 여러 Run을 동시에 관찰하게 되면 다른 구독 때문에 `limit`으로 끊길 수 있습니다(현재 UI는 한 번에 한 Run).
+
+연결·재연결 중복 코드(`connect`와 `scheduleReconnect`의 client 연결 처리)도 1번을 고칠 때 함께 정리하기를 권합니다. 판정: **통합**. Linux·Remote SSH 실행 검증과 전체 UI는 기존대로 후속입니다.
