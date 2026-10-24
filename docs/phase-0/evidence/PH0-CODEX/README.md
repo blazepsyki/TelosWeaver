@@ -4,7 +4,7 @@
 |---|---|
 | 작업 ID·담당 | PH0-CODEX · Codex / `PH0-CODEX-20261024` |
 | 작성일 | 2026-10-24 |
-| 상태 | reserved. 사용자 직접 배정과 준비 기록만 수행했으며 구현은 시작하지 않음 |
+| 상태 | in-progress. 사용자가 권장안 세 가지를 승인해 구현 착수. 초기 Mock 9개·Windows 실환경 생성 1개 통과, 나머지 실환경 시험 진행 중 |
 | Branch / Worktree | `ph0/codex` / `D:\worktree\TelosWeaver\ph0-codex` |
 | 준비 기준 | `75ba56e` (Spec v1.4 개정 1.4.1), 공통 계약 `271e7fd` |
 | 배정 기록 | 대표 main의 `2fa172d` |
@@ -72,4 +72,15 @@ Resume·Fork는 이번 시험에서 새로 만든 세션만 대상으로 합니�
 4. 사용자 확정 조건으로 Windows 실환경의 PROV-01~04·06~09를 확인합니다. Resume·Native Fork는 새 실행과 별도로 PROV-05·FORK-POC-01~02 결과를 기록합니다.
 5. 실제 사용한 버전·설정·세션 ID·증거 수준·미지원 기능과 후속 Core 연결 경계를 인계합니다. Linux·Remote SSH는 기존 사용자 지시대로 대기합니다.
 
-현재는 예약과 준비 단계이며 코드 구현·Protocol 생성·실계정 시험·지원 Capability 판정을 시작하지 않았습니다.
+## 6. REQ-012 공개 모듈 등록 요청
+
+App Server 연결과 Codex 전용 구성·실행 승인 Port를 구현했습니다. 단위 시험 9개가 통과했고 Protocol Schema는 현재 CLI에서 생성해 확인했습니다. 경량 모델은 실제 `model/list`에서 `low` 지원을 확인한 `gpt-6-luna`를 선택했습니다. Windows 실제 생성 시험 1개가 `TELOS_PONG` 응답으로 통과했고 해당 시험 세션을 Archive했습니다. 나머지 실환경 시험과 지원 Capability 판정은 진행 중입니다.
+
+CONTRACT·INTEGRATION에 다음 한 줄의 등록 변경을 요청합니다. 공통 DTO·Trait·Cargo 변경은 없습니다. 기존 Claude·Agy 모듈 공개 방식과 같으며 적용 전에는 Codex 소유 모듈 안의 단위 시험으로 검증합니다.
+
+```diff
+-mod codex;
++pub mod codex;
+```
+
+공개 대상은 `cli_rule`, `CodexConfig`, `CodexLaunch`, `CodexLaunchResolver`, `CodexSandbox`, `CodexApprovals`입니다. 기존 `CodexAdapter::default()`는 실행 구성이 없는 상태로 유지하고 `new(config)`가 승인된 실행 조건을 받습니다.
