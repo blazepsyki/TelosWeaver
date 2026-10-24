@@ -460,3 +460,32 @@ fn invalid_codex_and_agy_policies_are_rejected() {
     json["agy"] = serde_json::json!({"models": ["m"], "dataDir": "elsewhere"});
     assert!(LocalPolicyConfig::load(&dir.write_policy(json)).is_err());
 }
+
+// --- 마스터 (PH0-MASTER) ---
+
+#[tokio::test]
+async fn master_runs_are_read_only_and_get_no_claude_tools() {
+    use telos_core::policy::{LookupDenial, TrustedLookup};
+
+    let dir = Dir::new("master");
+    let policy = load(&dir, true);
+    let mut master = task();
+    master.agent.role = "master".into();
+    assert!(denied(&policy, &master).await.contains("read-only"));
+
+    master.workspace.read_only = true;
+    let launch = ClaudeLauncher::new(policy.clone())
+        .resolve(&master, &authorized_context(&policy, &master).await)
+        .unwrap();
+    assert_eq!(launch.tools, Some(vec![]), "master gets no tools");
+    assert!(launch.allowed_tools.is_empty());
+
+    // 신뢰된 조회: Run 승인과 같은 규칙, 거부는 Denied.
+    assert_eq!(policy.check_task(&master), Ok(()));
+    let mut other = task();
+    other.workspace.workspace_id = Some("not-granted".into());
+    assert!(matches!(
+        policy.check_task(&other),
+        Err(LookupDenial::Denied(_))
+    ));
+}

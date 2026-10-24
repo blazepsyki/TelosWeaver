@@ -21,7 +21,10 @@ use telos_schema::{
     api::{ApiError, ApiErrorCode},
 };
 
-use crate::execution::{RunAuthorizer, RunPermit, api_error, new_id};
+use crate::{
+    execution::{RunAuthorizer, RunPermit, api_error, new_id},
+    policy::{LookupDenial, TrustedLookup},
+};
 
 /// 설정 파일 상한. 운영자 설정이며 큰 입력을 받지 않습니다.
 const MAX_CONFIG_BYTES: u64 = 256 * 1024;
@@ -288,6 +291,10 @@ impl LocalRunPolicy {
         if !grant.writable && !task.workspace.read_only {
             return Err(forbidden("workspace is granted read-only"));
         }
+        // 마스터는 판단만 하고 작업은 Worker가 합니다(배정표 §6). 마스터 Run은 읽기 전용이어야 합니다.
+        if task.agent.role == "master" && !task.workspace.read_only {
+            return Err(forbidden("master runs must be read-only"));
+        }
         if session.mode == SessionMode::Capsule {
             return Err(forbidden("capsule sessions are not supported in Phase 0"));
         }
@@ -331,6 +338,24 @@ fn refuse(message: &str) -> AdapterError {
     AdapterError::Failure {
         kind: FailureKind::Configuration,
         message: message.into(),
+    }
+}
+
+/// 결정 단계의 신뢰된 조회(REQ-008). Run 승인과 같은 규칙으로 검사하되 Snapshot을 남기지 않습니다.
+impl TrustedLookup for LocalRunPolicy {
+    fn check_task(&self, task: &TaskSpec) -> Result<(), LookupDenial> {
+        let fresh = SessionRequest {
+            mode: SessionMode::Fresh,
+            source_session_id: None,
+            source_turn_id: None,
+            capsule_version_id: None,
+        };
+        self.check(task, &fresh)
+            .map(|_| ())
+            .map_err(|error| match error.code {
+                ApiErrorCode::Forbidden => LookupDenial::Denied(error.message),
+                _ => LookupDenial::Unavailable(error.message),
+            })
     }
 }
 
@@ -386,14 +411,24 @@ impl ClaudeLaunchResolver for ClaudeLauncher {
                 }
             }
         }
+        // 마스터 Run에는 도구를 주지 않습니다. 결정 JSON만 출력합니다(배정표 §6).
+        let master = task.agent.role == "master";
         Ok(ClaudeLaunch {
             cwd: snapshot.workspace_path,
             prompt: prompt(task),
             model: Some(snapshot.model),
             permission_mode: claude.permission_mode.clone(),
-            allowed_tools: claude.allowed_tools.clone(),
-            disallowed_tools: disallowed,
-            tools: claude.tools.clone(),
+            allowed_tools: if master {
+                vec![]
+            } else {
+                claude.allowed_tools.clone()
+            },
+            disallowed_tools: if master { vec![] } else { disallowed },
+            tools: if master {
+                Some(vec![])
+            } else {
+                claude.tools.clone()
+            },
             setting_sources: claude.setting_sources.clone(),
         })
     }

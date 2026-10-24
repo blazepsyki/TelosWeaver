@@ -123,6 +123,8 @@ pub struct Phase0Execution {
     /// Provider를 등록하지 않았거나 일부 기능을 막은 사유. 운영자에게 보여 줍니다.
     pub notes: Vec<String>,
     pub policy_revision: Option<String>,
+    /// 운영자 정책. 마스터 결정의 신뢰된 조회(REQ-008)에도 씁니다.
+    pub policy: Option<Arc<LocalRunPolicy>>,
 }
 
 impl Phase0Execution {
@@ -145,6 +147,7 @@ impl Phase0Execution {
                 codex: None,
                 notes: vec![],
                 policy_revision: None,
+                policy: None,
             });
         };
         let (config, revision) = LocalPolicyConfig::load(path)?;
@@ -281,14 +284,64 @@ impl Phase0Execution {
         discoveries.sort_by(|a, b| a.provider_id.cmp(&b.provider_id));
         Ok(Self {
             supervisor: Arc::new(ExecutionSupervisor::new(
-                project_id, host_id, tracked, policy,
+                project_id,
+                host_id,
+                tracked,
+                policy.clone(),
             )),
             adapters,
             discoveries,
             codex: codex_handle,
             notes,
             policy_revision: Some(revision),
+            policy: Some(policy),
         })
+    }
+
+    /// Plan 하나의 마스터 제어를 만듭니다. 권한 상한은 운영자 정책에서 가져옵니다.
+    /// Phase 0 정책에는 예산 Profile이 없으므로 `default` 하나만 허용합니다.
+    pub fn master(
+        &self,
+        plan_id: &str,
+        options: MasterOptions,
+    ) -> Result<crate::master::MasterController, String> {
+        let policy = self
+            .policy
+            .clone()
+            .ok_or("a policy file is required for the master controller")?;
+        let config = policy.config();
+        let mut providers = Vec::new();
+        if config.claude.is_some() {
+            providers.push(telos_adapters::claude::PROVIDER_ID.to_owned());
+        }
+        if config.codex.is_some() {
+            providers.push(telos_adapters::codex::PROVIDER_ID.to_owned());
+        }
+        if config.agy.is_some() {
+            providers.push(telos_adapters::agy::PROVIDER_ID.to_owned());
+        }
+        let settings = crate::master::MasterSettings {
+            project_id: self.supervisor.project_id().to_owned(),
+            plan_id: plan_id.to_owned(),
+            host_id: self.supervisor.host_id().to_owned(),
+            policy_revision: policy.revision().to_owned(),
+            limits: telos_schema::ControlLimits::default(),
+            allowed_providers: providers,
+            allowed_workspace_modes: vec![telos_schema::WorkspaceMode::Directory],
+            allowed_permission_profile_ids: config.permission_profiles.clone(),
+            allowed_budget_profile_ids: vec!["default".into()],
+            master_provider: options.provider,
+            master_model: options.model,
+            master_workspace_id: options.workspace_id,
+            master_permission_profile_id: options.permission_profile_id,
+            worker_template: options.worker_template,
+            turn_timeout: options.turn_timeout,
+        };
+        Ok(crate::master::MasterController::new(
+            settings,
+            Arc::new(self.supervisor.clone()),
+            policy,
+        ))
     }
 
     pub fn discovery(&self, provider_id: &str) -> Option<&CliDiscovery> {
@@ -307,6 +360,18 @@ impl Phase0Execution {
         }
         total
     }
+}
+
+/// 마스터 실행 조건 (배정표 §6: Phase 0 마스터 Provider는 임시 Claude).
+#[derive(Debug, Clone)]
+pub struct MasterOptions {
+    pub provider: String,
+    pub model: Option<String>,
+    /// 마스터가 읽기 전용으로 쓰는 승인된 Workspace.
+    pub workspace_id: String,
+    pub permission_profile_id: String,
+    pub worker_template: telos_schema::TaskSpec,
+    pub turn_timeout: Duration,
 }
 
 /// RFC 3339 UTC 초 단위 시각.
