@@ -87,4 +87,31 @@
 
 ## 4. 처리 결과
 
-처리 후 이 절에 결과 Commit과 시험을 기록합니다.
+**개정 계약 기준 Commit: `ba97e7b`** (2026-10-24). G0 통과 판정은 유지하고 기준만 `ae31eb2`에서 개정합니다.
+
+| Commit | 내용 |
+|---|---|
+| `952bb26` | 검토 제출안 접수 |
+| `7d296a8` | INTEGRATION: 판정 기록, REQ-002·003 런타임 인터페이스, `phase0_runtime_contract` 시험, `sha2 0.11.0` |
+| `98177db` | CONTRACT: REQ-004~009 ([CONTRACT 기록 §5](../PH0-CONTRACT/README.md#5-g0-개정-1-req-004009)) |
+| `ba97e7b` | `ph0/contract` 통합 |
+
+통합 기준 재검증(`ba97e7b`, Windows):
+
+| 명령 | 결과 |
+|---|---|
+| `cargo test --workspace --locked` | 통과 (27개) |
+| `cargo clippy --workspace --all-targets --locked` | 경고 없음 |
+| `cargo fmt --all --check` | 통과 |
+| `cd extension && npm run build` | TypeScript 42개 생성, `tsc` 통과 |
+
+요청별 상태:
+
+| 요청 | 상태 | 남은 일 |
+|---|---|---|
+| REQ-002·003 | 계약 완료 | HOST가 구현하고 요청서의 수용 시험(대기 중 입력·취소, 반복 취소, 경합, 읽기 오류·긴 줄·느린 소비자 등)을 실행 |
+| REQ-004·005·006·009 | 완료 | 소비 작업(MASTER·HOST·EXT·Provider)이 새 기준으로 사용 |
+| REQ-007 | 완료(계약) | HOST·EXT가 주소·토큰 파일·ACL을 구현하고 벡터·프레임 경계 시험을 각자 실행 |
+| REQ-008 | 완료(계약) | MASTER가 `core/policy`에 신뢰된 조회 인터페이스를 정의 |
+
+모든 시험은 Contract 수준입니다. 판정자와 CONTRACT 처리자가 같은 담당자라는 한계는 G0 1차와 같으며, 이번 개정은 독립 검토 요청을 근거로 했습니다.

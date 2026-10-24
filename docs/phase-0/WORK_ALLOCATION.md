@@ -3,7 +3,7 @@
 > **프로젝트:** TelosWeaver  
 > **갱신일:** 2026-10-24  
 > **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.3.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
-> **현재 상태:** G0 통과(계약 기준 `ae31eb2`). 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
+> **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `ba97e7b`). 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
 
 ## 1. 단일 원본과 갱신 주체
 
@@ -17,15 +17,15 @@
 |---|---|
 | 대표 저장소 | `D:\Downloads\Vibe_dev\TelosWeaver`, Branch `main` (원격 없음) |
 | 통합 담당자 ID | `claude-opus-5.5/session-c9336d2c` (2026-10-24 사용자 지정) |
-| 공통 계약 기준 Commit | `ae31eb2` (2026-10-24 G0 확정) |
-| 공통 계약 기준 설명 | §5의 7개 계약. 변경은 §4 변경 요청으로만 처리합니다. 판정 근거: `evidence/PH0-INTEGRATION/README.md` |
+| 공통 계약 기준 Commit | `ba97e7b` (2026-10-24 G0 개정 1). 1차 기준 `ae31eb2` |
+| 공통 계약 기준 설명 | §5의 7개 계약. 변경은 §4 변경 요청으로만 처리합니다. 판정 근거: `evidence/PH0-INTEGRATION/README.md`, 개정: `evidence/PH0-INTEGRATION/G0_REVISION_1.md` |
 
 ## 2. 배정 상태
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `7d296a8` (G0 개정 1 런타임) | G0 개정 1 진행 중. 다른 작업 배정은 개정 기준 확정 후 |
-| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | in-progress | `ph0/contract` / `D:\worktree\TelosWeaver\ph0-contract` | `7d296a8` | 1차 `fd0b206` (통합 `cc142cf`) | G0 개정 1: REQ-004~009 처리 중 |
+| PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `ba97e7b` (G0 개정 1) | G0 개정 1 완료. 다음: 배정 요청 처리, G1(HOST + Codex) 통합 |
+| PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | verified | `ph0/contract` / Worktree 정리됨 | `7d296a8` | 1차 `fd0b206`, 개정 1 `98177db` (통합 `ba97e7b`) | 이후 계약 변경은 §4 요청으로 처리 |
 | PH0-HOST | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. `telos_adapters::runtime`·`telos_schema::api` 구현 |
 | PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용. G1 대표 Provider |
 | PH0-CLAUDE | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
@@ -40,7 +40,7 @@
 
 | 게이트 | 상태 | 근거 |
 |---|---|---|
-| G0 공통 계약 확정 | 통과 (2026-10-24) | 기준 Commit `ae31eb2`, `evidence/PH0-INTEGRATION/README.md` §1. 같은 담당자의 자기 검토임을 기록 |
+| G0 공통 계약 확정 | 통과 (2026-10-24), 개정 1 반영 | 1차 `ae31eb2`. 독립 검토 REQ-002~009 처리 후 기준 `ba97e7b`. 근거: `evidence/PH0-INTEGRATION/README.md` §1, `G0_REVISION_1.md` §4 |
 | G1 대표 Provider 실행 | 대기 | 실제 시작·이벤트·완료/실패·취소·결과 경로 필요 |
 | G2 전체 구성 통합 | 대기 | 세 Provider·마스터·RN·Extension 연결 증거 필요 |
 | G3 Phase 0 수용 | 대기 | Spec §19.1 필수 조건과 대상 환경 증거 필요. Linux·Remote SSH Host는 [WSL 절차](WSL_LINUX_HOST.md)로 확보 예정(미구성) |
@@ -52,22 +52,22 @@
 | 요청 ID | 요청 작업 | 변경 대상·이유 | 영향 작업 | 처리 주체 | 상태·결과 Commit |
 |---|---|---|---|---|---|
 | REQ-001 | PH0-INTEGRATION | `.gitattributes` 신설(LF 고정). `core.autocrlf=true` 환경의 새 Worktree가 CRLF로 체크아웃되어 생성물이 내용 변경 없이 수정으로 표시됨. 현재 Spec §19.5.3에 소유 작업이 없어 Spec에 INTEGRATION 경로로 추가 필요 | 전체 | 사용자 확인 후 INTEGRATION | 완료. 사용자가 LF로 결정, `.gitattributes` 추가·Spec v1.3.4에 경로 등록. Index 내용 변경 없음 |
-| REQ-002 | G0 독립 검토 / PH0-HOST | 공용 ProcessHandle의 대기·입력·취소 동시성 및 wait 취소 안전성 계약 확정 | HOST, CODEX, CLAUDE, AGY, INTEGRATION | INTEGRATION 조정·HOST 처리, CONTRACT 확인 | 채택, 처리 중. [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-002-대기입력취소의-동시성-계약) |
-| REQ-003 | G0 독립 검토 / PH0-HOST | 출력 스트림의 I/O 오류·긴 Protocol 줄·버퍼 초과를 명시적 실패/복구로 연결 | HOST, 세 Provider, INTEGRATION | INTEGRATION 조정·HOST 처리, CONTRACT 확인 | 채택, 처리 중. [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-003-출력-오류와-상한-초과-처리) |
-| REQ-004 | G0 독립 검토 / PH0-CONTRACT | DecisionOutcome의 승인/거부·사유·효과 불변조건과 모순된 공통 시험 수정 | CONTRACT, MASTER, HOST, EXT | CONTRACT 처리·INTEGRATION 통합, MASTER 확인 | 채택, 처리 중. [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-004-decisionoutcome의-불변조건) |
-| REQ-005 | G0 독립 검토 / PH0-CONTRACT | HelloParams 및 원시 인증 요청의 Debug·로그 경로에서 토큰 원문 보호 | CONTRACT, HOST, EXT | CONTRACT 처리·INTEGRATION 통합, HOST·EXT 확인 | 채택, 처리 중. [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-005-인증-토큰의-debug로그-보호) |
-| REQ-006 | G0 독립 검토 / PH0-CONTRACT | Run 이벤트의 시작 실패·지속형 프로세스·취소·유실·종료 불명 경계 확정 | CONTRACT, HOST, 세 Provider, EXT | CONTRACT·HOST 협의·INTEGRATION 통합 | 채택, 처리 중. [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-006-run-이벤트-종료-규칙) |
-| REQ-007 | G0 독립 검토 / PH0-CONTRACT | Local API 주소·상태 디렉터리·토큰 수명·1 MiB 프레임 경계와 상호운용 시험 명세 | CONTRACT, HOST, EXT, INTEGRATION | CONTRACT·HOST·EXT 협의·INTEGRATION 통합 | 수정 채택, 처리 중. [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-007-local-api-주소인증프레임-규칙) |
-| REQ-008 | G0 독립 검토 / PH0-CONTRACT | DecisionContext의 최소 목록 검사와 실제 권한 검사의 경계·신뢰된 조회 계약 명시 | CONTRACT, MASTER, HOST | CONTRACT·MASTER 협의·INTEGRATION 통합 | 수정 채택, 처리 중. [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-008-decisioncontext의-권한-검사-범위) |
-| REQ-009 | G0 독립 검토 / PH0-CONTRACT | 알 수 없는 Payload 필드의 최상위/중첩 허용 정책과 Schema·Parser·Fixture 일치 | CONTRACT, MASTER, HOST | CONTRACT 처리·INTEGRATION 통합, MASTER 확인 | 채택, 처리 중. [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-009-중첩-payload의-알-수-없는-필드) |
+| REQ-002 | G0 독립 검토 / PH0-HOST | 공용 ProcessHandle의 대기·입력·취소 동시성 및 wait 취소 안전성 계약 확정 | HOST, CODEX, CLAUDE, AGY, INTEGRATION | INTEGRATION 조정·HOST 처리, CONTRACT 확인 | 계약 완료(`7d296a8`, 통합 `ba97e7b`). 구현·수용 시험은 PH0-HOST 대기. [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-002-대기입력취소의-동시성-계약) |
+| REQ-003 | G0 독립 검토 / PH0-HOST | 출력 스트림의 I/O 오류·긴 Protocol 줄·버퍼 초과를 명시적 실패/복구로 연결 | HOST, 세 Provider, INTEGRATION | INTEGRATION 조정·HOST 처리, CONTRACT 확인 | 계약 완료(`7d296a8`, 통합 `ba97e7b`). 구현·수용 시험은 PH0-HOST 대기. [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-003-출력-오류와-상한-초과-처리) |
+| REQ-004 | G0 독립 검토 / PH0-CONTRACT | DecisionOutcome의 승인/거부·사유·효과 불변조건과 모순된 공통 시험 수정 | CONTRACT, MASTER, HOST, EXT | CONTRACT 처리·INTEGRATION 통합, MASTER 확인 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-004-decisionoutcome의-불변조건) |
+| REQ-005 | G0 독립 검토 / PH0-CONTRACT | HelloParams 및 원시 인증 요청의 Debug·로그 경로에서 토큰 원문 보호 | CONTRACT, HOST, EXT | CONTRACT 처리·INTEGRATION 통합, HOST·EXT 확인 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-005-인증-토큰의-debug로그-보호) |
+| REQ-006 | G0 독립 검토 / PH0-CONTRACT | Run 이벤트의 시작 실패·지속형 프로세스·취소·유실·종료 불명 경계 확정 | CONTRACT, HOST, 세 Provider, EXT | CONTRACT·HOST 협의·INTEGRATION 통합 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-006-run-이벤트-종료-규칙) |
+| REQ-007 | G0 독립 검토 / PH0-CONTRACT | Local API 주소·상태 디렉터리·토큰 수명·1 MiB 프레임 경계와 상호운용 시험 명세 | CONTRACT, HOST, EXT, INTEGRATION | CONTRACT·HOST·EXT 협의·INTEGRATION 통합 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-007-local-api-주소인증프레임-규칙) |
+| REQ-008 | G0 독립 검토 / PH0-CONTRACT | DecisionContext의 최소 목록 검사와 실제 권한 검사의 경계·신뢰된 조회 계약 명시 | CONTRACT, MASTER, HOST | CONTRACT·MASTER 협의·INTEGRATION 통합 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-008-decisioncontext의-권한-검사-범위) |
+| REQ-009 | G0 독립 검토 / PH0-CONTRACT | 알 수 없는 Payload 필드의 최상위/중첩 허용 정책과 Schema·Parser·Fixture 일치 | CONTRACT, MASTER, HOST | CONTRACT 처리·INTEGRATION 통합, MASTER 확인 | 완료(`98177db`, 통합 `ba97e7b`). [판정](evidence/PH0-INTEGRATION/G0_REVISION_1.md) · [요청](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md#req-009-중첩-payload의-알-수-없는-필드) |
 
 요청에는 필요한 타입·메서드·의존성과 호환·시험 계획을 포함합니다. 통합 담당과 공통 계약 담당이 먼저 기준 변경을 통합하고 소비 작업에 전달합니다. 소비 작업에서 임시 공통 타입을 만들거나 같은 파일을 각자 수정하여 우회하지 않습니다.
 
-REQ-002~009는 독립 검토의 제출안이며 `952bb26`으로 접수했습니다. 판정과 처리 방식은 [G0 개정 1](evidence/PH0-INTEGRATION/G0_REVISION_1.md)에 기록합니다. 요청자와 확인 사실·설계 제안·호환·시험 계획은 [G0 독립 검토 변경 요청서](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md)에 기록합니다. 기존 담당 배정·G0 판정·계약 기준 `ae31eb2`는 유지하고, 통합 담당이 요청을 판정한 뒤 필요한 계약 변경과 기준 Commit 갱신을 직렬로 처리합니다.
+REQ-002~009는 독립 검토의 제출안이며 `952bb26`으로 접수했습니다. 판정과 처리 방식은 [G0 개정 1](evidence/PH0-INTEGRATION/G0_REVISION_1.md)에 기록합니다. 요청자와 확인 사실·설계 제안·호환·시험 계획은 [G0 독립 검토 변경 요청서](evidence/PH0-INTEGRATION/G0_REVIEW_REQUESTS.md)에 기록합니다. 처리 결과 계약 기준을 `ba97e7b`로 개정했습니다. 소비 작업은 이 기준으로 착수·갱신합니다.
 
 ## 5. G0 계약 범위와 등록 경로
 
-Spec §19.5.2의 계약을 아래 위치에 정의했으며 `ae31eb2`로 확정했습니다. 이후 변경은 §4의 변경 요청으로만 처리합니다.
+Spec §19.5.2의 계약을 아래 위치에 정의했으며 `ae31eb2`로 확정하고 `ba97e7b`(G0 개정 1)로 개정했습니다. 이후 변경은 §4의 변경 요청으로만 처리합니다.
 
 | 계약 | 정의 위치 | 작성 | 사용 작업 |
 |---|---|---|---|
@@ -112,6 +112,7 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 12:32 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정: WSL 구성 시점을 PH0-HOST 공용 런타임 구현 착수 시(늦어도 G2 전)로 지정. G0 계약은 다른 에이전트가 검토 중이며 결과는 §4 변경 요청으로 받음 | `ae31eb2` |
 | 2026-10-24 (시각 미기록, 제출자 기록) | `Codex / G0-REVIEW-20261024` | 사용자 요청으로 G0 독립 검토의 REQ-002~009 등록안·상세 요청서 작성. 별도 검토 Branch에서 제출하며 대표 저장소 반영·채택·구현·기준 변경은 기존 통합 담당이 처리 | `ae31eb2` (검토 대상), `e56eb2d` (제출안 기반) |
 | 2026-10-24 12:59 | `claude-opus-5.5/session-c9336d2c` | 검토 제출안을 `952bb26`으로 접수. REQ-002~006·009 채택, REQ-007·008 수정 채택([G0 개정 1](evidence/PH0-INTEGRATION/G0_REVISION_1.md)). 처리 순서: INTEGRATION 런타임 인터페이스 → CONTRACT → 재통합 | `ae31eb2` |
-| 2026-10-24 13:02 | `claude-opus-5.5/session-c9336d2c` | G0 개정 1 INTEGRATION 부분 완료(`7d296a8`, REQ-002·003 인터페이스). PH0-CONTRACT `verified → in-progress`, Worktree `D:worktreeTelosWeaverph0-contract` 재생성. 개정 기준 확정 전까지 `ae31eb2`가 유효 기준 | `7d296a8` |
+| 2026-10-24 13:02 | `claude-opus-5.5/session-c9336d2c` | G0 개정 1 INTEGRATION 부분 완료(`7d296a8`, REQ-002·003 인터페이스). PH0-CONTRACT `verified → in-progress`, Worktree `D:\worktree\TelosWeaver\ph0-contract` 재생성. 개정 기준 확정 전까지 `ae31eb2`가 유효 기준 | `7d296a8` |
+| 2026-10-24 13:11 | `claude-opus-5.5/session-c9336d2c` | `ph0/contract`(`98177db`)를 `ba97e7b`로 통합, `main`에서 재검증(27개 통과). 계약 기준 `ae31eb2 → ba97e7b`, PH0-CONTRACT `in-progress → verified`, REQ-004~009 완료, REQ-002·003 계약 완료(HOST 구현 대기). Worktree 정리 | `ba97e7b` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.

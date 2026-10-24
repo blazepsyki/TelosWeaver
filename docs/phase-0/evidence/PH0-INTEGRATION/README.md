@@ -56,3 +56,10 @@ G0 통과는 계약이 정해졌다는 뜻이며 Provider·RN·Core API의 실�
 
 - G1: 공용 런타임(HOST)과 대표 Provider Codex의 실제 경로 연결.
 - 나머지 7개 작업은 배정 요청을 받아 기록한 뒤 `ae31eb2`를 계약 기준으로 착수합니다.
+
+## 6. G0 개정 1
+
+독립 검토(REQ-002~009)를 반영하여 계약 기준을 `ae31eb2`에서 **`ba97e7b`**로 개정했습니다. G0 통과 판정은 유지합니다. 판정·처리·재검증 내용은 [G0_REVISION_1.md](G0_REVISION_1.md)에 있습니다.
+
+- §4의 "자기 검토" 한계는 독립 검토로 일부 보완되었습니다. 개정 처리 자체는 같은 담당자가 했으므로 검토자의 재확인을 권장합니다.
+- 검토 제출 Branch `review/g0-contract-requests-20261024`와 그 Worktree(`D:\worktree\TelosWeaver\g0-review-requests-20261024`)는 제출자 소유라 정리하지 않았습니다.
