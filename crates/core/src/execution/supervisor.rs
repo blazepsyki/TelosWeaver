@@ -59,7 +59,6 @@ struct RunState {
     events: Vec<ProviderEvent>,
     bytes: usize,
     complete: bool,
-    cancelled: bool,
     failure: Option<ApiError>,
 }
 struct RunRecord {
@@ -233,7 +232,6 @@ impl ExecutionSupervisor {
                 events: Vec::new(),
                 bytes: 0,
                 complete: false,
-                cancelled: false,
                 failure: None,
             }),
             changed: watch::channel(0).0,
@@ -351,7 +349,6 @@ impl ExecutionSupervisor {
                         })) => RunStatus::Interrupted,
                         _ => RunStatus::Failed,
                     },
-                    Ok(_) if state.cancelled => RunStatus::Cancelled,
                     Ok(_) => {
                         let turn = state.events.iter().rev().find_map(|e| {
                             match ProviderEventPayload::parse(e.kind, &e.payload).ok()? {
@@ -366,17 +363,18 @@ impl ExecutionSupervisor {
                             }
                         });
                         let uncertain = process.as_ref().is_some_and(|p| {
-                            p.children_reaped == Some(false)
+                            p.children_reaped != Some(true)
                                 || p.termination == ProcessTermination::Unknown
                                 || p.termination == ProcessTermination::External
                         });
                         let nonzero = process.as_ref().is_some_and(|p| p.exit_code != Some(0));
                         match turn {
+                            // Spec §7.3: cancellation cannot hide unconfirmed teardown.
+                            _ if uncertain => RunStatus::Interrupted,
                             Some(TurnStatus::Cancelled) => RunStatus::Cancelled,
                             Some(TurnStatus::Interrupted | TurnStatus::Unknown) => {
                                 RunStatus::Interrupted
                             }
-                            _ if uncertain => RunStatus::Interrupted,
                             Some(TurnStatus::Failed) => RunStatus::Failed,
                             _ if nonzero => RunStatus::Failed,
                             _ => RunStatus::Succeeded,
@@ -430,11 +428,9 @@ impl ExecutionSupervisor {
         let accepted = record.adapter.cancel_run(id).await.map_err(adapter_error)?;
         if accepted {
             let mut state = record.state.lock().unwrap();
-            state.cancelled = true;
+            // Accepted cancellation is provisional; final events determine the outcome.
             if !state.complete {
                 state.status = RunStatus::Cancelling;
-            } else if state.status == RunStatus::Succeeded {
-                state.status = RunStatus::Cancelled;
             }
         }
         Ok(RunsCancelResult { accepted })

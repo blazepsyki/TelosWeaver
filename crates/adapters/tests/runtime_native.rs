@@ -134,6 +134,56 @@ async fn cancelled_wait_can_be_retried_and_children_are_collected() {
         .await
         .unwrap();
 }
+
+// Spec §7.3, G1 HOST review: distinguish cooperative EOF from a forced Job teardown.
+#[cfg(windows)]
+#[tokio::test(flavor = "multi_thread")]
+async fn windows_eof_exit_and_job_kill_report_actual_child_termination() {
+    use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
+    use windows_sys::Win32::{
+        Foundation::{WAIT_OBJECT_0, WAIT_TIMEOUT},
+        System::Threading::{OpenProcess, PROCESS_SYNCHRONIZE, WaitForSingleObject},
+    };
+
+    let cooperative = NativeRuntime.spawn(spec("echo")).await.unwrap();
+    let report = cooperative.terminate(Duration::from_secs(2)).await.unwrap();
+    assert_eq!(report.status.cause, TerminationCause::TerminatedOnRequest);
+    assert_eq!(report.status.code, Some(0));
+    assert_eq!(report.children, ChildrenReaped::All);
+    collect(&cooperative).await;
+
+    let handle = NativeRuntime.spawn(spec("tree")).await.unwrap();
+    let mut stream = handle.take_output().unwrap();
+    let event = tokio::time::timeout(Duration::from_secs(3), stream.next())
+        .await
+        .unwrap()
+        .unwrap();
+    let child_pid = match event {
+        OutputEvent::Line { data, .. } => String::from_utf8(data).unwrap().parse::<u32>().unwrap(),
+        _ => panic!("missing child pid"),
+    };
+    // Retain the original process handle so PID reuse cannot satisfy this check.
+    let child = unsafe {
+        let raw = OpenProcess(PROCESS_SYNCHRONIZE, 0, child_pid);
+        assert!(!raw.is_null(), "{}", std::io::Error::last_os_error());
+        OwnedHandle::from_raw_handle(raw)
+    };
+    assert_eq!(
+        unsafe { WaitForSingleObject(child.as_raw_handle(), 0) },
+        WAIT_TIMEOUT
+    );
+    let report = handle.terminate(Duration::from_millis(50)).await.unwrap();
+    assert_eq!(report.status.cause, TerminationCause::Killed);
+    assert_eq!(report.children, ChildrenReaped::All);
+    // Confirm final OS teardown on the retained handle as well as Job accounting.
+    assert_eq!(
+        unsafe { WaitForSingleObject(child.as_raw_handle(), 3000) },
+        WAIT_OBJECT_0
+    );
+    tokio::time::timeout(Duration::from_secs(3), stream.collect::<Vec<_>>())
+        .await
+        .unwrap();
+}
 #[tokio::test(flavor = "multi_thread")]
 async fn output_backpressure_cannot_block_termination() {
     let handle = NativeRuntime.spawn(spec("flood")).await.unwrap();

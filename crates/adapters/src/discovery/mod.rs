@@ -223,7 +223,10 @@ fn discover_extension(
                     ));
                 }
             };
-            if platform.is_none_or(|platform| platform == target || platform == "universal") {
+            // Spec §7.5, REQ-013(3): VS Code also serializes universal as "undefined".
+            if platform.is_none_or(|platform| {
+                platform == target || matches!(platform, "universal" | "undefined")
+            }) {
                 matches.push((entry, platform));
             }
         }
@@ -277,7 +280,7 @@ fn discover_extension(
                 ));
             }
             let target_platform = match platform {
-                Some("universal") => None,
+                Some("universal" | "undefined") => None,
                 Some(platform) => Some((*platform).into()),
                 None => folder_version(relative, id, target).and_then(|(_, platform)| platform),
             };

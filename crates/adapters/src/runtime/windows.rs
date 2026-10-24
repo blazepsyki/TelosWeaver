@@ -304,6 +304,8 @@ impl Control {
             .ok_or_else(|| io::Error::other("missing process exit status"))
     }
     pub fn request_stop(&self) -> io::Result<()> {
+        // Spec §7.3: no extra stop signal is sent here. NativeHandle closes stdin
+        // when possible, waits for the grace period, then terminates the Job.
         Ok(())
     }
     pub fn kill_tree(&self) -> io::Result<()> {
