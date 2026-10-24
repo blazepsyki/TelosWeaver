@@ -9,10 +9,10 @@
  pub mod runtime;
 --- a/crates/adapters/src/unimplemented.rs
 +++ b/crates/adapters/src/unimplemented.rs
-@@ -86,84 +86,3 @@
+@@ -86,84 +86,2 @@
      }
  }
- 
+-
 -/// 구현 전 Provider 타입을 [`UnsupportedAdapter`]에 위임합니다. 각 Provider가 실제 구현으로 교체할 때 제거합니다.
 -macro_rules! unimplemented_adapter {
 -    ($ty:ty, $id:literal) => {
