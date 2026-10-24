@@ -3,7 +3,7 @@
 > **프로젝트:** TelosWeaver  
 > **갱신일:** 2026-10-24  
 > **범위 원본:** [Spec §19.5](../DEVELOPMENT_v1.3.md#195-phase-0-병렬-구현--작업-분할과-소유권)  
-> **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `ba97e7b`). PH0-HOST는 사용자 직접 배정으로 Codex가 예약했으며 구현 전 준비 단계입니다. 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
+> **현재 상태:** G0 통과, 개정 1 반영(계약 기준 `ba97e7b`). PH0-HOST는 사용자 지시로 Codex가 전용 Worktree에서 구현 중입니다. 나머지 작업은 배정 요청을 받아 착수할 수 있습니다. G1~G3는 대기입니다.
 
 ## 1. 단일 원본과 갱신 주체
 
@@ -26,7 +26,7 @@
 |---|---|---|---|---|---|---|
 | PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `ba97e7b` (G0 개정 1) | G0 개정 1 완료. 다음: 배정 요청 처리, G1(HOST + Codex) 통합 |
 | PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | verified | `ph0/contract` / Worktree 정리됨 | `7d296a8` | 1차 `fd0b206`, 개정 1 `98177db` (통합 `ba97e7b`) | 이후 계약 변경은 §4 요청으로 처리 |
-| PH0-HOST | `Codex / PH0-HOST-20261024` | reserved | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` | `23605b0` (Spec v1.3.7), 계약 `ba97e7b` | 없음 (구현 전) | 사용자 직접 배정. [준비 기록](evidence/PH0-HOST/README.md). REQ-010·011 검토 및 WSL 환경 준비 연계 후 착수. 공용 런타임·CLI 공통 탐색·최소 Core API 담당 |
+| PH0-HOST | `Codex / PH0-HOST-20261024` | in-progress | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` | `23605b0` (Spec v1.3.7), 계약 `ba97e7b` | 없음 (구현 전) | 사용자 직접 배정. [준비 기록](evidence/PH0-HOST/README.md). REQ-010·011 검토 및 WSL 환경 준비 연계 후 착수. 공용 런타임·CLI 공통 탐색·최소 Core API 담당 |
 | PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `openai.chatgpt` 확장의 `bin/<platform>/codex`(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용. G1 대표 Provider |
 | PH0-CLAUDE | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `anthropic.claude-code` 확장의 `resources/native-binary/claude`(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
 | PH0-AGY | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `google.google-antigravity` 확장이 관리하는 `~/.gemini/bin/agy`(Spec §7.5). 첫 실험은 Spec §7.5 "Antigravity 데이터 디렉터리 검증"(AGY-DATA-01~05)입니다. Managed 실행에 `--app_data_dir=antigravity`를 넘겨 확장과 같은 데이터 디렉터리·인증을 쓸 수 있는지 확인하고, 결과로 디렉터리 규칙 확정을 변경 요청합니다. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
@@ -120,5 +120,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 13:38 | `claude-opus-5.5/session-c9336d2c` | Spec v1.3.6: 확장 탐지를 버전 비의존 규칙으로 변경, Antigravity 실행 파일을 `~/.gemini/bin/agy`로 확정(사용자의 중복 설치 정리 후 재확인). AGY 인계·WSL 절차 갱신 | `ba97e7b` |
 | 2026-10-24 13:42 | `claude-opus-5.5/session-c9336d2c` | Spec v1.3.7: Antigravity 데이터 디렉터리 검증(AGY-DATA-01~05)을 §7.5에 추가하고 PH0-AGY 첫 실험으로 인계. PH0-AGY는 다른 에이전트가 맡을 예정(사용자 지정, 아직 미배정) | `ba97e7b` |
 | 2026-10-24 (시각 미기록) | `Codex / PH0-HOST-20261024` | 사용자 직접 배정으로 PH0-HOST `unassigned → reserved` 기록. Branch/Worktree와 준비·범위 기록, REQ-010·011 제출. 코드 구현·공통 계약 변경·WSL 구성은 아직 시작하지 않음. 기존 통합 담당과 G0 기준은 유지 | `23605b0` (준비 기반), `ba97e7b` (계약) |
+| 2026-10-24 (시각 미기록) | `Codex / PH0-HOST-20261024` | 사용자 착수 지시로 PH0-HOST `reserved → in-progress`. 공용 런타임과 탐색 엔진을 소유 경로에 구현하며 REQ-010·011 공통 변경은 별도 적용안으로 준비. 공식 Workspace 연결 전 독립 Manifest로 검증하며 G0 기준·타 담당 소유권 유지 | `1e415ba` (착수 기반), `ba97e7b` (계약) |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
