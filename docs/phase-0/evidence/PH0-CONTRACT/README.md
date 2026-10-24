@@ -5,8 +5,8 @@
 | 작업 ID | PH0-CONTRACT |
 | 담당 | `claude-opus-5.5/session-c9336d2c` |
 | Branch / Worktree | `ph0/contract` / `D:\worktree\TelosWeaver\ph0-contract` |
-| 기준 Commit | 1차 `556e62f` (G0 준비), 개정 1 `7d296a8` |
-| 결과 Commit | 1차 `fd0b206`, 개정 1은 이 기록을 포함한 `ph0/contract`의 마지막 Commit |
+| 기준 Commit | 1차 `2d0179a` (G0 준비), 개정 1 `00cf7ea` |
+| 결과 Commit | 1차 `ade440e`, 개정 1은 이 기록을 포함한 `ph0/contract`의 마지막 Commit |
 | 계약 기준 | 배정표 §1에 기록. §1~§4는 1차 기록이며 개정 1의 변경은 §5에 있습니다 |
 
 ## 1. 수정 파일
@@ -30,7 +30,7 @@
 | RN RPC | `telos_schema::rn`. 메서드 9종(§12.1), Envelope·Receipt(§12.2), `EndpointRef`(Host·Provider·Native ID·Fingerprint), 커서 구독과 `resync_required`, 오류 코드 10종, `RN_PROTOCOL_VERSION = "0.1"` |
 | 생성·시험 | 42개 JSON Schema, `fixtures` feature의 공통 Fixture(정상 Task·RunContext·이벤트 순서·결정, 공통 실패 결정 4종), `UnsupportedAdapter` 시험 대역 |
 
-공용 프로세스 경계(`telos_adapters::runtime`)는 PH0-INTEGRATION이 G0 준비(`556e62f`)에서 등록했으며 이 작업에서 바꾸지 않았습니다.
+공용 프로세스 경계(`telos_adapters::runtime`)는 PH0-INTEGRATION이 G0 준비(`2d0179a`)에서 등록했으며 이 작업에서 바꾸지 않았습니다.
 
 ## 3. 시험
 
@@ -56,7 +56,7 @@
 
 ## 5. G0 개정 1 (REQ-004~009)
 
-판정과 결정 근거는 [G0 개정 1](../PH0-INTEGRATION/G0_REVISION_1.md)에 있습니다. REQ-002·003(공용 런타임)은 PH0-INTEGRATION이 `7d296a8`에서 처리했습니다.
+판정과 결정 근거는 [G0 개정 1](../PH0-INTEGRATION/G0_REVISION_1.md)에 있습니다. REQ-002·003(공용 런타임)은 PH0-INTEGRATION이 `00cf7ea`에서 처리했습니다.
 
 ### 5.1 수정 파일
 
@@ -100,7 +100,7 @@
 
 ## 6. REQ-010 CLI 탐지 계약
 
-> 2026-10-24 · `claude-opus-5.5/session-c9336d2c` · `ph0/contract` · 기준 `0094720` (HOST 1차 통합 `d8e8725` 이후)
+> 2026-10-24 · `claude-opus-5.5/session-c9336d2c` · `ph0/contract` · 기준 `0094720` (HOST 1차 통합 `1d8734f` 이후)
 
 PH0-HOST의 [REQ-010](../PH0-HOST/README.md#req-010-cli-탐색-계약과-모듈-등록) 요청을 처리했습니다. 공통 탐색 결과를 다른 작업이 같은 형태로 쓰도록 결과 DTO와 입력·Port를 확정합니다. 탐색 엔진 연결은 하지 않았습니다.
 

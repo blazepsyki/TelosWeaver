@@ -5,7 +5,7 @@
 | 작업 ID·담당 | PH0-AGY · `gemini-4-argon/session-9e6137eb` |
 | 작성·검증일 | 2026-10-24, Windows 로컬 (`windows-local`) |
 | Branch / Worktree | `ph0/agy` / `D:\worktree\TelosWeaver\ph0-agy` |
-| 기준 | `63b6758` (Spec v1.4, `PH0-HOST` `b0a58b4`·`PH0-CLAUDE` `41139e0` 통합 본) |
+| 기준 | `611032a` (Spec v1.4, `PH0-HOST` `685bd96`·`PH0-CLAUDE` `3bdb808` 통합 본) |
 | 대상 CLI | `google.google-antigravity` 1.9.0 확장이 관리하는 `C:\Users\Psyki-HOME\.gemini\bin\agy.exe`, 버전 `1.4.7` |
 | 시험 조건 | 배정표 §6: 모델 `gemini-3.8-flash-low`, `--effort low`, 저장소 밖 일회용 폴더(`%TEMP%\telos-agy-env\*`), `--dangerously-skip-permissions` 미사용, 생성된 시험 세션(`brain/<id>`) 즉시 삭제 |
 
@@ -98,7 +98,7 @@
 
 1. **`crates/adapters/src/lib.rs`의 `pub mod agy;` 공개 전환 (`PH0-INTEGRATION`)**:
    - `crates/adapters/src/lib.rs`는 `PH0-CONTRACT` 소유이므로 독점 경로 규칙(Spec §19.5.3)을 준수해 본 브랜치(`ph0/agy`)에서는 수정하지 않고 `AgyAdapter`의 공개 메서드로 모든 계약·실환경 시험을 구성했습니다.
-   - `PH0-CLAUDE` 통합(`10abcc1`)과 동일하게 통합 시 `crates/adapters/src/lib.rs`의 `mod agy;`를 `pub mod agy;`로 변경하면 `telos_adapters::agy::{AgyConfig, AgyLaunch, AgyLaunchResolver, AgyDataDirMode, cli_rule}`를 모듈 경로로도 바로 쓸 수 있습니다.
+   - `PH0-CLAUDE` 통합(`b8e3fa9`)과 동일하게 통합 시 `crates/adapters/src/lib.rs`의 `mod agy;`를 `pub mod agy;`로 변경하면 `telos_adapters::agy::{AgyConfig, AgyLaunch, AgyLaunchResolver, AgyDataDirMode, cli_rule}`를 모듈 경로로도 바로 쓸 수 있습니다.
 2. **Spec §7.5 Antigravity 데이터 디렉터리 검증 결과 반영 (`PH0-INTEGRATION`)**:
    - 본 문서 §3의 `AGY-DATA-01~05` 실환경 검증 결과와 확정 규칙(기본 `--app_data_dir=antigravity` 사용 + 실행 전 버전 명령으로 옵션 수용 확인, 미수용 시 조용한 대체 없이 `unsupported` 처리)을 `docs/DEVELOPMENT_v1.4.md` §7.5에 반영하고, 실제 운용 환경과 맞지 않는 "① 확장을 끈 상태" 전제를 정리해 줄 것을 요청합니다.
 3. **VS Code `extensions.json`의 `"targetPlatform": "undefined"` 처리 참고 (`PH0-HOST` / `PH0-INTEGRATION`)**:

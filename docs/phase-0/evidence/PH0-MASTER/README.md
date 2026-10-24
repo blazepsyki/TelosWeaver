@@ -5,7 +5,7 @@
 | 작업 ID·담당 | PH0-MASTER · `claude-opus-5.5/session-c9336d2c` |
 | 작성·검증일 | 2026-10-24, Windows 로컬 |
 | Branch / Worktree | `ph0/master` / `D:\worktree\TelosWeaver\ph0-master` |
-| 기준 | `cc20ade`, 계약 `271e7fd` |
+| 기준 | `5ffb818`, 계약 `3a37919` |
 | 사용자 결정 (배정표 §6) | 마스터 Provider 임시 Claude(교체 가능), 시험 모델 `haiku`, 집행 kind 3종(`create_tasks`·`request_run`·`request_cancel`), 결과 왕복 시험 1개, 마스터 Run 도구 없음·읽기 전용 |
 
 Spec §19.1의 Phase 0 조건 "마스터 후보가 구조화 결정을 반환하고 Core가 잘못된 결정·중복·권한 초과를 거부하는 최소 경로"와 §19.5.7의 PH0-MASTER 범위(결정 회수, kind별 검증, 권한·Epoch·멱등 거부, 허용 결정의 실행 결과 연결)를 구현했습니다.

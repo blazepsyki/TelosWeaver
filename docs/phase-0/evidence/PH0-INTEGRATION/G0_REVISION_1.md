@@ -2,7 +2,7 @@
 
 > **판정자:** PH0-INTEGRATION `claude-opus-5.5/session-c9336d2c`  
 > **대상 요청:** REQ-002~009 ([요청서](G0_REVIEW_REQUESTS.md))  
-> **기존 계약 기준:** `ae31eb2`  
+> **기존 계약 기준:** `9710402`  
 > **판정일:** 2026-10-24
 
 ## 1. 판정 요약
@@ -87,16 +87,16 @@
 
 ## 4. 처리 결과
 
-**개정 계약 기준 Commit: `ba97e7b`** (2026-10-24). G0 통과 판정은 유지하고 기준만 `ae31eb2`에서 개정합니다.
+**개정 계약 기준 Commit: `077bd78`** (2026-10-24). G0 통과 판정은 유지하고 기준만 `9710402`에서 개정합니다.
 
 | Commit | 내용 |
 |---|---|
-| `952bb26` | 검토 제출안 접수 |
-| `7d296a8` | INTEGRATION: 판정 기록, REQ-002·003 런타임 인터페이스, `phase0_runtime_contract` 시험, `sha2 0.11.0` |
-| `98177db` | CONTRACT: REQ-004~009 ([CONTRACT 기록 §5](../PH0-CONTRACT/README.md#5-g0-개정-1-req-004009)) |
-| `ba97e7b` | `ph0/contract` 통합 |
+| `dcad086` | 검토 제출안 접수 |
+| `00cf7ea` | INTEGRATION: 판정 기록, REQ-002·003 런타임 인터페이스, `phase0_runtime_contract` 시험, `sha2 0.11.0` |
+| `4c14d2a` | CONTRACT: REQ-004~009 ([CONTRACT 기록 §5](../PH0-CONTRACT/README.md#5-g0-개정-1-req-004009)) |
+| `077bd78` | `ph0/contract` 통합 |
 
-통합 기준 재검증(`ba97e7b`, Windows):
+통합 기준 재검증(`077bd78`, Windows):
 
 | 명령 | 결과 |
 |---|---|

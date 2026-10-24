@@ -9,7 +9,7 @@
 > **초기 UI:** VS Code Extension  
 > **구현 언어:** Core·Provider Adapter·RN Client·공통 Schema는 Rust, VS Code Extension은 TypeScript  
 > **초기 실행 Provider:** OpenAI Codex, Anthropic Claude Code, Google Antigravity CLI(`agy`)  
-> **기준 자료:** [DEVELOPMENT_v1.3.md](archive/DEVELOPMENT_v1.3.md) (개정 1.3.8), [DEVELOPMENT_v1.2.md](archive/DEVELOPMENT_v1.2.md), [DEVELOPMENT_GAP_ANALYSIS.md](archive/DEVELOPMENT_GAP_ANALYSIS.md)
+> **기준 자료:** `DEVELOPMENT_v1.3.md` (개정 1.3.8), `DEVELOPMENT_v1.2.md`, `DEVELOPMENT_GAP_ANALYSIS.md` — 이전 문서는 `docs/archive/`에 로컬 보관하며 원격 저장소에는 올리지 않습니다
 
 ## 변경 이력
 
@@ -111,7 +111,7 @@ P0는 `none`·`directory`·`git-worktree`와 세 Provider의 신규 Managed 실�
 
 본 문서 작성 과정에서 TelosWeaver Core, RN Fork 빌드, Provider 실행을 검증하지 않았습니다. §7~§8의 외부 인터페이스 설명은 기준 자료와 같은 대화에서 확인한 공식 문서에 근거합니다. 배포 대상 버전의 Schema와 동작은 Phase 0에서 다시 고정합니다.
 
-과거 [PROJECT_ANALYSIS.md](archive/PROJECT_ANALYSIS.md)의 수치·문제 진단은 현재 구현 사실로 사용하지 않습니다. [영상 설명 요약](archive/우주초월%20AI%20영상%20설명%20요약.md)은 설계 참고 자료이며 독립된 실행 검증 근거가 아닙니다.
+과거 `PROJECT_ANALYSIS.md`의 수치·문제 진단은 현재 구현 사실로 사용하지 않습니다. `영상 설명 요약`은 설계 참고 자료이며 독립된 실행 검증 근거가 아닙니다.
 
 ## 3. 전체 아키텍처와 배포
 
@@ -599,7 +599,7 @@ DEC-06에 따라 Provider CLI는 실행 Host에 설치된 각 에이전트의 VS
 
 **조건:** 실제 운용처럼 세 확장이 모두 켜진 상태에서 옵션 지정(확장 디렉터리)과 옵션 생략(기본 디렉터리)을 직접 비교합니다. 확장을 끈 상태는 운용 환경이 아니므로 판정 조건에서 제외합니다(사용자 합의). 짧은 프롬프트와 버려도 되는 Workspace를 쓰고, 확장의 기존 대화를 재개하거나 수정하지 않습니다(규칙 9).
 
-**결과 (2026-10-24, PH0-AGY `057e332`, 확장 1.9.0, `agy` 1.4.7, 확장 허브 실행 중):**
+**결과 (2026-10-24, PH0-AGY `aa21611`, 확장 1.9.0, `agy` 1.4.7, 확장 허브 실행 중):**
 
 | ID | 판정 |
 |---|---|
@@ -1483,8 +1483,10 @@ sequenceDiagram
 
 ### 22.3 참고 자료와 증거 범위
 
-- [v1.2 기준 설계](archive/DEVELOPMENT_v1.2.md), [보완 분석과 확정 결정](archive/DEVELOPMENT_GAP_ANALYSIS.md): 제품 결정과 요구사항 통합의 기준입니다.
-- [프로젝트 분석](archive/PROJECT_ANALYSIS.md), [영상 설명 요약](archive/우주초월%20AI%20영상%20설명%20요약.md): 과거 분석·아이디어 참고이며 현재 구현·성능을 증명하지 않습니다.
+`docs/archive/`의 문서는 로컬에만 보관하며 원격 저장소에는 포함하지 않습니다.
+
+- `v1.2 기준 설계`, `보완 분석과 확정 결정`: 제품 결정과 요구사항 통합의 기준입니다.
+- `프로젝트 분석`, `영상 설명 요약`: 과거 분석·아이디어 참고이며 현재 구현·성능을 증명하지 않습니다.
 - [Reason Network](https://github.com/reason-machines/reason-network), [DESIGN.md](https://github.com/reason-machines/reason-network/blob/main/DESIGN.md), [Cargo.toml](https://github.com/reason-machines/reason-network/blob/main/Cargo.toml): Fork 검토 대상입니다. 본 문서에서 최신 릴리스나 현재 소스의 동작을 새로 확정하지 않습니다.
 - [Codex App Server](https://learn.chatgpt.com/docs/app-server), [Claude Code CLI reference](https://code.claude.com/docs/en/cli-reference), [Agy Headless](https://www.antigravity.google/docs/cli/headless/), [Agy 대화 관리](https://antigravity.google/docs/cli/conversations): Managed·세션·분기 계약의 공식 참고 자료이며 배포 버전에서 다시 검증합니다.
 - [OpenAI Prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching): 캐시와 세션 재사용의 구분에 사용합니다. 다른 Provider나 CLI 구독의 과금으로 일반화하지 않습니다.

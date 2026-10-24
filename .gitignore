@@ -9,3 +9,6 @@ extension/src/generated/
 
 # TelosWeaver 로컬 상태 디렉터리 (Spec §3.3)
 .telos-weaver/
+
+# 로컬 보관 문서 — 원격 저장소에 올리지 않음
+/docs/archive/

@@ -5,7 +5,7 @@
 | 작업 ID·담당 | PH0-CLAUDE · `claude-opus-5.5/session-c9336d2c` |
 | 작성·검증일 | 2026-10-24, Windows 로컬 (`windows-local`) |
 | Branch / Worktree | `ph0/claude` / `D:\worktree\TelosWeaver\ph0-claude` |
-| 기준 | `0b5b34f` (Spec v1.4, 계약 `271e7fd`) |
+| 기준 | `689d43e` (Spec v1.4, 계약 `3a37919`) |
 | 대상 CLI | `anthropic.claude-code` 2.1.310 (`win32-x64`) 확장의 `resources/native-binary/claude.exe`, `2.1.310 (Claude Code)` |
 | 시험 조건 | 배정표 §6: 모델 `haiku`, 기본 `~/.claude`, 저장소 밖 일회용 폴더, 허용 도구 명시, `--dangerously-skip-permissions` 미사용 |
 
@@ -75,7 +75,7 @@ G1 대표 Provider 작업입니다(배정표 §6). 이 기록은 Adapter 단위�
 | `env_cancel_terminates_process_tree` | 08 | `session_started` 뒤 취소 → `turn_finished`(`cancelled`) → `process_exited`(`killed`, 1, 자식 회수 `true`). 취소 요청→종료 2.04초. 2초 유예 안에 정상 종료하지 않아 강제 종료됨 |
 | `env_resume_and_fork` | 05·FORK-POC-01 | Resume: 같은 세션 ID(`c9c865af…`)로 이전 대화의 코드워드를 답함. Fork: 새 세션 ID(`45558394…`)로 같은 코드워드를 답함 |
 
-| `env_discovery_finds_extension_cli` | 01 | HOST `NativeCliDiscoverer`(통합 `b0a58b4`) + `cli_rule("win32-x64")` → `found`: 출처 `extension`, 위치 `relative-path`, 폴더 결정 `metadata`, 확장 2.1.310(`win32-x64`), CLI `2.1.310 (Claude Code)`, SHA-256 기록. 버전 명령만 실행 |
+| `env_discovery_finds_extension_cli` | 01 | HOST `NativeCliDiscoverer`(통합 `685bd96`) + `cli_rule("win32-x64")` → `found`: 출처 `extension`, 위치 `relative-path`, 폴더 결정 `metadata`, 확장 2.1.310(`win32-x64`), CLI `2.1.310 (Claude Code)`, SHA-256 기록. 버전 명령만 실행 |
 
 위 다섯 실행 시험은 실행 파일을 환경 변수로 지정했고, PROV-01은 탐지 결과로 같은 파일을 찾는지 따로 확인했습니다. 확장이 2.1.309에서 2.1.310으로 업데이트된 상태였으며 버전 폴더 이름이 바뀌어도 상대 경로 규칙은 그대로였습니다. 탐지 결과 경로가 Windows 확장 길이 경로(`\\?\C:\...`) 형식으로 나오므로 표시·비교 시 정규화가 필요한지 HOST에 전달합니다.
 

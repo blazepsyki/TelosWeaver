@@ -4,11 +4,11 @@
 |---|---|
 | 작업 ID·담당 | PH0-HOST · Codex / `PH0-HOST-20261024` |
 | 갱신·검증일 | 2026-10-24, Windows 로컬 |
-| 현재 상태 | in-progress. 기존 요청 1~3은 main 통합 완료(`b0a58b4`). 후속 G1 HOST 확인·REQ-013 ③ 구현·검증 완료 제출. Linux·Remote SSH는 사용자 지시로 대기 |
+| 현재 상태 | in-progress. 기존 요청 1~3은 main 통합 완료(`685bd96`). 후속 G1 HOST 확인·REQ-013 ③ 구현·검증 완료 제출. Linux·Remote SSH는 사용자 지시로 대기 |
 | Branch / Worktree | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` |
-| 이번 기준 | `5b5e64f` 및 착수 `eef86ba`, Spec 개정 1.4.3, 공통 계약 `271e7fd`. §1~§6은 이전 `2ac1497` 기준 REQ-010 연결 이력 |
-| 이번 코드 Commit | `d13a1fc` (G1 검토·REQ-013 ③), 이전 REQ-010 연결 `e844791`(통합 `b0a58b4`) |
-| 이전 결과 | 구현 `159617e`·`53ad1de`, 인계 `6bb943e`, main 1차 통합·REQ-011 `d8e8725` |
+| 이번 기준 | `3fe9153` 및 착수 `66e9cb9`, Spec 개정 1.4.3, 공통 계약 `3a37919`. §1~§6은 이전 `eb642fd` 기준 REQ-010 연결 이력 |
+| 이번 코드 Commit | `4791c5d` (G1 검토·REQ-013 ③), 이전 REQ-010 연결 `a3f196a`(통합 `685bd96`) |
+| 이전 결과 | 구현 `366d524`·`d1d818f`, 인계 `29295c9`, main 1차 통합·REQ-011 `1d8734f` |
 | 기준 문서 | [Spec](../../../DEVELOPMENT_v1.4.md), [대표 배정표](../../WORK_ALLOCATION.md), [CONTRACT 인계 §6.3](../PH0-CONTRACT/README.md#63-host-인계-엔진-연결) |
 
 현재 제출은 [G1 HOST 확인·REQ-013 ③ 처리 결과](G1_HOST_REVIEW.md)를 따릅니다. 아래 §1~§6은 이전 REQ-010 연결 당시의 기록이며, 당시 테스트 수와 미완료 표기를 현재 상태로 사용하지 않습니다.
@@ -17,7 +17,7 @@
 
 ## 1. 이번 수정 파일과 소유권
 
-코드 변경은 `git diff --name-only 2ac1497..e844791`로 확인합니다.
+코드 변경은 `git diff --name-only eb642fd..a3f196a`로 확인합니다.
 
 | 경로 | 변경 내용 |
 |---|---|
@@ -82,9 +82,9 @@ Cargo.toml·Cargo.lock·Schema·Provider별 모듈·Core 진입점은 이번에 
 
 | 영역 | 현재 상태 |
 |---|---|
-| 공용 런타임·Local API·실행 감독 | 1차 구현이 `d8e8725`로 main에 통합됨. 이번에 전체 회귀 시험 통과 |
+| 공용 런타임·Local API·실행 감독 | 1차 구현이 `1d8734f`로 main에 통합됨. 이번에 전체 회귀 시험 통과 |
 | REQ-011 | 완료. 공식 Workspace 의존성과 최소 Daemon 진입점이 반영됨 |
-| REQ-010 계약 | `271e7fd`로 확정·통합됨 |
+| REQ-010 계약 | `3a37919`로 확정·통합됨 |
 | REQ-010 엔진 연결·공개 시험 | 이번 Branch에서 구현·검증 완료. INTEGRATION의 후속 통합·판정 대기 |
 | Provider별 `cli_rule`·실제 CLI | 각 Provider 작업 범위. 이번에는 시험 규칙과 로컬 Fixture만 사용 |
 | 실제 Run 실행 | 제품 진입점은 여전히 빈 Provider 목록·`DenyRuns`. Provider와 신뢰된 승인 서비스 연결 필요 |
@@ -95,7 +95,7 @@ Cargo.toml·Cargo.lock·Schema·Provider별 모듈·Core 진입점은 이번에 
 
 ## 5. 이전 증거와 Artifact
 
-1차 구현의 Windows 로컬 30개 시험과 독립 Manifest·Linux 대상 정적 검사 결과는 `6bb943e`의 이 문서에 있습니다. 당시에는 REQ-010·011이 대기였으며 현재 상태의 판정에 그대로 쓰지 않습니다.
+1차 구현의 Windows 로컬 30개 시험과 독립 Manifest·Linux 대상 정적 검사 결과는 `29295c9`의 이 문서에 있습니다. 당시에는 REQ-010·011이 대기였으며 현재 상태의 판정에 그대로 쓰지 않습니다.
 
 `REQ-011-INTEGRATION.patch`, `daemon_entrypoint.rs`, `Validate-Host.ps1`, `VALIDATION-Cargo.lock`은 당시 제출·검증 Artifact로 보존합니다. REQ-011은 이미 main에 반영되었으므로 패치를 다시 적용하지 않습니다. 현재 검증의 기준은 §3의 공식 Workspace 명령과 루트 Cargo.lock입니다.
 
@@ -103,15 +103,15 @@ Cargo.toml·Cargo.lock·Schema·Provider별 모듈·Core 진입점은 이번에 
 
 ### REQ-010 CLI 탐색 계약과 모듈 등록
 
-계약은 `271e7fd`로 확정되었습니다. 이번 제출이 공개 엔진·DTO 매핑·실패 분류·기록 필드·정식 API 시험을 연결합니다. lib.rs 변경은 CONTRACT의 §6.3에서 허용한 모듈 등록·구현 타입 재노출 두 줄뿐입니다. 새 계약 변경 요청은 필요하지 않았습니다. 후속 통합은 [인계 문서](HANDOFF.md)를 따릅니다.
+계약은 `3a37919`로 확정되었습니다. 이번 제출이 공개 엔진·DTO 매핑·실패 분류·기록 필드·정식 API 시험을 연결합니다. lib.rs 변경은 CONTRACT의 §6.3에서 허용한 모듈 등록·구현 타입 재노출 두 줄뿐입니다. 새 계약 변경 요청은 필요하지 않았습니다. 후속 통합은 [인계 문서](HANDOFF.md)를 따릅니다.
 
 ### REQ-011 실행 의존성과 Daemon 진입점 연결
 
-`d8e8725`에서 완료되었습니다. 통합 담당자가 libc를 0.2.190으로 정한 기준을 유지했고 이번에는 Cargo·진입점을 변경하지 않았습니다. 기존 최소 진입점의 실행 승인·활성 Run 종료 연결은 MASTER·Provider·INTEGRATION의 후속 작업입니다.
+`1d8734f`에서 완료되었습니다. 통합 담당자가 libc를 0.2.190으로 정한 기준을 유지했고 이번에는 Cargo·진입점을 변경하지 않았습니다. 기존 최소 진입점의 실행 승인·활성 Run 종료 연결은 MASTER·Provider·INTEGRATION의 후속 작업입니다.
 
 ## 7. G1 HOST 확인·REQ-013 ③ 후속 결과
 
-- 코드 `d13a1fc`: undefined 메타데이터를 universal과 동일하게 처리하고, 취소 수락이 실제 완료 결과·종료 불명을 덮어쓰지 않도록 실행 감독을 수정했습니다.
+- 코드 `4791c5d`: undefined 메타데이터를 universal과 동일하게 처리하고, 취소 수락이 실제 완료 결과·종료 불명을 덮어쓰지 않도록 실행 감독을 수정했습니다.
 - 기존 Windows G1 실행 관찰을 코드와 대조하고 HOST 로컬 시험으로 수명·상태 처리를 확인했습니다. 실제 Claude G1 5종을 이번에 다시 실행한 것은 아닙니다.
 - 현재 Branch 검증: 탐색 19개·실행 감독 6개·Windows 런타임 11개, Workspace 123개 통과(실환경 24개 기본 제외), 엄격 Clippy·fmt 통과.
 - 실제 Antigravity 1.9.0/CLI 1.4.7의 --version 탐지에서 resolution=metadata와 플랫폼 필드 생략을 확인했습니다. 모델 호출·세션 생성은 없습니다.

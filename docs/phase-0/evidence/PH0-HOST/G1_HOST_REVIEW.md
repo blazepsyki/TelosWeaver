@@ -4,16 +4,16 @@
 |---|---|
 | 작업·담당 | PH0-HOST · `Codex / PH0-HOST-20261024` |
 | 날짜·환경 | 2026-10-24, Windows 11 x64 로컬 |
-| 기준 | main `5b5e64f`, 착수 기록 `eef86ba`, Spec 개정 1.4.3, 공통 계약 `271e7fd` |
-| 구현 Commit | `d13a1fc` |
+| 기준 | main `3fe9153`, 착수 기록 `66e9cb9`, Spec 개정 1.4.3, 공통 계약 `3a37919` |
+| 구현 Commit | `4791c5d` |
 | Branch / Worktree | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` |
-| 확인 대상 | INTEGRATION의 [G1 증거 §7](../PH0-INTEGRATION/README.md#7-g1-대표-실행), 통합 `d3130c1` 및 현 main |
+| 확인 대상 | INTEGRATION의 [G1 증거 §7](../PH0-INTEGRATION/README.md#7-g1-대표-실행), 통합 `cfe1b19` 및 현 main |
 
 ## 1. HOST 확인
 
 **Windows G1의 기존 실행 관찰 결과를 HOST 관점에서 확인했습니다.** Local API → 승인 서비스 → 대표 Claude Adapter → NativeRuntime의 경로, 취소 접수와 실제 종료의 구분, 자식 회수, 연결 종료와 Daemon 종료의 구분이 확인 대상입니다. 이번 확인은 기존 실환경 증거와 코드 대조 및 아래 HOST 로컬 재검증을 근거로 합니다. 실제 Claude 모델 호출을 다시 실행한 결과는 아닙니다.
 
-실행 감독의 취소 경합·종료 불명 판정 문제는 §3처럼 수정해 제출했습니다. INTEGRATION은 `d13a1fc`를 통합·재검증한 뒤 HOST 확인을 G1 기록에 반영해 주십시오. G1 실환경 시험의 자동 판정 강화도 §5의 REQ-015로 요청합니다. 게이트 확정과 PH0-HOST 전체 verified 전환은 이 문서에서 수행하지 않습니다. Linux·Remote SSH는 기존 사용자 지시로 대기합니다.
+실행 감독의 취소 경합·종료 불명 판정 문제는 §3처럼 수정해 제출했습니다. INTEGRATION은 `4791c5d`를 통합·재검증한 뒤 HOST 확인을 G1 기록에 반영해 주십시오. G1 실환경 시험의 자동 판정 강화도 §5의 REQ-015로 요청합니다. 게이트 확정과 PH0-HOST 전체 verified 전환은 이 문서에서 수행하지 않습니다. Linux·Remote SSH는 기존 사용자 지시로 대기합니다.
 
 | 검토 대상 | 확인 결과 |
 |---|---|
@@ -104,4 +104,4 @@ REQ-013의 채택·완료 판정은 기존 통합 담당이 수행합니다. 이
 
 추가된 일반 시험은 탐색 2개·실행 감독 2개·Windows 런타임 1개입니다. 로컬 전체 로그는 `%TEMP%/telos-host-g1-review-test.log`에 있습니다. 기존 G1 실계정 5개는 INTEGRATION의 증거이며 이번 실행 결과와 합산하지 않습니다.
 
-INTEGRATION 인계: `d13a1fc`의 소유 경로를 확인해 통합·재검증하고 REQ-013 ③ 및 G1 HOST 확인을 배정표에 반영해 주십시오. REQ-015는 별도 처리·실환경 재검증이 필요합니다. G2·G3와 Linux·Remote SSH 대기는 유지합니다.
+INTEGRATION 인계: `4791c5d`의 소유 경로를 확인해 통합·재검증하고 REQ-013 ③ 및 G1 HOST 확인을 배정표에 반영해 주십시오. REQ-015는 별도 처리·실환경 재검증이 필요합니다. G2·G3와 Linux·Remote SSH 대기는 유지합니다.

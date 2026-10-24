@@ -5,8 +5,8 @@
 | 작업 ID | PH0-INTEGRATION |
 | 담당 | `claude-opus-5.5/session-c9336d2c` |
 | Branch / Worktree | `main` / `D:\Downloads\Vibe_dev\TelosWeaver` |
-| 기준 Commit | `fca1669` |
-| G0 기준 Commit | `ae31eb2` |
+| 기준 Commit | `3f050e9` |
+| G0 기준 Commit | `9710402` |
 | 상태 | G0 통과. G1~G3 진행 전 |
 
 ## 1. G0 판정
@@ -19,7 +19,7 @@
 | 공통 인터페이스 | 배정표 §5의 7개 계약. 정의 내용은 [PH0-CONTRACT 기록](../PH0-CONTRACT/README.md) §2 |
 | 시험 경계 | 공통 시험은 `UnsupportedAdapter` 시험 대역과 Schema·Wire 계약만 검사. Provider별 시험은 각 작업의 `tests/<provider>_*.rs` |
 | 최소 Stub 등록 | `crates/adapters/src/runtime/mod.rs`, `crates/core/src/{api,execution,master,policy}/mod.rs`, `crates/rn-client/src/lib.rs`의 계약 재노출 |
-| 기준 Commit | `ae31eb2` |
+| 기준 Commit | `9710402` |
 
 G0 통과는 계약이 정해졌다는 뜻이며 Provider·RN·Core API의 실행 지원을 뜻하지 않습니다.
 
@@ -27,13 +27,13 @@ G0 통과는 계약이 정해졌다는 뜻이며 Provider·RN·Core API의 실�
 
 | Commit | 내용 |
 |---|---|
-| `556e62f` | G0 준비: `[workspace.dependencies]` 일원화, `fixtures` feature, Stub 경로 등록 |
-| `cc142cf` | `ph0/contract`(`fd0b206`) 통합 |
-| `ae31eb2` | `telos-rn-client`가 `telos_schema::rn`을 재노출하도록 등록 |
+| `2d0179a` | G0 준비: `[workspace.dependencies]` 일원화, `fixtures` feature, Stub 경로 등록 |
+| `f1ee458` | `ph0/contract`(`ade440e`) 통합 |
+| `9710402` | `telos-rn-client`가 `telos_schema::rn`을 재노출하도록 등록 |
 
 통합 시 `ph0/contract`의 변경 파일이 모두 PH0-CONTRACT 독점 경로(및 자기 증거 경로) 안에 있음을 확인했습니다.
 
-## 3. 통합 기준 재검증 (`ae31eb2`)
+## 3. 통합 기준 재검증 (`9710402`)
 
 | 명령 | 결과 |
 |---|---|
@@ -57,22 +57,22 @@ G0 통과는 계약이 정해졌다는 뜻이며 Provider·RN·Core API의 실�
 > 이 절은 G0 판정 당시의 계획입니다. 이후 대표 Provider는 Claude로 바뀌었고(배정표 §6) G1은 §7에서 판정했습니다. 현재 다음 단계는 §8을 따릅니다.
 
 - G1: 공용 런타임(HOST)과 대표 Provider Codex의 실제 경로 연결.
-- 나머지 7개 작업은 배정 요청을 받아 기록한 뒤 `ae31eb2`를 계약 기준으로 착수합니다.
+- 나머지 7개 작업은 배정 요청을 받아 기록한 뒤 `9710402`를 계약 기준으로 착수합니다.
 
 ## 6. G0 개정 1
 
-독립 검토(REQ-002~009)를 반영하여 계약 기준을 `ae31eb2`에서 **`ba97e7b`**로 개정했습니다. G0 통과 판정은 유지합니다. 판정·처리·재검증 내용은 [G0_REVISION_1.md](G0_REVISION_1.md)에 있습니다.
+독립 검토(REQ-002~009)를 반영하여 계약 기준을 `9710402`에서 **`077bd78`**로 개정했습니다. G0 통과 판정은 유지합니다. 판정·처리·재검증 내용은 [G0_REVISION_1.md](G0_REVISION_1.md)에 있습니다.
 
 - §4의 "자기 검토" 한계는 독립 검토로 일부 보완되었습니다. 개정 처리 자체는 같은 담당자가 했으므로 검토자의 재확인을 권장합니다.
 - 검토 제출 Branch `review/g0-contract-requests-20261024`와 그 Worktree(`D:\worktree\TelosWeaver\g0-review-requests-20261024`)는 제출자 소유라 정리하지 않았습니다.
 
 ## 7. G1 대표 실행
 
-> 2026-10-24 · `claude-opus-5.5/session-c9336d2c` · `ph0/integration-g1` · 기준 `75ba56e` · 대표 Provider Claude(배정표 §6)
+> 2026-10-24 · `claude-opus-5.5/session-c9336d2c` · `ph0/integration-g1` · 기준 `0e46f49` · 대표 Provider Claude(배정표 §6)
 
 ### 7.1 판정
 
-**통과 확정 (2026-10-24, INTEGRATION·CLAUDE 판정, HOST 확인 완료).** HOST 확인은 [G1_HOST_REVIEW.md](../PH0-HOST/G1_HOST_REVIEW.md)(코드 `d13a1fc`, 통합 `01192ae`)이며, 확인 중 발견된 실행 감독의 취소 경합 판정을 보정했습니다. REQ-015에 따라 시험의 자동 판정을 강화하고 실환경 5개를 다시 통과시켰습니다(§7.6). Spec §19.5.8 G1 조건 "공용 런타임 + 대표 Provider가 시작→이벤트→완료/실패→취소→결과를 실제 경로로 재현"을 Windows 로컬에서 실제 Claude Code CLI로 확인했습니다. 경로는 Local API(Named Pipe, 토큰 인증) → `ExecutionSupervisor` → 운영자 정책 승인(`LocalRunPolicy`) → 확장 CLI 탐지(`NativeCliDiscoverer`) → `ClaudeCodeAdapter` → `NativeRuntime`(Job Object)입니다. 판정 주체 중 HOST의 확인을 받으면 확정합니다.
+**통과 확정 (2026-10-24, INTEGRATION·CLAUDE 판정, HOST 확인 완료).** HOST 확인은 [G1_HOST_REVIEW.md](../PH0-HOST/G1_HOST_REVIEW.md)(코드 `4791c5d`, 통합 `b561da2`)이며, 확인 중 발견된 실행 감독의 취소 경합 판정을 보정했습니다. REQ-015에 따라 시험의 자동 판정을 강화하고 실환경 5개를 다시 통과시켰습니다(§7.6). Spec §19.5.8 G1 조건 "공용 런타임 + 대표 Provider가 시작→이벤트→완료/실패→취소→결과를 실제 경로로 재현"을 Windows 로컬에서 실제 Claude Code CLI로 확인했습니다. 경로는 Local API(Named Pipe, 토큰 인증) → `ExecutionSupervisor` → 운영자 정책 승인(`LocalRunPolicy`) → 확장 CLI 탐지(`NativeCliDiscoverer`) → `ClaudeCodeAdapter` → `NativeRuntime`(Job Object)입니다. 판정 주체 중 HOST의 확인을 받으면 확정합니다.
 
 ### 7.2 연결한 것
 
@@ -136,7 +136,7 @@ PH0-CLAUDE 증거 §5와 같은 방식으로 처리합니다. 작업 폴더는 `
 
 ### 7.6 REQ-015 시험 강화와 재검증
 
-> 2026-10-24 · 기준 `01192ae`(HOST 취소 경합 보정 포함)
+> 2026-10-24 · 기준 `b561da2`(HOST 취소 경합 보정 포함)
 
 HOST가 지적한 대로 기존 시험은 미종료·취소 미재현도 통과시킬 수 있었습니다. `crates/core/tests/phase0_g1.rs`를 다음처럼 고쳤습니다.
 
@@ -154,15 +154,15 @@ HOST가 지적한 대로 기존 시험은 미종료·취소 미재현도 통과�
 
 ## 8. 현재 다음 단계: G2 구성 통합
 
-> 2026-10-24 갱신 · 기준 `main` `8d45641`
+> 2026-10-24 갱신 · 기준 `main` `e55c0b2`
 
 ### 8.1 현황
 
 | 구성 | Adapter 구현 | Core 연결 (`telos_core::integration`) |
 |---|---|---|
-| Claude | integrated (`41139e0`) | **연결됨** (`d3130c1`, G1 판정) |
-| Codex | integrated (`c00d2b0`) | **연결됨** (§8.4) |
-| Antigravity | integrated (`b0f5b5e`) | **연결됨** (§8.4) |
+| Claude | integrated (`3bdb808`) | **연결됨** (`cfe1b19`, G1 판정) |
+| Codex | integrated (`64f9674`) | **연결됨** (§8.4) |
+| Antigravity | integrated (`286844a`) | **연결됨** (§8.4) |
 | MASTER·RN·EXT | 미배정 | — |
 
 ### 8.2 Codex·Agy Core 연결 계획 (INTEGRATION)
@@ -180,7 +180,7 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 ### 8.3 G2의 나머지 조건
 
 - MASTER(마스터 결정 검증)·RN(RPC)·EXT(Extension 연결)는 미배정입니다. G2는 이 연결 증거까지 필요합니다(Spec §19.5.8).
-- HOST: G1 확인과 REQ-013 ③(`targetPlatform: "undefined"`)을 완료했습니다(통합 `01192ae`). 남은 HOST 일은 Linux·Remote SSH 검증입니다.
+- HOST: G1 확인과 REQ-013 ③(`targetPlatform: "undefined"`)을 완료했습니다(통합 `b561da2`). 남은 HOST 일은 Linux·Remote SSH 검증입니다.
 
 ### 8.4 Codex·Agy Core 연결 결과
 

@@ -47,7 +47,8 @@ crates/
 schemas/       telos-schema에서 생성한 JSON Schema (커밋 대상)
 extension/     VS Code Extension, TypeScript (§17) — 생성 타입만 사용, Core 연결은 미구현
 rn-fork/       Reason Network Fork 자리 — 아직 도입 전
-docs/          설계 문서(archive/에 이전 버전), phase-0/에 배정표·WSL 절차·작업별 검증 증거
+(docs/archive/의 이전 설계 문서는 로컬에만 보관하며 원격 저장소에 올리지 않습니다)
+docs/          설계 문서, phase-0/에 배정표·WSL 절차·작업별 검증 증거
 ```
 
 의존 방향은 `schema ← adapters, rn-client ← core`이며 Cargo 의존 선언으로 강제합니다. Extension은 Rust 코드에 의존하지 않고 `schemas/`에서 생성한 TypeScript 타입만 사용합니다.
