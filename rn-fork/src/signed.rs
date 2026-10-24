@@ -11,7 +11,7 @@ use serde::Deserialize;
 const MIN_BITS: usize = 2048;
 
 /// Reason's signing public keys: key id, then the RSA modulus `n` and exponent `e` in base64url (as in a JWK). In
-/// debug builds `REASON_NETWORK_TRUST_KEYS` (a JWKS) adds keys, for tests.
+/// debug builds `TELOS_RN_TRUST_KEYS` (a JWKS) adds keys, for tests.
 ///
 /// The cloud-access issuer's KMS key (`https://oidc.reasonmachines.com`), from
 /// https://oidc.reasonmachines.com/.well-known/jwks.json on 2026-10-20. `the_production_keys_are_pinned` pins it to a
@@ -58,7 +58,7 @@ fn key(n: &str, e: &str) -> Option<Key> {
 }
 
 /// The keys a document may be signed with: the compiled-in ones and, in debug builds, those in
-/// `REASON_NETWORK_TRUST_KEYS` (release builds trust only the compiled-in keys), and in tests a test key.
+/// `TELOS_RN_TRUST_KEYS` (release builds trust only the compiled-in keys), and in tests a test key.
 fn trusted() -> &'static [(String, Key)] {
     static KEYS_: std::sync::OnceLock<Vec<(String, Key)>> = std::sync::OnceLock::new();
     KEYS_.get_or_init(|| {
@@ -66,7 +66,7 @@ fn trusted() -> &'static [(String, Key)] {
         let mut out: Vec<(String, Key)> =
             KEYS.iter().filter_map(|(kid, n, e)| Some((kid.to_string(), key(n, e)?))).collect();
         #[cfg(any(test, debug_assertions))]
-        if let Some(jwks) = std::env::var_os("REASON_NETWORK_TRUST_KEYS")
+        if let Some(jwks) = std::env::var_os("TELOS_RN_TRUST_KEYS")
             && let Ok(jwks) = serde_json::from_str::<Jwks>(&jwks.to_string_lossy())
         {
             out.extend(

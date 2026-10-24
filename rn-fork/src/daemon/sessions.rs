@@ -1,4 +1,4 @@
-//! Sessions running on this machine: registered by `reason network mcp` (a connection), or by hooks (no connection,
+//! Sessions running on this machine: registered by `telos-rn mcp` (a connection), or by hooks (no connection,
 //! kept alive by hook events and the agent's process).
 
 use super::{Daemon, Inner, Live, log};
@@ -846,7 +846,7 @@ mod tests {
             dirs: Vec::new(),
             keep,
         };
-        // `reason network <who> "…"` waits for its answer at a session of its own; `listen --as review` is a mailbox.
+        // `telos-rn <who> "…"` waits for its answer at a session of its own; `listen --as review` is a mailbox.
         d.hook(cli("ask-1a2b3c", false)).await.unwrap();
         d.hook(cli("review", true)).await.unwrap();
         for key in ["cli:ask-1a2b3c", "cli:review"] {

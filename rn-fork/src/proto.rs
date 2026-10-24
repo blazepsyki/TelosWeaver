@@ -1,4 +1,4 @@
-//! The local API between the daemon and its clients (`reason network mcp`, the CLI, hooks): one JSON object per line
+//! The local API between the daemon and its clients (`telos-rn mcp`, the CLI, hooks): one JSON object per line
 //! over `~/.Reason Network/Reason Network.sock`. Requests carry an `id` and get a [`Reply`] with the same id; a connection that
 //! registered sessions also receives [`Event`]s for them.
 
@@ -74,12 +74,12 @@ pub struct HookCall {
     /// What the session is doing, from agents that say so themselves (the opencode plugin).
     #[serde(default)]
     pub doing: Option<String>,
-    /// One of the person's own mailboxes, kept for good: a name they gave with `reason network listen --as` (the
+    /// One of the person's own mailboxes, kept for good: a name they gave with `telos-rn listen --as` (the
     /// terminal always is one). Other `cli` sessions, such as one-off ask sessions, are sessions like any other.
     /// Older clients leave it out.
     #[serde(default)]
     pub keep: bool,
-    /// The session's name, for sessions that pick one (`reason network listen --as`).
+    /// The session's name, for sessions that pick one (`telos-rn listen --as`).
     #[serde(default)]
     pub name: Option<String>,
     /// Every folder the agent says the session is in (besides `cwd`): one turned off keeps it off.
@@ -161,7 +161,7 @@ pub enum Request {
         key: String,
         ids: Vec<String>,
     },
-    /// An agent hook fired (`reason network hook`): keeps hook-only sessions alive and returns mail to inject.
+    /// An agent hook fired (`telos-rn hook`): keeps hook-only sessions alive and returns mail to inject.
     Hook(HookCall),
     /// For agents whose MCP calls carry no session id (Cursor, opencode): the hook-known session of this agent
     /// that is most likely making the call.
@@ -196,7 +196,7 @@ pub enum Request {
         who: String,
     },
     Leave {
-        /// Leave even if no teammate is online to hear it (they'll need to `reason network remove` this machine).
+        /// Leave even if no teammate is online to hear it (they'll need to `telos-rn remove` this machine).
         #[serde(default)]
         force: bool,
     },
@@ -341,7 +341,7 @@ pub struct Directory {
     pub machine: String,
     pub machines: Vec<MachineInfo>,
     pub sessions: Vec<SessionInfo>,
-    /// `Join the Reason Network: <team link>`, for agents to pass on.
+    /// `Join the telos-rn team: <team link>`, for agents to pass on.
     #[serde(default)]
     pub invite_line: Option<String>,
 }

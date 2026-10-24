@@ -10,8 +10,8 @@
 //!
 //! The last good list is kept in the state folder (`relays.json`, the document as served) and used from then on, even
 //! once it has expired, until a newer one comes. Without one, [`net::DEFAULT_RELAYS`](crate::net::DEFAULT_RELAYS).
-//! The daemon fetches it at start and every 6 hours; a new list applies when the network next starts (a restart, a
-//! join, a relay change), not to the running endpoint.
+//! The daemon of a machine in a team fetches it at start and every 6 hours (in no team, never); a new list applies
+//! when the network next starts (a restart, a join, a relay change), not to the running endpoint.
 
 use anyhow::{Result, anyhow, bail};
 use iroh::RelayUrl;
@@ -170,7 +170,7 @@ async fn refresh_in(home: &Path, url: &str) -> Result<()> {
     Ok(())
 }
 
-/// [`URL`]; in debug builds, `REASON_NETWORK_RELAYS_URL` instead, for tests (release builds only ever fetch `URL`).
+/// [`URL`]; in debug builds, `TELOS_RN_RELAYS_URL` instead, for tests (release builds only ever fetch `URL`).
 fn url() -> String {
     #[cfg(debug_assertions)]
     if let Ok(u) = crate::paths::env_var("RELAYS_URL") {
@@ -248,7 +248,7 @@ mod tests {
     }
 
     fn home() -> std::path::PathBuf {
-        let d = std::env::temp_dir().join(format!("reason-network-relays-{}", ulid::Ulid::generate()));
+        let d = std::env::temp_dir().join(format!("telos-rn-relays-{}", ulid::Ulid::generate()));
         std::fs::create_dir_all(&d).unwrap();
         d
     }

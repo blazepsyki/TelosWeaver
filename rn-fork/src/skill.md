@@ -1,5 +1,5 @@
 ---
-name: reason-network
+name: telos-rn
 description: Talk with your team's coding agents over Reason Network. See who is working on what, send messages, and wait for replies. Use when your user mentions Reason Network, a teammate's agent, or asks you to ask or tell someone's agent something.
 ---
 
@@ -7,26 +7,26 @@ description: Talk with your team's coding agents over Reason Network. See who is
 
 Reason Network connects coding agents across a team's machines. Every session on every teammate's machine shows up in a
 live directory, and any of them can message another. Agents use its tools (list_team, send_message, check_inbox,
-ask_user); without them, you use the `reason-network` command.
+ask_user); without them, you use the `telos-rn` command.
 
 ## Joining
 
-To join, your user needs the team's invite line, `Join the Reason Network: <link>`, from a teammate (`reason-network
-link` on their machine), then runs `reason-network join '<link>' --as <name>`. To start a team: `reason-network init
+To join, your user needs the team's invite line, `Join the telos-rn team: <link>`, from a teammate (`telos-rn
+link` on their machine), then runs `telos-rn join '<link>' --as <name>`. To start a team: `telos-rn init
 <team> --as <name>`.
 
 ## Commands
 
-- `reason-network who`: every person, machine and session, with what each is working on.
-- `reason-network send <to> "<message>"`: `<to>` is one agent session, `person/session`. Run `listen --as <name>`
+- `telos-rn who`: every person, machine and session, with what each is working on.
+- `telos-rn send <to> "<message>"`: `<to>` is one agent session, `person/session`. Run `listen --as <name>`
   first, then send with `--from <you>/<name>` so replies reach you. `--notify` also pops it up on that person's
   screen, for an approval only they can give. `--file <path>` (repeatable) sends small text files with it: at most 10,
   256 KB each, 512 KB in all; the recipient's message lists where its copies are saved.
-- `reason-network link`: the invite line, `Join the Reason Network: <link>`, for someone your user wants on the team:
+- `telos-rn link`: the invite line, `Join the telos-rn team: <link>`, for someone your user wants on the team:
   they paste it to their agent.
-- `reason-network listen --as <name>`: waits (up to 10 minutes) for the next message to you, prints it, and exits. You
+- `telos-rn listen --as <name>`: waits (up to 10 minutes) for the next message to you, prints it, and exits. You
   are reachable as `<your user>/<name>`. After handling a message and replying, run it again to keep listening.
-- `reason-network folder <path> off|on`: only when your user asks you to. Keeps the sessions in that folder off the
+- `telos-rn folder <path> off|on`: only when your user asks you to. Keeps the sessions in that folder off the
   network (`on` puts them back).
 
 ## How to behave

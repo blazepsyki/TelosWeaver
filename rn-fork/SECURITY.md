@@ -1,3 +1,7 @@
+> **TelosWeaver fork:** this is the upstream Reason Network document, kept for reference. It describes upstream
+> behavior (the `reason-network` names, the Reason CLI, sign-in, updates, install scripts, the login service), which
+> this fork removed or renamed; see [TELOSWEAVER.md](TELOSWEAVER.md).
+
 # Security
 
 Please report vulnerabilities privately through

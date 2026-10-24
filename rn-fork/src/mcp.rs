@@ -1,4 +1,4 @@
-//! `reason-network mcp`: the stdio MCP server an agent spawns. A thin client of the daemon.
+//! `telos-rn mcp`: the stdio MCP server an agent spawns. A thin client of the daemon.
 
 use crate::{
     agent::{self, ClaudeSocket},
@@ -122,7 +122,7 @@ pub async fn run() -> Result<()> {
             && !off_here()
             && let Err(e) = s.session(agent, None).await
         {
-            eprintln!("reason-network: registering session: {e:#}");
+            eprintln!("telos-rn: registering session: {e:#}");
         }
     });
 
@@ -386,8 +386,8 @@ impl ReasonNetworkMcp {
             Ok(Ok(())) => {
                 let _ = self.link.call::<Value>(Request::Delivered { key, ids }).await;
             }
-            Ok(Err(e)) => eprintln!("reason-network: delivering to Claude Code: {e}"),
-            Err(e) => eprintln!("reason-network: delivering to Claude Code: {e}"),
+            Ok(Err(e)) => eprintln!("telos-rn: delivering to Claude Code: {e}"),
+            Err(e) => eprintln!("telos-rn: delivering to Claude Code: {e}"),
         }
     }
 }

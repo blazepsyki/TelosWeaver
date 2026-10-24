@@ -1,4 +1,4 @@
-//! `reason network tray`: the menu bar icon (macOS). `daemon --service` starts it and it exits with the daemon. It
+//! `telos-rn tray`: the menu bar icon (macOS). `daemon --service` starts it and it exits with the daemon. It
 //! shows who's around and what their sessions are doing, and the messages waiting for you.
 
 #[cfg(not(target_os = "macos"))]
@@ -60,7 +60,7 @@ mod mac {
 
         let tray = TrayIconBuilder::new()
             .with_tooltip("Reason")
-            .with_autosave_name("com.reasonmachines.network.tray")
+            .with_autosave_name("telos-rn.tray")
             .with_menu(Box::new(Menu::new()))
             .build()?;
         set_icon(&tray, false, None, mtm);
@@ -210,7 +210,7 @@ mod mac {
         }
     }
 
-    /// Hidden for good: `reason network setup` brings it back.
+    /// Hidden for good: `telos-rn setup` brings it back.
     fn hide() -> ! {
         if let Ok(mut cfg) = Config::load_strict() {
             cfg.tray = false;

@@ -458,7 +458,7 @@ mod tests {
     }
 
     fn temp() -> PathBuf {
-        let d = std::env::temp_dir().join(format!("reason-network-files-{}", ulid::Ulid::generate()));
+        let d = std::env::temp_dir().join(format!("telos-rn-files-{}", ulid::Ulid::generate()));
         std::fs::create_dir_all(&d).unwrap();
         d
     }

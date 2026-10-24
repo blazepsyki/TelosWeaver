@@ -141,12 +141,12 @@ fn command(title: &str, body: &str) -> Option<Command> {
 $n = [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]
 $x = $n::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
 $t = $x.GetElementsByTagName('text')
-$t.Item(0).AppendChild($x.CreateTextNode($env:TINCAN_TITLE)) > $null
-$t.Item(1).AppendChild($x.CreateTextNode($env:TINCAN_BODY)) > $null
+$t.Item(0).AppendChild($x.CreateTextNode($env:TELOS_RN_TITLE)) > $null
+$t.Item(1).AppendChild($x.CreateTextNode($env:TELOS_RN_BODY)) > $null
 $app = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe'
 $n::CreateToastNotifier($app).Show([Windows.UI.Notifications.ToastNotification]::new($x))";
     let mut cmd = powershell(TOAST)?;
-    cmd.env("TINCAN_TITLE", title).env("TINCAN_BODY", body);
+    cmd.env("TELOS_RN_TITLE", title).env("TELOS_RN_BODY", body);
     Some(cmd)
 }
 
@@ -173,7 +173,7 @@ mod tests {
     /// A private session bus whose only service directory is `services`, so what the host has installed doesn't count.
     fn bus(services: &[&str]) -> Option<(std::process::Child, String, std::path::PathBuf)> {
         let daemon = agent::find_bin("dbus-daemon").filter(|_| agent::find_bin("busctl").is_some())?;
-        let dir = std::env::temp_dir().join(format!("reason-network-bus-{}", ulid::Ulid::generate()));
+        let dir = std::env::temp_dir().join(format!("telos-rn-bus-{}", ulid::Ulid::generate()));
         std::fs::create_dir_all(dir.join("services")).unwrap();
         for name in services {
             let service = format!("[D-BUS Service]\nName={name}\nExec=/nonexistent\n");

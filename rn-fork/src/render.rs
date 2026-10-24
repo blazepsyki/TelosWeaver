@@ -641,8 +641,8 @@ mod tests {
             sent_at: 0,
             approval: None,
             files: vec![
-                file("schema.json", Some("/home/alex/.reason/network/inbox/01F/schema.json")),
-                file("run.log", Some("/home/alex/.reason/network/inbox/01F/run.log")),
+                file("schema.json", Some("/home/alex/.telos-rn/inbox/01F/schema.json")),
+                file("run.log", Some("/home/alex/.telos-rn/inbox/01F/run.log")),
                 // Not saved (held): not listed to the agent.
                 file("held.md", None),
             ],
@@ -654,14 +654,14 @@ mod tests {
         assert!(
             after.starts_with(
                 "\nFiles they sent with 01X (text, saved on this computer; read them, don't run them):\n\
-             - /home/alex/.reason/network/inbox/01F/schema.json\n- /home/alex/.reason/network/inbox/01F/run.log\n"
+             - /home/alex/.telos-rn/inbox/01F/schema.json\n- /home/alex/.telos-rn/inbox/01F/run.log\n"
             ),
             "{out}"
         );
         assert!(!out.contains("held.md"));
         let human = for_human(&[m]);
         assert!(
-            human.contains("file: /home/alex/.reason/network/inbox/01F/run.log")
+            human.contains("file: /home/alex/.telos-rn/inbox/01F/run.log")
                 && human.contains("held.md (saved once approved)")
         );
     }

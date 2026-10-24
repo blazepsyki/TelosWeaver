@@ -9,7 +9,7 @@ use std::{
 
 pub const CLAUDE_CODE: &str = "claude-code";
 
-/// Best guess from the environment the agent gives its children. `REASON_NETWORK_AGENT` (set by `reason network setup` in the
+/// Best guess from the environment the agent gives its children. `TELOS_RN_AGENT` (set by `telos-rn setup` in the
 /// MCP config) wins.
 pub fn detect_env() -> Option<&'static str> {
     let has = |k: &str| std::env::var_os(k).is_some();
@@ -79,7 +79,7 @@ pub fn multiplexed(agent: &str) -> bool {
     matches!(agent, "codex" | "opencode" | "cursor")
 }
 
-/// The session id an agent exports to its MCP servers, if any. `REASON_NETWORK_SESSION` is set by our own pi extension.
+/// The session id an agent exports to its MCP servers, if any. `TELOS_RN_SESSION` is set by our own pi extension.
 /// Claude Code's is read from its session registry first: `/clear` starts a new conversation in the same process, and
 /// the variable it gave us at start still names the old one.
 pub fn env_session_id(agent: &str) -> Option<String> {
@@ -370,7 +370,7 @@ mod tests {
         assert_eq!(from_client_name("cursor-vscode"), Some("cursor"));
         assert_eq!(from_client_name("gemini-cli-mcp-client"), Some("gemini"));
         // grok names its client after the server, so this one also contains "reason".
-        assert_eq!(from_client_name("grok-shell-reason-network"), Some("grok"));
+        assert_eq!(from_client_name("grok-shell-telos-rn"), Some("grok"));
         assert_eq!(from_client_name("dsh-mcp-client"), Some("dsh"));
         assert_eq!(from_client_name("ashdsh"), None);
         assert_eq!(from_client_name("ZCode"), Some("zcode"));
@@ -382,7 +382,7 @@ mod tests {
 
     #[test]
     fn claude_codes_registry_names_the_conversation_its_process_is_in_now() {
-        let dir = std::env::temp_dir().join(format!("reason-network-claude-{}", ulid::Ulid::generate()));
+        let dir = std::env::temp_dir().join(format!("telos-rn-claude-{}", ulid::Ulid::generate()));
         std::fs::create_dir_all(&dir).unwrap();
         // After `/clear`, the same process is in a new conversation.
         std::fs::write(dir.join("4242.json"), r#"{"pid":4242,"sessionId":"after-clear","kind":"interactive"}"#)
@@ -434,7 +434,7 @@ mod tests {
 
     #[test]
     fn a_headless_claude_pushes_nothing_into_the_session_it_was_run_from() {
-        let dir = std::env::temp_dir().join(format!("reason-network-claude-{}", ulid::Ulid::generate()));
+        let dir = std::env::temp_dir().join(format!("telos-rn-claude-{}", ulid::Ulid::generate()));
         std::fs::create_dir_all(&dir).unwrap();
         // The interactive Claude (700, in `outer`) and its inbox, which a headless Claude it runs (no entry, in
         // `inner`) may have inherited, with CLAUDE_PID=700.
