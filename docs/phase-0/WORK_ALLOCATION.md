@@ -187,5 +187,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-25 00:26 | `claude-opus-5.5/session-c9336d2c` | PH0-RN-01 완료·통합(`f101f79`): 원본 v0.12.11 subtree(squash) 도입, `rn-fork/TELOSWEAVER.md`(출처·정책·Patch Inventory), 루트 `Cargo.toml`에 `exclude = ["rn-fork"]`, 수정 전 빌드·시험 통과. `main` 142개·RN Fork 빌드 재확인. `ph0/rn-01` 정리 | `f101f79` |
 | 2026-10-25 00:30 | `claude-opus-5.5/session-c9336d2c` | PH0-RN-02 착수(Branch `ph0/rn-02`): 자동 업데이트·받아서 실행하는 설치·이전 제품 이전·시작 서비스 자동 등록 제거(처리표 §3.2·§3.5) | `a625231` |
 | 2026-10-25 00:45 | `claude-opus-5.5/session-c9336d2c` | PH0-RN-02 완료·통합(`4faed8a`): RN Fork에서 `update.rs`·`migrate.rs`·`install.sh`·`install.ps1`·`tests/install_script.rs` 삭제, `upgrade` 명령·`auto_update`·launchd/systemd/Run 키 서비스 등록 제거, 초대 안내는 코드·`join`만. 격리 시험 190개·clippy 0건, `main` 142개·RN Fork 빌드 재확인. 후속(`init`·`join` 자동 연결, 원본 문서) PH0-RN-04. `ph0/rn-02` 정리 | `4faed8a` |
+| 2026-10-25 00:55 | `claude-opus-5.5/session-c9336d2c` | PH0-RN-03 착수(Branch `ph0/rn-03`): 클로즈드 소스 Reason CLI 연동(`daemon/reason.rs`·`managed()`·`cfg.reason`·`reason` 에이전트)과 Reason 계정 로그인 증명(`proof.rs`·`ring`·검증된 이름) 제거(처리표 §3.1·§3.3) | `78db640` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
