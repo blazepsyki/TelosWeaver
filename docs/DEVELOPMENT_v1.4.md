@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.4)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.4 (개정 1.4.2)  
+> **문서 버전:** 1.4 (개정 1.4.3)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-24  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -30,6 +30,7 @@
 | **v1.4** | **2026-10-24** | **v1.3.1~1.3.8 정리: Rust Core(DEC-05)와 기존 코드 삭제(DEC-04), Phase 0 병렬 구현 절차(작업 ID·독점 경로·게이트·증거·Worktree·배정표 수정 범위), LF 고정과 WSL 기반 Linux·Remote SSH Host, VS Code 확장 CLI 탐지(DEC-06, 버전 비의존 규칙·Antigravity 데이터 디렉터리 검증). REQ-010 탐지 계약 위치를 §7.5에 연결** |
 | v1.4.1 | 2026-10-24 | INTEGRATION 경로에 `crates/core/src/integration/**` 추가(§19.5.3): G1~G3 통합 구성(운영자 설정 기반 Phase 0 실행 승인, Provider 탐지·구성, Daemon 종료 시 활성 Run 정리). 정식 정책은 MASTER(`core/policy`)가 대체 |
 | v1.4.2 | 2026-10-24 | §7.5 Antigravity 데이터 디렉터리 검증 결과(AGY-DATA-01~05) 반영: 기본 `--app_data_dir=antigravity`, 실행 전 버전 명령으로 옵션 수용 확인, 미수용 시 `unsupported`. '확장을 끈 상태' 조건 제외(REQ-013) |
+| v1.4.3 | 2026-10-24 | 병합 직후 Worktree·Branch 삭제를 통합 담당의 기본 동작으로 지정(§19.5.5). 커밋하지 않은 의미 있는 변경이 있으면 보류 |
 
 ## 목차
 
@@ -1238,7 +1239,7 @@ G0 완료 시 공통 인터페이스와 최소 컴파일 가능한 등록 경로
   - 배정표 수정은 대표 저장소 `main`에서 단독 커밋으로 합니다. 코드 Branch의 커밋에 섞지 않습니다. 이 범위의 수정은 §19.5.3의 INTEGRATION 독점 경로에 대한 예외입니다.
 - 담당·Branch·Worktree·기준 Commit·계약 기준·상태를 기록합니다. 상태는 `unassigned → reserved → in-progress → review → integrated → verified`이며 `blocked`는 기존 담당을 유지합니다. 대기 중인 작업을 다른 에이전트가 가져가지 않습니다.
 - 작업자는 서로 다른 Branch/Worktree를 사용합니다. 같은 작업 트리에 동시에 쓰는 경우 독점 경로 배정을 더 작은 단위로 먼저 확정해야 하며 공통 파일 규칙은 동일합니다. Worktree 분리만으로 논리적 중복 구현이 해결되지는 않습니다.
-- 대표 저장소의 작업용 Git Worktree는 `D:\worktree\TelosWeaver\` 아래에 만듭니다. 경로는 `D:\worktree\TelosWeaver\<작업 ID 소문자>`(예: `ph0-contract`), Branch는 `ph0/<작업 이름>`(예: `ph0/contract`)을 기본으로 하며 실제 값을 배정표에 기록합니다. 대표 저장소는 일방향 백업 동기화 대상이므로 Worktree를 그 안이나 형제 경로에 만들지 않습니다. Worktree의 커밋·Branch는 대표 저장소의 `.git`에 저장되며, 커밋하지 않은 변경은 백업되지 않습니다. 통합이 끝난 Worktree는 `git worktree remove`로 정리하고 배정표에 기록합니다.
+- 대표 저장소의 작업용 Git Worktree는 `D:\worktree\TelosWeaver\` 아래에 만듭니다. 경로는 `D:\worktree\TelosWeaver\<작업 ID 소문자>`(예: `ph0-contract`), Branch는 `ph0/<작업 이름>`(예: `ph0/contract`)을 기본으로 하며 실제 값을 배정표에 기록합니다. 대표 저장소는 일방향 백업 동기화 대상이므로 Worktree를 그 안이나 형제 경로에 만들지 않습니다. Worktree의 커밋·Branch는 대표 저장소의 `.git`에 저장되며, 커밋하지 않은 변경은 백업되지 않습니다. 통합 담당은 `main`에 병합한 직후 해당 Worktree(`git worktree remove`)와 Branch(`git branch -d`)를 기본으로 삭제하고 배정표에 기록합니다. 삭제 전 Worktree에 커밋하지 않은 변경이 있으면 내용을 확인해, 의미 있는 변경이면 담당에게 돌려주고 삭제를 보류합니다. 작업을 이어 갈 담당은 최신 `main`에서 새 Branch·Worktree를 만듭니다.
 - 계약 변경 요청에는 작업 ID, 필요한 필드/메서드·의존성, 이유, 영향 작업, 호환·시험 계획을 남깁니다. 통합 담당과 CONTRACT가 공통 변경을 먼저 적용하고 새 기준 Commit을 배포합니다. 영향 작업이 갱신한 뒤 진행하며, 소비자가 먼저 임시 계약을 배포하지 않습니다.
 - 담당 변경은 미완 Patch·시험·남은 문제를 인계하고 배정표를 갱신합니다. 충돌은 임의 덮어쓰기·Reset으로 해결하지 않습니다.
 
