@@ -35,9 +35,9 @@
 | PH0-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `main` / 대표 저장소 작업 트리 | `fca1669` | `ae31eb2` (G0), `ba97e7b` (G0 개정 1), `271e7fd` (REQ-010) | HOST 1차 통합·REQ-011(`d8e8725`), REQ-010 계약(`271e7fd`) 완료. 다음: HOST 엔진 연결 통합, WSL 구성(사용자 수행 필요), G1(HOST + Codex) 통합 |
 | PH0-CONTRACT | `claude-opus-5.5/session-c9336d2c` | verified | `ph0/contract` / Worktree 정리됨 | `0094720` | 1차 `fd0b206`, 개정 1 `98177db` (통합 `ba97e7b`), REQ-010 `4e29f20` (통합 `271e7fd`) | 이후 계약 변경은 §4 요청으로 처리 |
 | PH0-HOST | `Codex / PH0-HOST-20261024` | in-progress | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` | 후속 착수 `ce08a1f` (Spec v1.4), 계약 `271e7fd` | 1차 `6bb943e` (통합 `d8e8725`) | 사용자 지시로 최신 main 반영·REQ-010 탐색 엔진 연결·공개 API 시험 전환 진행. [검증 기록](evidence/PH0-HOST/README.md) · [인계](evidence/PH0-HOST/HANDOFF.md). lib.rs 모듈 등록·재노출 줄만 예외 허용. WSL Linux·Remote SSH 실행 검증은 사용자 지시로 대기 |
-| PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `openai.chatgpt` 확장의 `bin/<platform>/codex`(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용. G1 대표 Provider |
-| PH0-CLAUDE | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `anthropic.claude-code` 확장의 `resources/native-binary/claude`(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
-| PH0-AGY | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `google.google-antigravity` 확장이 관리하는 `~/.gemini/bin/agy`(Spec §7.5). 첫 실험은 Spec §7.5 "Antigravity 데이터 디렉터리 검증"(AGY-DATA-01~05)입니다. Managed 실행에 `--app_data_dir=antigravity`를 넘겨 확장과 같은 데이터 디렉터리·인증을 쓸 수 있는지 확인하고, 결과로 디렉터리 규칙 확정을 변경 요청합니다. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
+| PH0-CODEX | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 실행 파일은 `openai.chatgpt` 확장의 `bin/<platform>/codex`(Spec §7.5). Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용. G1 대표는 Claude로 변경됨(§6) |
+| PH0-CLAUDE | `claude-opus-5.5/session-c9336d2c` | in-progress | `ph0/claude` / `D:\worktree\TelosWeaver\ph0-claude` | `2ac1497`, 계약 `271e7fd` | 없음 | G1 대표 Provider(§6). 실행 파일은 `anthropic.claude-code` 확장의 `resources/native-binary/claude`(Spec §7.5). 순서: `cli_rule`·Stream JSON Parser·Fixture → HOST `NativeRuntime`으로 실제 실행(PROV-01~04·06~09) → Resume/Fork 실험(PROV-05·FORK-POC-01~02). 시험 조건은 §6 |
+| PH0-AGY | `gemini-4-argon/session-9e6137eb` | reserved | `ph0/agy` / `D:\worktree\TelosWeaver\ph0-agy` (착수 시 생성) | `2ac1497` (계약 `271e7fd`) | 없음 | 사용자 지정으로 예약 배정. 실행 파일은 `google.google-antigravity` 확장이 관리하는 `~/.gemini/bin/agy`(Spec §7.5). 첫 실험은 Spec §7.5 "Antigravity 데이터 디렉터리 검증"(AGY-DATA-01~05)입니다. Managed 실행에 `--app_data_dir=antigravity`를 넘겨 확장과 같은 데이터 디렉터리·인증을 쓸 수 있는지 확인하고, 결과로 디렉터리 규칙 확정을 변경 요청합니다. Parser/Fixture 병렬, 실제 실행은 HOST 런타임 사용 |
 | PH0-MASTER | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. `DecisionPayload`·`DecisionContext`·`DecisionOutcome`과 공통 실패 Fixture 사용 |
 | PH0-RN | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. Fork 도입 방식·기준 SHA 기록, `telos_schema::rn` 계약 구현 |
 | PH0-EXT | 미배정 | unassigned | 미지정 | 미지정 | 없음 | 착수 가능. 생성 타입과 `telos_schema::api` 문서 계약으로 테스트 대역 개발 |
@@ -49,7 +49,7 @@
 | 게이트 | 상태 | 근거 |
 |---|---|---|
 | G0 공통 계약 확정 | 통과 (2026-10-24), 개정 1 반영 | 1차 `ae31eb2`. 독립 검토 REQ-002~009 처리 후 기준 `ba97e7b`. 근거: `evidence/PH0-INTEGRATION/README.md` §1, `G0_REVISION_1.md` §4 |
-| G1 대표 Provider 실행 | 대기 | 실제 시작·이벤트·완료/실패·취소·결과 경로 필요 |
+| G1 대표 Provider 실행 | 대기 | 대표 Provider는 Claude(§6). 실제 시작·이벤트·완료/실패·취소·결과 경로와 신뢰된 `RunAuthorizer` 연결 필요 |
 | G2 전체 구성 통합 | 대기 | 세 Provider·마스터·RN·Extension 연결 증거 필요 |
 | G3 Phase 0 수용 | 대기 | Spec §19.1 필수 조건과 대상 환경 증거 필요. Linux·Remote SSH Host는 [WSL 절차](WSL_LINUX_HOST.md)로 확보 예정(미구성) |
 
@@ -109,6 +109,8 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | Linux·Remote SSH 실행 Host | 같은 PC의 WSL2 Ubuntu 26.04를 Linux Host 겸 Remote SSH Host로 사용. 절차는 [WSL_LINUX_HOST.md](WSL_LINUX_HOST.md). G3 필수 조건이므로 미루지 않음 | 절차 수립, 배포판 미설치. 구성 시점: PH0-HOST가 공용 런타임 구현에 착수할 때(늦어도 G2 전) | 2026-10-24 |
 | CI | 원격 저장소가 생기고 초기 구현이 진행된 뒤 검토. 그전에는 통합 담당이 Spec §19.5.8의 검사 명령을 수동 실행하고 증거에 기록 | 보류 | 2026-10-24 |
 | 대상 OS 우선순위 | 구현·일상 검증은 Windows 로컬 우선. Linux·Remote SSH는 G3 전에 WSL로 확보 | 적용 | 2026-10-24 |
+| G1 대표 Provider | Claude Code. Spec §19.5.6의 기본값(Codex)에서 변경. 이유: PH0-CODEX 미배정, 통합 담당이 PH0-CLAUDE를 함께 맡음. 마스터 Provider 선택(MASTER-01)과는 무관 | 적용 | 2026-10-24 |
+| Claude 실환경 시험 조건 | 모델 `haiku`, 짧은 프롬프트. 설정 디렉터리는 기본 `~/.claude`(확장과 공유, 토큰 복사·별도 로그인 없음). 실행은 저장소 밖 일회용 폴더에서만, 허용 도구 명시(`--allowedTools`/`--disallowedTools`, `--permission-mode`), `--dangerously-skip-permissions` 금지. 시험 세션은 끝난 뒤 확장 대화 목록에서 보이지 않도록 Archive. 기존 대화는 재개·수정하지 않음 | 적용 | 2026-10-24 |
 
 ## 7. 변경 기록
 
@@ -134,7 +136,8 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-24 17:10 | `claude-opus-5.5/session-c9336d2c` | `ph0/contract`(`4e29f20`)를 `271e7fd`로 통합, `main`에서 재검증(61개 통과, clippy·fmt). 계약 기준 `ba97e7b → 271e7fd`, REQ-010 계약 완료(HOST 엔진 연결 대기), PH0-CONTRACT `in-progress → verified`, Worktree 정리. G1은 PH0-CODEX 배정과 신뢰된 `RunAuthorizer` 연결(MASTER·INTEGRATION)이 필요하고, Linux 검증은 WSL 배포판 설치(사용자 수행)가 필요 | `271e7fd` |
 | 2026-10-24 17:20 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정(Spec v1.3.8): 담당 에이전트가 자기 작업 행·변경 요청 제출·변경 기록을 직접 갱신. 기준·게이트·판정·`verified` 전환은 통합 담당 유지. §1 규칙 갱신. 이전 HOST의 직접 기록(`1e415ba`, `9522d79`)은 이 규칙에 부합 | `271e7fd` |
 | 2026-10-24 17:30 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시로 Spec을 v1.4로 승격: `docs/DEVELOPMENT_v1.3.md` → `docs/DEVELOPMENT_v1.4.md`, 개정 1.3.8 원문을 `docs/archive/DEVELOPMENT_v1.3.md`로 보관. 저장소 안 링크 갱신(PH0-HOST·G0 검토 증거는 링크 경로만 수정). 계약 변경 없음 | `271e7fd` |
-
 | 2026-10-24 (시각 미기록) | `Codex / PH0-HOST-20261024` | 사용자 지시로 후속 작업 1~3 착수: 최신 main 반영, REQ-010 엔진 연결, 공개 API 시험 전환. HOST 기준을 Spec v1.4·계약 `271e7fd`로 갱신. WSL Linux·Remote SSH 실행 검증은 사용자 지시로 대기하며 게이트·다른 작업 상태는 변경하지 않음 | `ce08a1f` |
+| 2026-10-24 17:27 | `claude-opus-5.5/session-c9336d2c` | 사용자 배정으로 PH0-CLAUDE `unassigned → in-progress`(Worktree `D:\worktree\TelosWeaver\ph0-claude`, Branch `ph0/claude`). 사용자 결정: G1 대표 Provider를 Codex에서 Claude로 변경(이유: PH0-CODEX 미배정, 통합 담당이 CLAUDE를 함께 맡아 G1을 바로 판정 가능). §6에 Claude 실환경 시험 조건 추가. 배정표 표 중간의 빈 줄 제거 | `2ac1497` |
+| 2026-10-24 17:26 | `gemini-4-argon/session-9e6137eb` | 사용자 직접 배정으로 PH0-AGY `unassigned → reserved` 기록. Branch `ph0/agy`·Worktree `D:\worktree\TelosWeaver\ph0-agy` 예정, 기준 Commit `2ac1497`·계약 기준 `271e7fd` 기록. 코드 구현 및 AGY-DATA-01~05 실험 착수 전 사전 결정 사항 확인 대기 | `2ac1497` (준비 기반), `271e7fd` (계약) |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
