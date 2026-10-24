@@ -72,7 +72,7 @@ G0 통과는 계약이 정해졌다는 뜻이며 Provider·RN·Core API의 실�
 
 ### 7.1 판정
 
-**통과 (INTEGRATION·대표 Provider CLAUDE 판정, HOST 확인 대기).** Spec §19.5.8 G1 조건 "공용 런타임 + 대표 Provider가 시작→이벤트→완료/실패→취소→결과를 실제 경로로 재현"을 Windows 로컬에서 실제 Claude Code CLI로 확인했습니다. 경로는 Local API(Named Pipe, 토큰 인증) → `ExecutionSupervisor` → 운영자 정책 승인(`LocalRunPolicy`) → 확장 CLI 탐지(`NativeCliDiscoverer`) → `ClaudeCodeAdapter` → `NativeRuntime`(Job Object)입니다. 판정 주체 중 HOST의 확인을 받으면 확정합니다.
+**통과 확정 (2026-10-24, INTEGRATION·CLAUDE 판정, HOST 확인 완료).** HOST 확인은 [G1_HOST_REVIEW.md](../PH0-HOST/G1_HOST_REVIEW.md)(코드 `d13a1fc`, 통합 `01192ae`)이며, 확인 중 발견된 실행 감독의 취소 경합 판정을 보정했습니다. REQ-015에 따라 시험의 자동 판정을 강화하고 실환경 5개를 다시 통과시켰습니다(§7.6). Spec §19.5.8 G1 조건 "공용 런타임 + 대표 Provider가 시작→이벤트→완료/실패→취소→결과를 실제 경로로 재현"을 Windows 로컬에서 실제 Claude Code CLI로 확인했습니다. 경로는 Local API(Named Pipe, 토큰 인증) → `ExecutionSupervisor` → 운영자 정책 승인(`LocalRunPolicy`) → 확장 CLI 탐지(`NativeCliDiscoverer`) → `ClaudeCodeAdapter` → `NativeRuntime`(Job Object)입니다. 판정 주체 중 HOST의 확인을 받으면 확정합니다.
 
 ### 7.2 연결한 것
 
@@ -110,9 +110,9 @@ Policy Revision은 `<revision>#<설정 파일 SHA-256 앞 12자>`입니다. Snap
 
 ### 7.4 한계와 남은 일
 
-- **HOST 확인:** G1 판정 주체에 HOST가 포함됩니다(§19.5.8).
-- **정상 종료 유예:** 취소는 두 경로 모두 유예(Adapter 5초·시험 2초) 안에 정상 종료하지 않아 강제 종료(`killed`)됐습니다. 자식 회수는 확인했습니다. Windows의 정상 종료 요청 효과는 HOST와 확인합니다.
-- **상태 표기:** `runs.inspect`의 `status`가 `Succeeded`·`Failed`·`Cancelled`처럼 PascalCase로 나옵니다. 다른 열거 값(snake_case)과 표기가 다르므로 Spec 원문과 대조가 필요합니다(CONTRACT 확인 항목).
+- **HOST 확인:** 완료(§7.1).
+- **정상 종료 유예:** 취소는 유예 안에 정상 종료하지 않아 강제 종료(`killed`)됐고 자식 회수는 확인했습니다. HOST 확인 결과, Windows 런타임은 별도 정상 종료 신호 없이 stdin을 닫고 유예를 기다린 뒤 Job을 종료하므로 관찰과 일치합니다. 이 결과는 Windows 정상 종료 신호의 증거가 아닙니다.
+- **상태 표기:** 확인 완료. `RunStatus`는 계약에서 PascalCase(`Succeeded` 등) 그대로가 Wire 값입니다(`crates/schema/src/task.rs`). 결함이 아니며 시험은 이 계약 타입으로 비교합니다(REQ-015).
 - **결과 판정:** G1은 실행 결과(파일 생성)까지입니다. 출력 계약 검증·Artifact 등록·Task 완료 판정은 P0 범위입니다.
 - **Linux·Remote SSH:** WSL 미구성으로 미검증(G3).
 - **영속성:** 실행 감독·Snapshot은 메모리입니다.
@@ -127,6 +127,28 @@ PH0-CLAUDE 증거 §5와 같은 방식으로 처리합니다. 작업 폴더는 `
 | `34413139-43ee-434f-8df0-aebd54c45c1d` | `g1_provider_failure_is_reported` |
 | `1479a52f-205b-4f62-8396-ba8199901b0e` | `g1_cancel_reports_actual_termination` |
 | `ebfa12d6-d49e-43c1-a703-9ed8e7d3c416` | `g1_daemon_shutdown_cancels_active_runs` |
+| `2028fae9-9c6c-4490-8bfa-8528a4aab0bd` | 재검증: `g1_completed_run_produces_result_file` |
+| `8873e3b0-f9cc-42d4-aa89-68f0b54195f1` | 재검증: `g1_provider_failure_is_reported` |
+| `541b0fcb-04ba-4d02-9227-ff4697665a43` | 재검증: `g1_cancel_reports_actual_termination` |
+| `9541daf9-7084-477b-be47-bf1215d057d0` | 재검증: `g1_daemon_shutdown_cancels_active_runs` |
+
+### 7.6 REQ-015 시험 강화와 재검증
+
+> 2026-10-24 · 기준 `01192ae`(HOST 취소 경합 보정 포함)
+
+HOST가 지적한 대로 기존 시험은 미종료·취소 미재현도 통과시킬 수 있었습니다. `crates/core/tests/phase0_g1.rs`를 다음처럼 고쳤습니다.
+
+- 최종 상태를 계약 타입 `RunStatus`의 Wire 값(`json!(RunStatus::Succeeded)` 등)과 정확히 비교합니다. 마지막 이벤트와 상태 갱신의 경합은 10초 제한 안에서 `runs.inspect`를 다시 조회해 처리합니다.
+- 완료 `Succeeded`, 실패 `Failed`(둘 다 `lastSequence` = 받은 이벤트 수).
+- 취소: `accepted: true`, `turn_finished`가 반드시 `cancelled`, 종료 원인 `terminated_on_request`/`killed`, `childrenReaped: true`, 최종 `Cancelled`.
+- Daemon 종료: 연결 종료 뒤 `Running`, `shutdown` 취소 1·미확인 0, 최종 `Cancelled`.
+- 취소·종료 시험이 진행 중인 Run을 확실히 잡도록 출력 작업을 1~1500으로 늘렸습니다.
+
+| 검사 | 결과 |
+|---|---|
+| `cargo test -p telos-core --test phase0_g1 -- --ignored --test-threads=1` (haiku) | 5개 통과, 65.7초. 완료 `Succeeded`(7), 실패 `Failed`(6), 취소 `accepted` → `cancelled` → `killed`·회수 → `Cancelled`, 종료 `Running` → 취소 1·미확인 0 → `Cancelled` |
+| `cargo test --workspace --locked` | 123개 통과, 24개 무시(실환경) |
+| `cargo clippy --workspace --all-targets --locked -- -D warnings`, `cargo fmt --all --check` | 통과 |
 
 ## 8. 현재 다음 단계: G2 구성 통합
 
@@ -156,4 +178,4 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 ### 8.3 G2의 나머지 조건
 
 - MASTER(마스터 결정 검증)·RN(RPC)·EXT(Extension 연결)는 미배정입니다. G2는 이 연결 증거까지 필요합니다(Spec §19.5.8).
-- HOST: G1 확인과 REQ-013 ③(`targetPlatform: "undefined"`) 처리 중입니다.
+- HOST: G1 확인과 REQ-013 ③(`targetPlatform: "undefined"`)을 완료했습니다(통합 `01192ae`). 남은 HOST 일은 Linux·Remote SSH 검증입니다.
