@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.2)  
+> **문서 버전:** 1.5 (개정 1.5.3)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-25  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -35,6 +35,7 @@
 | **v1.5** | **2026-10-24** | **v1.4.1~1.4.4 정리와 RN 방향 확정. DEC-07을 사용자 결정대로 좁힘: RN Fork는 클로즈드 소스 Reason CLI 연동, 자동 업데이트·받아서 실행하는 설치 경로, Reason 계정 로그인만 제거하고 Claude·Codex 세션 탐지·메시지 전달·MCP·Hook·네트워크 기능은 유지(§12.1·§12.4·§12.5 확정, RN-09~12·RN-POC-13~15·PH0-RN-03 문구 조정). Fork는 `rn-fork/`에 subtree(squash)로 도입, 실행 파일·상태·MCP 이름 분리, 실제 에이전트 설정 변경은 시험 시에만 백업·Diff·복원과 사전 확인. 이 밖에 v1.4.1 INTEGRATION 경로, v1.4.2 Antigravity 데이터 디렉터리 확정, v1.4.3 병합 후 정리 규칙, v1.4.4 RN 서브 태스크 계획을 포함** |
 | v1.5.1 | 2026-10-25 | RN Core 연결(PH0-RN-07)의 Phase 0 방식과 재검토 조건(§12.3, §12.5): Core가 운영자 정책의 RN 실행 파일을 프로젝트별 상태 폴더로 자식 프로세스로 시작·정지하고, 예기치 않은 종료 시 제한된 재시작 후 Degraded. 사용자 단위 공유 RN은 P1 기존 세션 연결·P2 원격·팀 착수 전에 재검토(Core별 메일함·이벤트 범위·수명). RN RPC 계약(REQ-018)과 연결된 세션만 전송하는 Phase 0 규칙 반영 |
 | v1.5.2 | 2026-10-25 | Phase 0의 Linux·단일 Remote SSH 실행 Host를 같은 PC의 WSL2에서 사용자의 Ubuntu 서버(`Psyki-NAS`, Ubuntu 26.04.1 LTS, 세 Provider 확장 원격 설치·로그인)로 변경(§19.5.8 앞 Host 절, §19.5.3 INTEGRATION 경로에 `docs/phase-0/LINUX_REMOTE_HOST.md` 추가). WSL2는 예비이며 그 결과는 Linux 증거로만 씀 |
+| v1.5.3 | 2026-10-25 | Managed Run 세션을 각 Provider의 VS Code 확장 대화 목록에 표시(DEC-08, §7.6). Provider별 출처 지정 방식(Claude `CLAUDE_CODE_ENTRYPOINT`, Codex `threadSource` 검증, Agy 확장 데이터 디렉터리), 운영자 설정 `listed`/`hidden`, Workspace 경로 제약, Capability `vscode_listing`과 판정 방법, 실행 중 이중 조작 금지. AGENT-05 추가, §19.1 Phase 0 확인 항목 추가 |
 
 ## 목차
 
@@ -80,6 +81,7 @@ TelosWeaver는 서로 다른 AI 에이전트를 사용하여 **목표 확인 →
 | DEC-05 | Core는 RN Fork와 같은 Rust로 구현합니다. | Core·Adapter·RN Client·공통 Schema를 Cargo Workspace로 구성합니다. VS Code Extension만 TypeScript이며 공통 타입은 Rust에서 생성합니다. Core와 RN의 프로세스·DB 분리는 유지합니다. |
 | DEC-06 | Provider 실행은 사용자가 설치한 각 에이전트의 VS Code 확장(Codex·Claude Code·Antigravity)이 내부에서 쓰는 CLI를 찾아 사용합니다. | 별도 CLI 설치를 전제로 하지 않습니다. 확장이 포함·관리하는 실행 파일을 탐지해 Core가 소유하는 Managed 프로세스로 실행합니다(§7.5). 확장이 이미 띄운 세션의 제어는 Attached(P1)이며 이 결정과 구분합니다. |
 | DEC-07 | RN은 원본을 Fork한 뒤 **클로즈드 소스 Reason CLI 연동**, **자동 업데이트와 받아서 실행하는 설치 경로**, **Reason 계정 로그인**을 제거하고, 나머지 기능은 TelosWeaver에 맞춰 유지·재구성합니다. | 걱정하는 위험은 공개되지 않은 코드(Reason CLI)가 RN을 통해 실행되거나 업데이트로 다시 들어오는 것입니다. Claude·Codex 세션 탐지와 메시지 전달처럼 Provider의 비공식 인터페이스를 쓰는 기능은 TelosWeaver Provider Adapter(DEC-06)와 같은 위험 수준으로 수용합니다. 제거는 설정 비활성화가 아니라 코드·호출 경로·의존성에서 정리합니다(§12.4). PH0-RN은 §19.5.10의 서브 태스크로 진행합니다. |
+| DEC-08 | Adapter가 시작한 Managed Run의 세션은 각 Provider의 VS Code 확장 대화 목록에 **기본으로 표시**되어야 합니다. | 각 Adapter가 Provider별 출처 지정 방식으로 세션을 확장 목록의 조회 대상에 넣고, 운영자 설정으로 숨길 수 있습니다(§7.6). 표시는 조회·열람을 위한 것이며 실행 중인 Run의 제어권은 Core에 있습니다. 확장 목록 표시를 지원한다고 표시하려면 Provider별 실환경 판정이 필요합니다. |
 
 추가 확정 방향은 세션 포크와 문맥 전달 전략을 토큰 효율 설계에 포함하는 것입니다. 포크 지원 여부와 효율은 Provider별로 검증하며 절감률을 사전에 보장하지 않습니다.
 
@@ -619,8 +621,50 @@ DEC-06에 따라 Provider CLI는 실행 Host에 설치된 각 에이전트의 VS
 - Managed 실행은 기본으로 `--app_data_dir=antigravity`(확장 디렉터리)를 씁니다. DEC-06에 따라 확장의 로그인 상태를 별도 로그인·토큰 복사 없이 씁니다. 확장 대화 목록과 분리가 필요하면 운영자 설정으로 기본 디렉터리(옵션 생략)를 고를 수 있으며, 그 경우에도 토큰을 복사하지 않습니다.
 - 옵션을 쓸 때 Adapter는 실행 전 `agy --app_data_dir=antigravity --version`으로 옵션이 받아들여지는지 확인합니다(규칙 5). 거부되면 다른 디렉터리로 조용히 바꾸지 않고 Capability를 `unsupported`(사유 포함)로 둡니다.
 - 쓴 데이터 디렉터리는 Run의 Context Snapshot에 기록합니다(규칙 6).
-- 옵션 지정 시 Managed 실행의 대화가 확장 화면의 기록에 나타날 수 있습니다. 시험 세션은 끝난 뒤 정리합니다(배정표 §6).
+- 옵션 지정 시 Managed 실행의 대화가 확장 화면의 기록에 나타날 수 있습니다. 확장 목록 표시의 판정과 운영자 설정은 §7.6을 따릅니다. 시험 세션은 끝난 뒤 정리합니다(배정표 §6).
 - 근거: `docs/phase-0/evidence/PH0-AGY/README.md` §3.
+
+### 7.6 VS Code 확장 대화 목록 표시
+
+DEC-08에 따라 Adapter가 시작한 Managed Run의 세션은 각 Provider의 VS Code 확장 대화 목록에서 찾아 열 수 있어야 합니다. 세 Provider 모두 비대화형·외부 클라이언트 실행을 기본값으로는 **자동화 출처**로 기록하며, 확장의 기본 목록은 이를 제외합니다. Adapter는 아래 Provider별 방식으로 출처를 지정합니다. 조사 근거와 수동 호출 절차는 [외부 에이전트 CLI 세션의 VS Code 표시](AGENT_CLI_VSCODE_SESSIONS.md)를 따릅니다.
+
+**의미와 한계**
+
+- 표시는 **조회·열람**을 위한 것입니다. 실행 중인 Run의 입력·취소·승인은 Core가 소유하며(§7.2), 확장 화면이 실시간으로 갱신되거나 확장에서 Managed 프로세스를 제어할 수 있다는 뜻이 아닙니다.
+- Run이 실행 중인 세션에 사용자가 확장에서 입력하면 같은 Session에 쓰기 Turn이 둘이 됩니다(§8.1 위반). Core·Extension은 Run 상태와 함께 "실행 중에는 확장에서 이어 쓰지 않음"을 안내하며, 확장 쪽 입력을 기술적으로 막는다고 가정하지 않습니다.
+- Run이 끝난 뒤 사용자가 확장에서 같은 세션을 이어 쓸 수 있습니다. 그 뒤 Core가 그 Session을 `resume`·`native-fork`할 때는 기존 Session 소유권과 입력 유효성 확인(§8.1) 대상이며, Core 기록 이후 Native 세션이 바뀌었을 수 있음을 전제로 합니다.
+- 출처 지정은 표시 분류만 바꿉니다. 권한·Sandbox·승인·모델 설정은 바꾸지 않습니다.
+
+**운영자 설정**
+
+- Provider별 `vscodeListing`: `listed`(기본) 또는 `hidden`. `hidden`은 자동화 출처로 기록해 확장 목록에서 제외합니다. 설정 위치·형식은 운영자 정책(§13.1)이며 Phase 0에서는 INTEGRATION 통합 구성이 각 Adapter 설정으로 전달합니다.
+- 실제 적용 값과 방식(아래 "Adapter 처리")은 Run의 Context Snapshot에 기록합니다(§7.5 규칙 6과 같은 위치).
+- 세션 영속성을 끄는 옵션(Claude `--no-session-persistence`, Codex `ephemeral: true`)은 어느 설정에서도 쓰지 않습니다. 저장되지 않은 세션은 Resume·Fork도 할 수 없습니다.
+
+**Adapter 처리**
+
+| Provider | 방식 | 확인 사실 (2026-10-25, Windows) | Phase 0 판정 항목 |
+|---|---|---|---|
+| Claude Code | 자식 프로세스 환경에 `CLAUDE_CODE_ENTRYPOINT=claude-vscode`(`listed`) 또는 `sdk-cli`(`hidden`)를 **명시적으로** 지정. Core 프로세스가 상속한 부모 Claude 세션 변수(`CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_CHILD_SESSION`, `CLAUDE_CODE_SESSION_ATTENDED`, `CLAUDE_CODE_MESSAGING_SOCKET`, `CLAUDE_CODE_MESSAGING_TOKEN`, `CLAUDE_PID`)는 자식 환경에서 제거 | 확장 2.1.310: 세션 JSONL 첫 줄 부근 `entrypoint`가 `sdk-cli`·`sdk-ts`·`sdk-py`이면 기본 목록에서 제외. `-p`는 환경 변수가 없으면 `sdk-cli`. 지정 시 모든 줄이 `claude-vscode`로 기록되고 `--resume --fork-session`도 새 세션 전체를 지정 값으로 기록 | 세션 파일 위치·`entrypoint` 값, 같은 Session의 Resume·Fork에서 값 유지, 확장 화면 표시. 확장 목록은 **VS Code 첫 Workspace 폴더와 같은 cwd**의 세션만 조회하고 Worktree를 제외함 |
+| Codex | App Server `thread/start`·`thread/fork`에 `ephemeral: false`와 목록 대상 출처를 지정. 후보는 `threadSource` 필드(로컬 Schema에 존재, 설명은 "analytics source classification"). 목록 분류(`cli`·`vscode` 대 `exec`·`appServer`)를 실제로 바꾸는 수단을 실험으로 확정 | `codex exec --thread-source cli`는 CLI 도움말로 확인. 확장 26.1021.22027은 `thread/list`에 빈 `sourceKinds`(= `cli`·`vscode`만)와 `useStateDbOnly: true`로 조회. App Server 경로의 효과는 미확인 | 생성한 Thread가 기본 `thread/list`(빈 `sourceKinds`) 결과에 포함되는지, Fork·Resume 후 유지, 확장 화면 표시. 수단을 찾지 못하면 `unsupported`(사유 포함) |
+| Antigravity | 기존 기본값 `--app_data_dir=antigravity`(§7.5 확정 규칙)를 `listed`로 사용. `hidden`은 옵션 생략(CLI 기본 디렉터리) | AGY-DATA-03: 대화가 확장 디렉터리의 `brain/<id>`와 공유 `conversation_summaries.db`에 기록됨. 확장 화면 표시와 Workspace 필터는 미확인 | 확장 목록이 읽는 기록에 Run이 포함되는지, Workspace별 필터 여부, 확장 화면 표시. `hidden`일 때 로그인 상태가 디렉터리별로 달라 실행이 실패할 수 있음(AGY-DATA-02)을 Capability 사유에 기록 |
+
+- 세션 JSONL·SQLite·요약 DB 등 Provider 저장소를 직접 수정해 출처를 바꾸지 않습니다. Provider가 받는 인자·환경 변수·Protocol 필드로만 지정합니다.
+- 이 방식들은 각 확장의 **비공개 내부 동작**을 관찰한 결과입니다(§7.5와 같은 위험 수준). 확장·CLI 버전이 바뀌면 다시 판정합니다.
+
+**Workspace 경로**
+
+- Adapter는 표시를 위해 실행 cwd를 바꾸지 않습니다. Run은 §10의 Task Workspace에서 실행합니다.
+- 확장마다 목록의 경로 범위가 다릅니다. Claude Code 확장은 VS Code 창의 첫 Workspace 폴더와 cwd가 정확히 같은 세션만 보여 주므로, 별도 Worktree에서 실행한 Run은 그 폴더를 VS Code 창으로 열어야 보입니다. Codex·Antigravity의 경로 범위는 Phase 0에서 확인합니다.
+- Core는 Run의 실행 Host·Workspace 경로를 기록하고, Extension은 Run 상세에서 Provider·Native 세션 ID와 그 경로를 보여 줍니다(P1에서 "해당 폴더 열기" 동작 검토).
+- 원격 실행 Host의 Run은 그 Host의 확장(Remote SSH 창)에서만 보입니다(§3.3).
+
+**Capability와 판정**
+
+- 각 Adapter는 `detect()`에 `vscode_listing` Capability를 추가합니다. 실환경 판정 전에는 `unverified`, Provider가 수단을 제공하지 않으면 `unsupported`(사유 포함)입니다. 운영자 설정이 `hidden`이어도 Capability는 수단의 지원 여부를 나타냅니다.
+- `supported`(`environment-tested`)는 **자동 판정**이 통과한 Provider 버전·Host에만 씁니다. 자동 판정은 확장과 같은 기준의 목록 조회 결과입니다: Codex는 App Server `thread/list`(빈 `sourceKinds`), Claude는 설치된 확장의 목록 규칙(세션 파일 경로와 첫 줄 부근 `entrypoint`), Antigravity는 확장이 읽는 대화 기록. 판정에 쓴 확장 버전·규칙을 증거에 남깁니다.
+- 확장 화면에서 실제로 보이고 열리는지는 사용자 확인이 필요하며 자동 판정과 따로 기록합니다. 확인하지 않은 화면 동작은 미검증으로 둡니다.
+- 시험은 지금처럼 저장소 밖 임시 폴더에서 실행합니다. 화면 확인이 필요한 시험만 사용자가 연 Workspace에서 실행하고, 세션 ID를 증거에 남겨 병합 시점에 정리합니다(배정표 §6 "시험 세션 정리").
 
 ## 8. 세션 수명·포크·토큰 효율
 
@@ -1020,6 +1064,7 @@ P0는 최초 실사용, P1은 첫 확장과 협업 고도화, P2는 후속 운�
 | AGENT-02 | P0 | Codex·Claude·Agy 신규 Managed Run의 공통 결과·오류 |
 | AGENT-03 | P0/P1 | P0 필수 Capability 탐지, P1 상세 탐색·진단 |
 | AGENT-04 | P1 | 검증된 기존 세션 탐색·선택·메시징 |
+| AGENT-05 | P0 | Managed Run 세션을 Provider VS Code 확장 대화 목록에 기본 표시(§7.6, DEC-08). 운영자 설정 `listed`/`hidden`, Provider별 Capability `vscode_listing`과 판정 근거, 실행 중 확장 쪽 입력과의 이중 조작 방지 |
 
 ### 18.2 Session·문맥·포크
 
@@ -1166,6 +1211,7 @@ Phase 0은 §19.5의 작업 묶음으로 나누어 병렬 구현할 수 있습�
 - [ ] 세 Provider의 VS Code 확장에서 CLI 실행 파일을 탐지하고(§7.5), 확장 로그인 상태가 Managed 실행에 유효한지와 Antigravity의 데이터 디렉터리 처리를 확인합니다. Windows 로컬과 Remote SSH 실행 Host(`~/.vscode-server/extensions`)를 각각 확인합니다.
 - [ ] 마스터 후보가 구조화 결정을 반환하고 Core가 잘못된 결정·중복·권한 초과를 거부하는 최소 경로를 확인합니다.
 - [ ] Agy의 Turn 직렬화·도구 거부·Exit Code와 결과 차이를 확인합니다.
+- [ ] 세 Provider의 Managed Run 세션이 확장 대화 목록의 조회 대상에 들어가는지(§7.6 `vscode_listing`)를 Windows 로컬에서 판정하고, 확장 화면 확인 결과를 따로 기록합니다. 판정하지 못한 Provider는 `unverified`·`unsupported`로 남깁니다.
 - [ ] RN Fork에서 Reason CLI 연동·자동 업데이트·계정 로그인을 제거하고(§12.4), 정리된 Fork의 Windows/Linux Build, Health·Version·Discovery·통제된 Message RPC를 재현합니다(§12.4, §19.5.10).
 - [ ] VS Code 로컬과 단일 Remote SSH에서 실제 CLI·Workspace·Core의 Host를 확인합니다.
 - [ ] 이벤트 구독 전 종료, 잘못된 Stream, 프로세스·자식 종료와 기본 권한 적용을 확인합니다.
