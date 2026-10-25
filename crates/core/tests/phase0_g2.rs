@@ -72,7 +72,12 @@ impl Setup {
                     "settingSources": "user"
                 },
                 "codex": { "models": [models.codex], "effort": "low", "runTimeoutSecs": 180 },
-                "agy": { "models": [models.agy], "effort": "low", "mode": "accept-edits" }
+                "agy": {
+                    "models": [models.agy],
+                    "effort": "low",
+                    "mode": "accept-edits",
+                    "vscodeListing": agy_listing()
+                }
             }))
             .unwrap(),
         )
@@ -271,6 +276,11 @@ async fn wait_for_session(client: &mut Client) {
     }
 }
 
+/// Antigravity 표시 모드. Linux Remote SSH Host는 확장 디렉터리에 CLI 토큰이 없어 `hidden`을 씁니다 (§7.5 Host별 차이).
+fn agy_listing() -> String {
+    std::env::var("TELOS_AGY_VSCODE_LISTING").unwrap_or_else(|_| "listed".into())
+}
+
 fn home() -> PathBuf {
     PathBuf::from(
         std::env::var_os("USERPROFILE")
@@ -282,7 +292,8 @@ fn home() -> PathBuf {
 /// 확장 목록의 조회 대상 기록 여부 (§7.6). 정리 전에 확인합니다.
 /// - Claude: 세션 파일의 모든 `entrypoint`가 `claude-vscode`
 /// - Codex: Adapter가 Native 출처가 `cli`·`vscode`가 아니면 Turn 전에 거부하므로 완료 자체가 근거
-/// - Antigravity: 대화가 확장 데이터 디렉터리(`~/.gemini/antigravity`)에만 있음
+/// - Antigravity: 대화가 확장 데이터 디렉터리(`~/.gemini/antigravity`)에만 있으면 `true`,
+///   CLI 기본 디렉터리(`~/.gemini/antigravity-cli`)에만 있으면 `false`
 fn listing_record(provider: &str, events: &[Value]) -> Option<bool> {
     let id = events.iter().find_map(|e| e["nativeSessionId"].as_str())?;
     match provider {
@@ -305,7 +316,11 @@ fn listing_record(provider: &str, events: &[Value]) -> Option<bool> {
             let gemini = home().join(".gemini");
             let in_extension = gemini.join("antigravity/brain").join(id).is_dir();
             let in_cli = gemini.join("antigravity-cli/brain").join(id).exists();
-            Some(in_extension && !in_cli)
+            match (in_extension, in_cli) {
+                (true, false) => Some(true),
+                (false, true) => Some(false),
+                _ => None,
+            }
         }
         _ => None,
     }
@@ -337,9 +352,14 @@ async fn g2_each_provider_completes_and_writes_a_result_file() {
     // 판정 실패로 정리가 빠지지 않도록 세션을 먼저 정리합니다.
     setup.cleanup().await;
     for (provider, events, content, inspect, listing) in results {
-        // §7.6 (DEC-08): 정책 기본값(`listed`)으로 실행한 세션이 확장 목록의 조회 대상으로 기록됩니다.
-        println!("{provider} listing: {listing:?}");
-        assert_eq!(listing, Some(true), "{provider} session must be listed");
+        // §7.6 (DEC-08): 정책 값대로 확장 목록의 조회 대상 여부가 기록됩니다. Antigravity만 Host별로 다릅니다.
+        let listed = provider != "agy" || agy_listing() == "listed";
+        println!("{provider} listing: {listing:?} (expected listed={listed})");
+        assert_eq!(
+            listing,
+            Some(listed),
+            "{provider} session listing must follow the policy"
+        );
         assert_eq!(
             events.first().unwrap()["kind"],
             "session_started",
