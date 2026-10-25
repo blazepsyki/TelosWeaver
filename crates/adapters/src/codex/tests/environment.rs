@@ -38,12 +38,17 @@ fn live() -> (CodexAdapter, PathBuf) {
             .as_nanos()
     ));
     std::fs::create_dir(&cwd).unwrap();
+    eprintln!(
+        "live cwd={} host={} model={model} effort=low",
+        cwd.display(),
+        live_host_id()
+    );
     (
         CodexAdapter::new(CodexConfig {
             executable,
             cli_version: std::env::var("TELOS_CODEX_VERSION")
                 .unwrap_or_else(|_| "unverified".into()),
-            host_id: fixtures::HOST_ID.into(),
+            host_id: live_host_id(),
             runtime: Arc::new(NativeRuntime),
             launcher: Arc::new(LiveResolver {
                 cwd: cwd.clone(),
@@ -55,6 +60,9 @@ fn live() -> (CodexAdapter, PathBuf) {
         cwd,
     )
 }
+fn live_host_id() -> String {
+    std::env::var("TELOS_CODEX_HOST_ID").unwrap_or_else(|_| fixtures::HOST_ID.into())
+}
 fn case(id: &str, prompt: &str) -> (TaskSpec, RunContext) {
     let (mut task, _) = inputs();
     task.id = id.into();
@@ -62,6 +70,7 @@ fn case(id: &str, prompt: &str) -> (TaskSpec, RunContext) {
     let mut context = fixtures::run_context(&task);
     context.run_id = id.into();
     context.idempotency_key = format!("{id}:start");
+    context.host_id = live_host_id();
     (task, context)
 }
 async fn execute(
@@ -170,21 +179,34 @@ async fn cleanup(adapter: &CodexAdapter, cwd: &std::path::Path) -> Result<(), Ad
 #[ignore = "explicit local extension discovery"]
 async fn env_discovery() {
     let home = PathBuf::from(
-        std::env::var_os("USERPROFILE")
-            .or_else(|| std::env::var_os("HOME"))
-            .unwrap(),
+        std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).unwrap(),
     );
+    // Spec §7.5, PROV-09: inspect the native local and Remote SSH extension roots.
+    let os = match std::env::consts::OS {
+        "windows" => "win32",
+        "macos" => "darwin",
+        os => os,
+    };
+    let arch = match std::env::consts::ARCH {
+        "x86_64" => "x64",
+        "aarch64" => "arm64",
+        arch => arch,
+    };
+    let target_platform = format!("{os}-{arch}");
     let request = DiscoveryRequest {
-        host_id: fixtures::HOST_ID.into(),
-        target_platform: "win32-x64".into(),
+        host_id: live_host_id(),
+        target_platform: target_platform.clone(),
         explicit_path: None,
-        extension_roots: vec![home.join(".vscode/extensions")],
+        extension_roots: vec![
+            home.join(".vscode/extensions"),
+            home.join(".vscode-server/extensions"),
+        ],
         home_dir: home,
         path_env: None,
         checked_at: timestamp(),
     };
     let record = NativeCliDiscoverer::new(Arc::new(NativeRuntime))
-        .discover(PROVIDER_ID, &cli_rule("win32-x64").unwrap(), &request)
+        .discover(PROVIDER_ID, &cli_rule(&target_platform).unwrap(), &request)
         .await;
     let cli = record.found().expect("extension discovery failed");
     assert_eq!(
@@ -194,8 +216,8 @@ async fn env_discovery() {
             .unwrap()
     );
     eprintln!(
-        "discovery version={} sha256={} extension={:?}",
-        cli.cli_version, cli.sha256, cli.extension
+        "discovery executable={} version={} sha256={} extension={:?}",
+        cli.executable_path, cli.cli_version, cli.sha256, cli.extension
     );
 }
 #[tokio::test(flavor = "multi_thread")]
