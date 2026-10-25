@@ -305,7 +305,7 @@ impl AgentAdapter for CodexAdapter {
             host_id: host_id.into(),
             checked_at: timestamp(),
             evidence_level: if listing_verified { EvidenceLevel::EnvironmentTested } else { EvidenceLevel::MockTested },
-            reason: Some("Windows x64 extension 26.1021.22027 / CLI 0.164.0-alpha.11.1: persisted vscode threads are in the default DB list; hidden has no verified native creation mechanism and is rejected; UI listing/opening remains unverified".into()),
+            reason: Some("Windows x64 extension 26.1021.22027 / CLI 0.164.0-alpha.11.1: persisted vscode threads are in the default DB list; hidden has no verified native creation mechanism and is rejected; UI listing/opening user-confirmed on 2026-10-25, live refresh unverified".into()),
         });
         Ok(capabilities)
     }

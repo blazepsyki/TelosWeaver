@@ -6,7 +6,7 @@
 | 기준 | main `269a771`, 착수 배정 `025a8f0`, Spec v1.5.3 DEC-08·§7.6, 계약 `7497877` |
 | Branch / Worktree | `ph0/codex-listing` / `D:\worktree\TelosWeaver\ph0-codex-listing` |
 | 환경 | Windows x64, `openai.chatgpt` 26.1021.22027, 확장 동봉 `codex-cli 0.164.0-alpha.11.1`, Rust 1.99.1 |
-| 결과 | `listed` 구현·Fresh/Resume/NativeFork 자동 판정 통과. `hidden`은 현재 공개 수단을 찾지 못해 명시적 거부. 실제 확장 목록 표시·대화 열기는 사용자 확인 대기 |
+| 결과 | `listed` 구현·Fresh/Resume/NativeFork 자동 판정 통과. 실제 확장 목록 표시·대화 열기도 사용자 확인 완료. `hidden`은 사용자 결정에 따라 명시적 거부. 화면 확인용 Thread 정리는 writer 해제 대기 |
 
 ## 1. X1: 실제 App Server에서 확인한 사실
 
@@ -70,9 +70,9 @@ CodexAdapter::with_vscode_listing(config, CodexVscodeListing::Listed)
 
 ### 2.2 Capability
 
-`detect()`의 `vscode_listing`은 확인한 Windows x64·CLI 버전·확장 디렉터리 조합의 `Listed`에서만 `supported`·`environment-tested`입니다. 다른 버전·플랫폼은 `unverified`, `Hidden`은 `unsupported`입니다. 사유에 대상 버전, Hidden 미지원, 화면 확인 미완료를 명시합니다.
+`detect()`의 `vscode_listing`은 확인한 Windows x64·CLI 버전·확장 디렉터리 조합의 `Listed`에서만 `supported`·`environment-tested`입니다. 다른 버전·플랫폼은 `unverified`, `Hidden`은 `unsupported`입니다. 사유에 대상 버전, Hidden 미지원, 사용자 화면 확인 완료와 실시간 반영 미검증을 명시합니다.
 
-이는 DB 기본 목록 자동 판정의 지원 상태입니다. 실제 확장 화면에서 목록·대화를 확인했다는 의미는 아닙니다. Linux는 이번 판정 범위가 아닙니다.
+DB 기본 목록은 자동 시험으로 확인했고, 실제 확장 화면의 목록 표시·대화 열기는 사용자 응답으로 확인했습니다. 에이전트가 화면을 직접 관찰한 결과와 구분합니다. Linux는 이번 판정 범위가 아닙니다.
 
 ## 3. X4: 실제 Adapter 자동 판정
 
@@ -105,17 +105,17 @@ CodexAdapter::with_vscode_listing(config, CodexVscodeListing::Listed)
 
 ## 5. X5: 화면 확인
 
-**미검증·사용자 확인 대기입니다.** 자동 시험 후 Fresh Thread 하나를 공식 `thread/unarchive`로 복원해 기본 DB 목록 포함을 재확인했습니다. 사용자에게 아래 폴더를 VS Code 새 창으로 열고 Codex 대화 목록에서 해당 대화를 찾아 열어 달라고 요청했습니다.
+**사용자 확인 완료입니다(2026-10-25).** 자동 시험 후 Fresh Thread 하나를 공식 `thread/unarchive`로 복원해 기본 DB 목록 포함을 재확인했습니다. 사용자에게 아래 폴더를 VS Code 새 창으로 열고 Codex 대화 목록에서 해당 대화를 찾아 열어 달라고 요청했으며, 사용자가 **"목록에 보이고 대화도 열림"**으로 답했습니다.
 
 - 폴더: `C:\Users\Psyki-HOME\AppData\Local\Temp\telos-codex-live-22132-1792937666091924000`
 - Thread: `01a17369-a6d5-7001-8733-3f4eadd8f931`
 - 제목: 공식 `thread/name/set`으로 `TelosWeaver DEC-08 PONG` 지정
 - 내용: Fresh와 Resume의 `PONG` 응답
-- 별도 판정: 목록 표시 / 대화 열기 / 실시간 반영. 실시간 반영은 시험하지 않습니다.
+- 별도 판정: 목록 표시 = 사용자 확인 통과 / 대화 열기 = 사용자 확인 통과 / 실시간 반영 = 미검증.
 
-실행은 종료됐으며 화면 확인 대상 하나만 의도적으로 남겼습니다. 사용자 확인 또는 통합 시점에 이 Thread도 공식 Archive로 정리합니다. 사용자의 다른 Thread는 수정하지 않습니다.
+실행은 종료됐으며 화면 확인 대상 하나만 의도적으로 남겼습니다. 확인 후 정리하려 했으나 `thread/read`와 직접 `thread/archive`가 모두 `-32600: already has an active writer`로 거부됐습니다. 사용자가 연 Codex 확장이 writer를 보유한 상태이므로 시험용 새 창만 닫아 달라고 요청했습니다. writer 해제 후 이 Thread만 공식 Archive로 정리하며, 다른 사용자 Thread나 프로세스는 건드리지 않습니다.
 
-사용자는 목록 갱신 방법을 모른다고 답했습니다. 설치된 확장 26.1021.22027의 명령 목록에는 별도 갱신 명령이 없어, **새 시험 폴더 창에서만** `Ctrl+Shift+P` → `Developer: Reload Window`, 이어서 `Codex: Open Codex Sidebar`로 목록을 다시 여는 절차를 안내했습니다. 현재 작업 창은 새로고침할 필요가 없습니다. 이 안내를 화면 통과로 기록하지 않습니다.
+사용자는 처음에 목록 갱신 방법을 모른다고 답했습니다. 설치된 확장 26.1021.22027의 명령 목록에는 별도 갱신 명령이 없어, **새 시험 폴더 창에서만** `Ctrl+Shift+P` → `Developer: Reload Window`, 이어서 `Codex: Open Codex Sidebar`로 목록을 다시 여는 절차를 안내했습니다. 그 후 위 확인 응답을 받았습니다.
 
 ## 6. X6: 시험 Thread 정리
 
@@ -126,7 +126,7 @@ CodexAdapter::with_vscode_listing(config, CodexVscodeListing::Listed)
 | 다른 이름·출처, 무 Turn | `01a17365-3b5e-72e1-8b65-8fc45d815e46`, `01a17365-3ceb-7fd0-b4e2-555b13a8c1cd`, `01a17365-3f01-7350-92fd-35a2af3bec37` | 공식 Archive 응답 성공 |
 | 비대화형 출처 완료 Turn | `01a1736c-6c96-74a2-bad6-33fd519cc28a`, `01a1736c-7a15-71c1-b629-720dff3fece9` | 공식 Archive 응답 성공 |
 | Adapter Fork | `01a17369-d017-7c11-9cf0-f692417a099b` | 공식 Archive 응답 성공 |
-| Adapter Fresh·Resume | `01a17369-a6d5-7001-8733-3f4eadd8f931` | Archive 후 화면 확인용으로 공식 Unarchive. 확인·병합 후 정리 대상 |
+| Adapter Fresh·Resume | `01a17369-a6d5-7001-8733-3f4eadd8f931` | Archive 후 화면 확인용 Unarchive. 사용자 화면 확인 완료. 공식 Archive가 active writer로 거부되어 시험 창 종료 후 재시도 대상 |
 | Adapter 재검증 Fresh·Resume·Fork | `01a17371-a72f-76c2-95e9-75b63e52ad61`, `01a17371-cefe-7ff1-a3a0-7c48bf645990` | 공식 Archive 응답 성공 |
 
 마지막에 여섯 시험 폴더를 대상으로 `thread/list`를 `archived: false`·`useStateDbOnly: true`로 조회했습니다. 화면 확인용 Thread 하나만 활성 목록에 남았으며 나머지 시험 폴더의 활성 목록은 비어 있었습니다.
@@ -136,4 +136,4 @@ CodexAdapter::with_vscode_listing(config, CodexVscodeListing::Listed)
 1. 운영자 정책의 `vscodeListing`을 명시적 생성자에 연결하고 실제 설정·방식을 Snapshot에 기록하는 I1·I2는 INTEGRATION 범위입니다.
 2. 현재 Codex 버전에서 `hidden` 생략 구현 가설은 반증됐습니다. 사용자는 **표시 기능을 구현하고 Hidden은 명시적으로 거부**하는 방향을 선택했습니다(2026-10-25). 이 범위로 통합 검토를 요청합니다.
 3. §7.6·작업 지시의 출처 설명을 실제 관찰과 구분할 필요가 있습니다. **REQ-021**로 공통 문서·정책의 실측·사용자 결정 반영을 요청했습니다(대표 main `7482e14`). 이 Branch에서 공통 문서를 수정하지 않습니다.
-4. **DEC-08 전체 완료로 선언하지 않습니다.** 기본 목록 자동 판정은 통과했지만 Hidden과 실제 화면 확인은 위 제한·미검증 상태입니다. Linux·통합 정책·최종 G3 판정은 별도입니다.
+4. 사용자와 합의한 Codex 지원 범위(Listed 지원·Hidden 명시 거부)는 구현·자동 판정·사용자 화면 확인을 마쳤습니다. 시험 Thread 정리, Linux·통합 정책·다른 Provider와 최종 G3 판정은 별도입니다. 전체 DEC-08 통합 완료로 확대하지 않습니다.
