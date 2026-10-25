@@ -9,6 +9,11 @@
         "null"
       ]
     },
+    "attached": {
+      "description": "RN MCP 서버나 Hook으로 연결된 세션입니다. `false`(Provider 세션 목록에서 찾기만 함)이면 Phase 0에서는\n메시지를 보낼 수 없습니다(`messages.send` → `refused`).",
+      "type": "boolean",
+      "default": false
+    },
     "endpoint": {
       "$ref": "#/$defs/EndpointRef"
     },

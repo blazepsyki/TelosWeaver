@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RnNotification",
+  "type": "object",
+  "properties": {
+    "method": {
+      "$ref": "#/$defs/RnNotificationMethod"
+    },
+    "params": true,
+    "protocolVersion": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "protocolVersion",
+    "method",
+    "params"
+  ],
+  "$defs": {
+    "RnNotificationMethod": {
+      "oneOf": [
+        {
+          "description": "[`RnEventParams`]",
+          "type": "string",
+          "const": "messages.event"
+        }
+      ]
+    }
+  }
+}

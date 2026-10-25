@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RnEventParams",
+  "type": "object",
+  "properties": {
+    "event": {
+      "$ref": "#/$defs/RnEvent"
+    },
+    "subscriptionId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "subscriptionId",
+    "event"
+  ],
+  "$defs": {
+    "RnEvent": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/RnEventKind"
+        },
+        "payload": true,
+        "sequence": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "cursor",
+        "sequence",
+        "kind",
+        "payload"
+      ]
+    },
+    "RnEventKind": {
+      "oneOf": [
+        {
+          "description": "Payload [`InboundMessage`]: Core 메일함으로 온 메시지",
+          "type": "string",
+          "const": "message"
+        },
+        {
+          "description": "Payload [`DeliveryReceipt`]: Core가 보낸 메시지의 Receipt가 바뀜",
+          "type": "string",
+          "const": "receipt"
+        },
+        {
+          "description": "Payload [`SessionEndpoint`]: 이 Host 세션의 접속·해제(`presence`가 `offline`이면 해제)",
+          "type": "string",
+          "const": "presence"
+        },
+        {
+          "description": "Payload 빈 객체. 요청한 커서가 보존 범위를 벗어났거나 RN이 재시작했습니다. 그 사이 이벤트는 오지 않으므로\n`messages.status`·`sessions.discover`로 상태를 다시 맞춥니다. 구독은 이어지며 이후 새 이벤트를 받습니다.",
+          "type": "string",
+          "const": "resync_required"
+        }
+      ]
+    }
+  }
+}

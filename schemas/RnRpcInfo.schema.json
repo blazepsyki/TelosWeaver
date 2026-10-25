@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RnRpcInfo",
+  "description": "RN 상태 디렉터리의 `rpc.json`. RN이 RPC를 연 뒤 씁니다.",
+  "type": "object",
+  "properties": {
+    "endpoint": {
+      "description": "Windows Named Pipe 이름(`\\\\.\\pipe\\…`) 또는 Unix Socket 경로",
+      "type": "string"
+    },
+    "pid": {
+      "description": "이 정보를 쓴 RN 프로세스",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "rpcVersion": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "endpoint",
+    "rpcVersion",
+    "pid"
+  ]
+}

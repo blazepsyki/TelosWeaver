@@ -101,5 +101,12 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
         ("RnDeliveryReceipt", schema_for!(rn::DeliveryReceipt)),
         ("RnSubscribeParams", schema_for!(rn::SubscribeParams)),
         ("RnEvent", schema_for!(rn::RnEvent)),
+        ("RnRpcInfo", schema_for!(rn::RnRpcInfo)),
+        ("RnHelloParams", schema_for!(rn::RnHelloParams)),
+        ("RnHelloResult", schema_for!(rn::RnHelloResult)),
+        ("RnNotification", schema_for!(rn::RnNotification)),
+        ("RnEventParams", schema_for!(rn::RnEventParams)),
+        ("RnSubscribeResult", schema_for!(rn::SubscribeResult)),
+        ("RnInboundMessage", schema_for!(rn::InboundMessage)),
     ]
 }

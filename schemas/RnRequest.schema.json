@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RnRequest",
+  "description": "`Debug`는 `params.token`을 가립니다 (SAFE-04).",
   "type": "object",
   "properties": {
     "method": {
@@ -23,6 +24,11 @@
   "$defs": {
     "RnMethod": {
       "oneOf": [
+        {
+          "description": "[`RnHelloParams`] → [`RnHelloResult`]. 연결의 첫 요청이어야 합니다.",
+          "type": "string",
+          "const": "rn.hello"
+        },
         {
           "description": "빈 객체 → [`RnHealth`]",
           "type": "string",
@@ -59,12 +65,12 @@
           "const": "messages.status"
         },
         {
-          "description": "[`SubscribeParams`] → 이후 [`RnEvent`] 스트림",
+          "description": "[`SubscribeParams`] → [`SubscribeResult`], 이후 [`RnNotification`] (`messages.event`)",
           "type": "string",
           "const": "messages.subscribe"
         },
         {
-          "description": "P1. Agy 탐지·버전·기능 진단",
+          "description": "P1. Agy 탐지·버전·기능 진단. Phase 0에서는 `refused`입니다.",
           "type": "string",
           "const": "providers.agy.probe"
         }

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InboundMessage",
+  "description": "Core 메일함으로 온 메시지(`message` 이벤트의 Payload). 구독자에게 보낸 시점에 그 Receipt는 `delivered`입니다.",
+  "type": "object",
+  "properties": {
+    "body": {
+      "type": "string"
+    },
+    "messageId": {
+      "type": "string"
+    },
+    "receivedAt": {
+      "type": "string"
+    },
+    "replyTo": {
+      "description": "답하는 대상 메시지(`messageId`)",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sender": {
+      "description": "보낸 세션이 이 Host의 Endpoint로 확인되면 그 Endpoint",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EndpointRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "senderAddress": {
+      "description": "보낸 쪽의 RN 주소(`person/name`). 사람이 읽는 값이며 정체성이 아닙니다.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "messageId",
+    "senderAddress",
+    "body",
+    "receivedAt"
+  ],
+  "$defs": {
+    "EndpointRef": {
+      "description": "사람이 읽는 주소는 영구 Session ID가 아닙니다. 대상은 항상 이 정체성으로 고정합니다 (§12.2).",
+      "type": "object",
+      "properties": {
+        "fingerprint": {
+          "type": "string"
+        },
+        "hostId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostId",
+        "provider",
+        "nativeSessionId",
+        "fingerprint"
+      ]
+    }
+  }
+}
