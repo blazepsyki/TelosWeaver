@@ -261,3 +261,25 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 3. `RunFeed`가 구독 응답을 기다리는 동안 다른 구독의 알림까지 대기열(64개 상한)에 넣어, 여러 Run을 동시에 관찰하게 되면 다른 구독 때문에 `limit`으로 끊길 수 있습니다(현재 UI는 한 번에 한 Run).
 
 연결·재연결 중복 코드(`connect`와 `scheduleReconnect`의 client 연결 처리)도 1번을 고칠 때 함께 정리하기를 권합니다. 판정: **통합**. Linux·Remote SSH 실행 검증과 전체 UI는 기존대로 후속입니다.
+
+### 8.8 REQ-016 검토·통합 (`2331c7c`)
+
+`ph0/ext-req016`(`44a4df3`, Codex `PH0-EXT-REQ016-01a17034`)를 검토했습니다. 기준 `e899789` 이후 `main`의 PH0-RN-05 변경과 경로가 겹치지 않고, 변경은 EXT 소유 경로(`extension/**`, `evidence/PH0-EXT/REQ-016.md`)뿐입니다. Rust·공통 계약·Schema 변경은 없습니다.
+
+| 요청 항목 | 확인 |
+|---|---|
+| ① 재연결 횟수 | `connect`·`scheduleReconnect`의 연결 처리를 `useClient`로 합쳤습니다. 인증과 첫 Health(Degraded 포함)가 성공한 뒤에만 `failures = 0`입니다. Health가 실패하면 초기화하지 않아 연속 5회 상한이 유지됩니다. `closed` 처리는 generation과 client 소유권을 함께 보므로, 이전 연결이 늦게 닫혀도 새 연결을 지우지 않습니다. Health 시간 초과는 클라이언트가 `timeout`으로 닫혀 재연결을 예약하고, 같은 시도의 `catch`가 다시 예약하려 해도 `this.retry` 검사가 막습니다 |
+| ② Heartbeat 출력 | `phaseName`이 바뀔 때만 Output에 기록하고, 화면은 Health 응답마다 갱신합니다 |
+| ③ 구독 분배 | `request`의 응답 처리 함수가 `pending.resolve` 안에서 동기로 실행됩니다. `receive`는 한 데이터 묶음의 줄을 순서대로 처리하므로, 다음 알림을 해석하기 전에 구독 ID가 연결됩니다. 처리 함수의 예외는 그 요청만 거부합니다(전송 계층으로 번지지 않음). 64개 임시 대기열은 없앴습니다. 이 방식은 Core가 구독 응답을 송신 대기열에 먼저 넣고 재생 작업을 시작하는 순서(`server.rs`의 `RunsSubscribe`)에 기대며, 그 순서는 HOST 시험 `api_replays_finished_run_and_unsubscribes_live_run`이 이미 검사합니다 |
+
+**재검증 (Windows 11, Node v24.14.0, VS Code 1.143.1)**
+
+| 명령 | 결과 |
+|---|---|
+| 수정 전 소스(`e899789`) + 새 시험 3개(`six separate outages`·`foreign traffic while opening`·`repeated Health refreshes`) | 3개 모두 실패(제출 기록과 같음). 임시 Worktree는 삭제 |
+| `npm ci --ignore-scripts`, `npm test` (Worktree·병합본 `main` 각각) | 취약점 0, 28개 통과 |
+| `node --test test/live-core.cjs` (`main` 빌드 Core) | 1개 통과 (Worktree·`main` 각각) |
+| `node scripts/test-host.cjs` (격리 프로필) | 통과, 5항목, `coreSurvivedHostExit=true` (Worktree `%TEMP%\telos-ext-host-5ubupF`, `main` `%TEMP%\telos-ext-host-WfYiAh`) |
+| 시험 후 프로세스 | `telos-weaver` 없음. Provider·모델 호출 없음 |
+
+**비차단 발견 → REQ-017**: 공통 계약 `telos_schema::api` 모듈 문서에는 "구독 이벤트는 응답과 섞여 도착할 수 있습니다"라고만 적혀 있습니다. **한 구독의 알림은 그 구독의 응답 뒤에만 온다**는 보장은 Core 구현과 HOST 시험에만 있습니다. Extension이 이제 이 순서에 기대므로 계약 문서에 이 보장을 명시해야 합니다(문서만 바뀌고 JSON Schema 변화 없음). 판정: **통합**, REQ-016 완료.
