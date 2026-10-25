@@ -168,3 +168,42 @@ test("repeated Health refreshes update the view and log only status transitions"
     CoreConnection.prototype.connect = original;
   }
 });
+
+test("RN Health changes refresh its row while the Core connection and output stay stable", async () => {
+  const fixture = ui();
+  const original = CoreConnection.prototype.connect;
+  let connection;
+  let calls = 0;
+  CoreConnection.prototype.connect = async function (root) {
+    calls++;
+    connection = this;
+    this.state = { phase: "connected", root, hello, health };
+    this.emit("state", this.state);
+  };
+  try {
+    fixture.vscode.workspace.isTrusted = true;
+    await fixture.commands.get("telosWeaver.connect")();
+    for (const status of ["ok", "degraded", "ok"]) {
+      connection.state = {
+        ...connection.state,
+        health: {
+          ...health,
+          components: [
+            { name: "execution", status: "ok" },
+            { name: "rn", status, detail: "fixture RN" },
+          ],
+        },
+      };
+      connection.emit("state", connection.state);
+      const rows = fixture.provider().getChildren();
+      assert.ok(rows.some((row) => row.label === "rn" && row.description === status));
+      assert.ok(rows.some((row) => row.label === "execution" && row.description === "ok"));
+      assert.equal(fixture.api.state().phase, "connected");
+    }
+    assert.equal(calls, 1);
+    assert.deepEqual(fixture.output, ["연결됨 (degraded)"]);
+  } finally {
+    fixture.close();
+    CoreConnection.prototype.connect = original;
+  }
+});

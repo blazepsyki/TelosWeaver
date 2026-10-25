@@ -67,6 +67,99 @@ fn config(temporary: &Temporary) -> ApiServerConfig {
     }
 }
 
+// Spec §12.3, REQ-019: dynamic components extend the existing Health contract.
+#[test]
+fn registered_health_components_preserve_builtins_and_refresh_their_status() {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+
+    let (execution, _) = supervisor();
+    let baseline = execution.health();
+    let state = Arc::new(AtomicUsize::new(0));
+    let current = state.clone();
+    execution.add_health_component(Arc::new(move || ComponentHealth {
+        name: "rn".into(),
+        status: [
+            HealthStatus::Ok,
+            HealthStatus::Degraded,
+            HealthStatus::Unavailable,
+        ][current.load(Ordering::SeqCst)],
+        detail: Some(format!("state {}", current.load(Ordering::SeqCst))),
+    }));
+    execution.add_health_component(Arc::new(|| ComponentHealth {
+        name: "provider:fixture".into(),
+        status: HealthStatus::Ok,
+        detail: None,
+    }));
+    for (value, expected) in [
+        HealthStatus::Ok,
+        HealthStatus::Degraded,
+        HealthStatus::Unavailable,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        state.store(value, Ordering::SeqCst);
+        let health = execution.health();
+        assert_eq!(health.status, baseline.status);
+        assert_eq!(health.server_version, baseline.server_version);
+        assert_eq!(&health.components[..3], baseline.components.as_slice());
+        assert_eq!(health.components.len(), 5);
+        assert_eq!(health.components[3].name, "rn");
+        assert_eq!(health.components[3].status, expected);
+        assert_eq!(health.components[3].detail, Some(format!("state {value}")));
+        assert_eq!(health.components[4].name, "provider:fixture");
+    }
+}
+
+// Spec §3.3·§12.3, REQ-019: use the authenticated API, not just a direct Rust call.
+#[tokio::test(flavor = "multi_thread")]
+async fn local_api_refreshes_an_added_rn_component_without_changing_default_health() {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+
+    let temporary = Temporary::new();
+    let (execution, _) = supervisor();
+    let baseline = execution.health();
+    let server = ApiServer::start(config(&temporary), execution.clone())
+        .await
+        .unwrap();
+    let token = std::fs::read_to_string(server.token_path()).unwrap();
+    let mut client = Client::connect(server.endpoint()).await;
+    client.hello(&token).await;
+    let connected = Arc::new(AtomicBool::new(true));
+    let current = connected.clone();
+    execution.add_health_component(Arc::new(move || ComponentHealth {
+        name: "rn".into(),
+        status: if current.load(Ordering::SeqCst) {
+            HealthStatus::Ok
+        } else {
+            HealthStatus::Degraded
+        },
+        detail: Some("fixture RN".into()),
+    }));
+    for (value, expected) in [
+        (true, HealthStatus::Ok),
+        (false, HealthStatus::Degraded),
+        (true, HealthStatus::Ok),
+    ] {
+        connected.store(value, Ordering::SeqCst);
+        client.send("health", "core.health", json!({})).await;
+        let response = client.receive().await;
+        let health: HealthResult = serde_json::from_value(response["result"].clone()).unwrap();
+        assert_eq!(health.status, baseline.status);
+        assert_eq!(&health.components[..3], baseline.components.as_slice());
+        assert_eq!(health.components.len(), 4);
+        assert_eq!(health.components[3].name, "rn");
+        assert_eq!(health.components[3].status, expected);
+    }
+    server.shutdown().await.unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn authentication_health_unknown_method_and_token_rotation() {
     let temporary = Temporary::new();
