@@ -109,10 +109,13 @@ CodexAdapter::with_vscode_listing(config, CodexVscodeListing::Listed)
 
 - 폴더: `C:\Users\Psyki-HOME\AppData\Local\Temp\telos-codex-live-22132-1792937666091924000`
 - Thread: `01a17369-a6d5-7001-8733-3f4eadd8f931`
+- 제목: 공식 `thread/name/set`으로 `TelosWeaver DEC-08 PONG` 지정
 - 내용: Fresh와 Resume의 `PONG` 응답
 - 별도 판정: 목록 표시 / 대화 열기 / 실시간 반영. 실시간 반영은 시험하지 않습니다.
 
 실행은 종료됐으며 화면 확인 대상 하나만 의도적으로 남겼습니다. 사용자 확인 또는 통합 시점에 이 Thread도 공식 Archive로 정리합니다. 사용자의 다른 Thread는 수정하지 않습니다.
+
+사용자는 목록 갱신 방법을 모른다고 답했습니다. 설치된 확장 26.1021.22027의 명령 목록에는 별도 갱신 명령이 없어, **새 시험 폴더 창에서만** `Ctrl+Shift+P` → `Developer: Reload Window`, 이어서 `Codex: Open Codex Sidebar`로 목록을 다시 여는 절차를 안내했습니다. 현재 작업 창은 새로고침할 필요가 없습니다. 이 안내를 화면 통과로 기록하지 않습니다.
 
 ## 6. X6: 시험 Thread 정리
 
@@ -131,6 +134,6 @@ CodexAdapter::with_vscode_listing(config, CodexVscodeListing::Listed)
 ## 7. INTEGRATION 인계
 
 1. 운영자 정책의 `vscodeListing`을 명시적 생성자에 연결하고 실제 설정·방식을 Snapshot에 기록하는 I1·I2는 INTEGRATION 범위입니다.
-2. 현재 Codex 버전에서 `hidden` 생략 구현 가설은 반증됐습니다. 기본 표시만 지원하고 Hidden을 명시 거부하는 구현을 검토 요청하며, 이 제한에 대한 사용자 선택을 질문했습니다. 아직 답변을 승인으로 기록하지 않았습니다.
+2. 현재 Codex 버전에서 `hidden` 생략 구현 가설은 반증됐습니다. 사용자는 **표시 기능을 구현하고 Hidden은 명시적으로 거부**하는 방향을 선택했습니다(2026-10-25). 이 범위로 통합 검토를 요청합니다.
 3. §7.6·작업 지시의 출처 설명을 실제 관찰과 구분할 필요가 있습니다. 공통 문서·정책 변경은 기존 담당에게 요청하며 이 Branch에서 수정하지 않습니다.
 4. **DEC-08 전체 완료로 선언하지 않습니다.** 기본 목록 자동 판정은 통과했지만 Hidden과 실제 화면 확인은 위 제한·미검증 상태입니다. Linux·통합 정책·최종 G3 판정은 별도입니다.
