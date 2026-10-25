@@ -13,6 +13,50 @@ use telos_schema::{
     fixtures::{HOST_ID, PROJECT_ID},
 };
 
+// Spec §12.3, REQ-019: RN Health is diagnostic; it must not gate Managed Run control.
+#[tokio::test]
+async fn degraded_rn_health_does_not_gate_run_start_tracking_replay_or_cancel() {
+    use telos_schema::api::{ComponentHealth, HealthStatus};
+
+    let (execution, adapter) = supervisor();
+    execution.add_health_component(Arc::new(|| ComponentHealth {
+        name: "rn".into(),
+        status: HealthStatus::Degraded,
+        detail: Some("fixture RN is down".into()),
+    }));
+    let started = execution.start(params("hold", "rn-down")).await.unwrap();
+    assert_eq!(
+        execution.inspect(&started.run_id).unwrap().status,
+        RunStatus::Running
+    );
+    assert_eq!(adapter.starts.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        execution.health().components.last().unwrap().status,
+        HealthStatus::Degraded
+    );
+    assert!(execution.cancel(&started.run_id).await.unwrap().accepted);
+    let events: Vec<_> = tokio::time::timeout(
+        Duration::from_secs(2),
+        execution.subscribe(&started.run_id, 0).unwrap().collect(),
+    )
+    .await
+    .unwrap();
+    assert!(events.iter().all(Result::is_ok));
+    assert_eq!(events.len(), 5);
+    assert_eq!(
+        execution.inspect(&started.run_id).unwrap().status,
+        RunStatus::Cancelled
+    );
+    let replay: Vec<_> = execution
+        .subscribe(&started.run_id, 0)
+        .unwrap()
+        .collect()
+        .await;
+    assert_eq!(replay.len(), events.len());
+    assert!(replay.iter().all(Result::is_ok));
+    assert_eq!(execution.health().components[0].status, HealthStatus::Ok);
+}
+
 #[tokio::test]
 async fn duplicate_start_is_single_execution_and_changed_content_conflicts() {
     let (execution, adapter) = supervisor();

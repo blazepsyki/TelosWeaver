@@ -32,6 +32,9 @@ test(
     await first.connect(env.root, options, true);
     assert.equal(first.state.phase, "connected");
     assert.equal(first.state.health.status, "degraded");
+    const rn = first.state.health.components.find((item) => item.name === "rn");
+    assert.equal(rn?.status, "degraded");
+    assert.match(rn.detail, /not configured/);
     assert.equal(first.state.hello.projectId, `project-${env.location.key}`);
     const task = {
       id: "deny-fixture",
