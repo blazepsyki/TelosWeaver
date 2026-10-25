@@ -114,7 +114,7 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 항목 | 결정 | 상태 | 결정일 |
 |---|---|---|---|
 | 줄바꿈 | 저장소 전체 LF 고정, `.cmd`·`.bat`만 CRLF (`.gitattributes`) | 적용 | 2026-10-24 |
-| Linux·Remote SSH 실행 Host | 같은 PC의 WSL2 Ubuntu 26.04를 Linux Host 겸 Remote SSH Host로 사용. 절차는 [WSL_LINUX_HOST.md](WSL_LINUX_HOST.md). G3 필수 조건이므로 미루지 않음 | 절차 수립, 배포판 미설치. 구성 시점: PH0-HOST가 공용 런타임 구현에 착수할 때(늦어도 G2 전) | 2026-10-24 |
+| Linux·Remote SSH 실행 Host | 같은 PC의 WSL2 Ubuntu 26.04를 Linux Host 겸 Remote SSH Host로 사용. 절차는 [WSL_LINUX_HOST.md](WSL_LINUX_HOST.md). G3 필수 조건이므로 미루지 않음 | 배포판 설치 완료(2026-10-25 확인): `Ubuntu-26.04`(26.04.1 LTS)·WSL2·systemd 동작, 사용자 `gth1919`. 패키지·Rust·Node·SSH 서버·원격 확장·Clone은 미구성([절차](WSL_LINUX_HOST.md) §2.0). Windows `PATH` 상호 운용으로 Windows `npm`이 잡히므로 Linux 증거에 섞이지 않게 주의(`appendWindowsPath=false`는 사용자 결정 대기) | 2026-10-24 |
 | CI | 원격 저장소는 생겼으나(2026-10-24) 사용자 결정으로 계속 보류. 도입 전까지는 통합 담당이 Spec §19.5.8의 검사 명령을 수동 실행하고 증거에 기록 | 보류 | 2026-10-24 |
 | 대상 OS 우선순위 | 구현·일상 검증은 Windows 로컬 우선. Linux·Remote SSH는 G3 전에 WSL로 확보 | 적용 | 2026-10-24 |
 | G1 대표 Provider | Claude Code. Spec §19.5.6의 기본값(Codex)에서 변경. 이유: PH0-CODEX 미배정, 통합 담당이 PH0-CLAUDE를 함께 맡음. 마스터 Provider 선택(MASTER-01)과는 무관 | 적용 | 2026-10-24 |
@@ -217,5 +217,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-25 16:02 | `gemini-4-argon/session-9e6137eb` | 사용자 요청으로 현황 최신화 및 G2 통과 판정에 대한 PH0-AGY 담당 확인 완료. 기준 `ef3d2f1`, Spec v1.5.1, 계약 `7497877`. Core 연결(`Phase0Execution::build`의 `--app_data_dir` 사전 검증·`AgyLauncher`의 경로 정규화·`--add-dir`·읽기 전용 모드·권한 우회 차단)과 G2 실환경 시험·증거(`phase0_g2.rs`, INTEGRATION §8.4·§8.9) 검토 완료. `main` Workspace 152개(`agy_adapter` 14개 포함)·엄격 Clippy·fmt·`env_discovery_and_data_dir_option`(모델 호출 없는 실환경 탐지·버전 옵션 검증) 재통과 확인 후 PH0-AGY 행에 G2 확인 완료 기록. 게이트 최종 확정 표기는 통합 담당 권한 유지 | `ef3d2f1` |
 | 2026-10-25 16:07 | `Codex / G2-REVIEW-01a17034` | G2 HOST·CODEX·EXT 담당 확인 및 REQ-019 사후 확인 완료(`9f552b8`). 기본 Health·전체 판정 보존, 동적 RN 상태·실행 감독 독립성 검토 및 HOST 시험 3개 추가. Workspace 155개(실환경 32개 기본 제외)·엄격 Clippy·fmt·Extension 29개·실제 RN 왕복/재시작/정지 1개·실제 Core 1개·격리 VS Code Host 5항목 통과, PID 종료 확인. AGY 확인 `2fff559`도 확인. 제품 코드 수정·Provider 호출 없음. 각 담당 확인에 동의하며 INTEGRATION의 G2/REQ-019 최종 상태 반영·시험/증거 Branch 검토·병합 요청 | `08a4a13`, `9f552b8`, 계약 `7497877` |
 | 2026-10-25 16:24 | `claude-opus-5.5/session-c9336d2c` | 담당 확인 검토·반영: `ph0/host-g2-review`(`9f552b8`)를 `e8380ae`로 통합(HOST 시험 3개·EXT 시험 2개 조건·담당 확인 문서 3개, 제품 코드 변경 없음). `main` Workspace 155개·엄격 Clippy·fmt·Extension 29개 재통과. AGY 확인(`2fff559`)과 함께 G2 `통과 판정 → 통과 확정`, REQ-019 HOST 사후 확인 완료. §7 표 중간의 빈 줄 제거(형식만). `ph0/host-g2-review` Branch·Worktree 삭제, 원격에 없던 담당 확인 커밋 3개 포함 push | `e8380ae` |
+| 2026-10-25 16:31 | `claude-opus-5.5/session-c9336d2c` | 사용자가 WSL `Ubuntu-26.04`를 설치. 읽기 전용으로 확인해 WSL 절차 §2.0에 현황 기록(`a060c37`): §2.1 배포판·§2.2 systemd 완료, §2.3~§3 미구성. §6 "Linux·Remote SSH 실행 Host" 상태 갱신. G3 Linux·Remote SSH 검증은 §2.3~§2.9·§3 구성 뒤 착수 | `a060c37` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
