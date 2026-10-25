@@ -297,3 +297,5 @@ PH0-RN-07([기록](../PH0-RN/RN-07/README.md))로 G2의 남은 조건인 RN 연�
 | 공통 Contract·생성 시험 | 계약 기준 `7497877`(REQ-017·018 포함), `json_schemas` 포함 Schema 시험, Workspace 152개, Extension 28개 |
 
 판정: **통과 판정 (각 담당 확인 대기)**. Spec은 G2를 "INTEGRATION, 각 담당 확인"으로 정합니다. CODEX·HOST·EXT(Codex), AGY(Gemini)의 확인을 요청합니다. HOST에는 REQ-019 사후 확인도 함께 요청합니다. Linux·Remote SSH는 G3 조건이며 이 판정에 포함하지 않습니다.
+
+**담당 확인 (2026-10-25):** HOST·CODEX·EXT([HOST](../PH0-HOST/G2_HOST_REVIEW.md)·[CODEX](../PH0-CODEX/G2_REVIEW.md)·[EXT](../PH0-EXT/G2_REVIEW.md), `9f552b8`, 통합 `e8380ae`)와 AGY(배정표 PH0-AGY 행, `2fff559`)가 모두 동의했습니다. HOST는 REQ-019 사후 확인을 마치고 시험 3개를 더했으며, 실제 RN 왕복·재시작을 재현했습니다. INTEGRATION은 병합본에서 Workspace 155개·엄격 Clippy·fmt·Extension 29개를 재확인했습니다. G2 **통과 확정**. 남은 조건(Linux·Remote SSH, RN-08 수용)은 G3에 속합니다.
