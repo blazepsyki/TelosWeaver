@@ -420,6 +420,8 @@ Pop-Location
 | 출처(`source`) 기록 | `conversation_summaries.db` 확인: 대화형 CLI(TUI)는 `CORTEX_TRAJECTORY_SOURCE_CLI`로 기록되고, VS Code 확장 대화와 Headless Print(`--input-format stream-json --output-format stream-json`) 실행은 모두 빈 문자열(`""`)로 기록됨 |
 | 실제 기록 시험 (2026-10-25, Windows) | `--app_data_dir=antigravity --project TelosWeaver --add-dir <임시 폴더> --input-format stream-json --output-format stream-json` 실행 → `~/.gemini/antigravity/conversation_summaries.db`에 `project_id: "c1ad552c-317e-44a5-b059-c8f9df88d085"`, `workspace_uris: ["file:///<임시 폴더>","file:///d:/Downloads/Vibe_dev/TelosWeaver"]`, `app_data_dir: "antigravity"` 기록 확인 (시험 세션 `21278063-6511-418f-a873-6f0fdc900389` 즉시 정리 완료) |
 | Resume 시 프로젝트 변경 시험 | `--project` 없이 생성되어 `default-cli-project`로 기록된 세션을 `--conversation <ID> --project TelosWeaver`로 재개(Resume)해도 기존 세션의 `project_id`와 `workspace_uris`는 `default-cli-project`에서 바뀌지 않음을 확인 (시험 세션 `22feb09b-4617-463a-b0cf-7a6124888145` 즉시 정리 완료) |
+| 실제 VS Code 화면 표시 (2026-10-26, Windows) | C3 명령(`--app_data_dir=antigravity --project TelosWeaver --add-dir D:\Downloads\Vibe_dev\TelosWeaver`, cwd 같음, `gemini-3.8-flash-low`·`--effort low`, Stream JSON) 실행 → `SUCCESS`·종료 코드 0. `conversation_summaries.db`에 `project_id` = TelosWeaver UUID, `app_data_dir: "antigravity"`, `source: ""` 기록. VS Code(작업 폴더 `Vibe_dev`)의 Antigravity 확장 목록에 **`Developer: Reload Window` 뒤 표시됨**(사용자 확인). Reload 전에는 갱신되지 않을 수 있음. 시험 대화 `dae9515c-9f51-4275-a227-96386f0b1985` |
+| `--mode plan`과 `--disable-slash-commands` | 위 실행에서 `agy` 1.4.7이 `warning: --mode plan has no effect while slash command expansion is disabled.`를 출력함. C3 예시처럼 두 옵션을 함께 쓰면 **plan 모드가 적용되지 않습니다**. 읽기 전용이 필요할 때 대안(옵션 조합·`--mode` 기본값)은 미검증 |
 | Headless Fork 미지원 | `agy` 1.4.7은 `--fork` 플래그가 없고 Headless Print 모드에서 `/fork`를 거부함 (`/fork is not available in print mode`, [FORK-POC-01](phase-0/evidence/PH0-AGY/README.md)) |
 | Linux Remote SSH 인증 차이 | Windows 로컬은 OS 자격 증명 저장소를 공유하므로 `--app_data_dir=antigravity`가 별도 CLI 로그인 없이 동작하지만, Linux Remote SSH(`psyki-nas`)에서는 파일 기반 토큰(`~/.gemini/antigravity/antigravity-oauth-token`)을 요구하므로 원격 터미널에서 `agy --app_data_dir=antigravity`로 1회 로그인되어 있어야 함 ([PH0-AGY Linux 검증 기록](phase-0/evidence/PH0-AGY/LINUX.md)) |
 | 기존 Adapter 실행 방식 | `crates/adapters/src/agy.rs`는 기본값으로 `AgyDataDirMode::ExtensionShared`(`--app_data_dir=antigravity`)를 사용하나 `--project`는 기본 인자로 넣지 않음 |
@@ -504,6 +506,8 @@ try {
     Pop-Location
 }
 ```
+
+**주의:** `agy` 1.4.7은 `--disable-slash-commands`와 함께 쓴 `--mode plan`을 무시한다고 경고합니다(C1). 이 예시를 읽기 전용 실행으로 간주하지 말고, 프롬프트와 작업 정책으로 수정 범위를 제한합니다.
 
 Worktree에서 작업할 때는 `$workspace`에 배정된 Worktree 절대 경로를 지정하고 `--project TelosWeaver`를 그대로 유지합니다. 그러면 작업은 Worktree에서 격리되어 실행되면서도, 대화 목록에서는 `TelosWeaver` 프로젝트 아래에 묶입니다.
 
