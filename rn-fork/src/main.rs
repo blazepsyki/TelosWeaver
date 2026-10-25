@@ -20,6 +20,7 @@ mod setup;
 mod signed;
 mod store;
 mod team;
+mod telos;
 mod tray;
 mod util;
 mod wizard;
@@ -224,6 +225,10 @@ enum Cmd {
     /// The menu bar icon (macOS; `daemon --service` starts it)
     #[command(hide = true)]
     Tray,
+    /// Sends one local API request (`{"op": ...}`, as JSON) and prints the reply: for testing TelosWeaver requests
+    /// (`send_envelope`, `receipt`, `endpoint`) until the versioned local RPC (PH0-RN-06)
+    #[command(hide = true)]
+    Call { request: String },
 }
 
 #[tokio::main]
@@ -497,7 +502,7 @@ async fn cli(cmd: Cmd) -> Result<()> {
             } else {
                 println!("{}", i.text);
                 let ids = i.messages.iter().map(|m| m.id.clone()).collect();
-                link.call::<serde_json::Value>(Request::Delivered { key, ids }).await?;
+                link.call::<serde_json::Value>(Request::Delivered { key, ids, handed_off: false }).await?;
                 // Busy until it listens again.
                 let _ = cli_session(&link, &id, "prompt").await;
             }
@@ -562,6 +567,11 @@ async fn cli(cmd: Cmd) -> Result<()> {
             if !stop_daemon().await {
                 println!("The daemon is not running.");
             }
+        }
+        Cmd::Call { request } => {
+            let req: Request = serde_json::from_str(&request)?;
+            let v: serde_json::Value = link.call(req).await?;
+            println!("{}", serde_json::to_string_pretty(&v)?);
         }
         Cmd::Daemon { .. } | Cmd::Mcp | Cmd::Hook { .. } | Cmd::Tray => {
             unreachable!("handled in main")

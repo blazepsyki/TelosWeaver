@@ -705,6 +705,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1dd6dbb5841937940781866fa1281a1ff7bd3bf827091440879f9994983d5c2"
 dependencies = [
  "block-buffer",
+ "const-oid",
  "crypto-common 0.2.2",
 ]
 
@@ -3477,12 +3478,23 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "telos-schema",
  "tokio",
  "toml",
  "toml_edit",
  "tray-icon",
  "ulid",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "telos-schema"
+version = "0.0.0"
+dependencies = [
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]

@@ -31,7 +31,7 @@ impl Daemon {
     /// How fast hooks let us reach an agent's session (`push_failed`: its push channel didn't work).
     fn hook_tier(&self, agent: &str, push_failed: bool) -> Tier {
         match agent {
-            "codex" if !push_failed && agent::find_bin("codex").is_some() => Tier::Push,
+            "codex" if !push_failed && agent::codex_bin().is_some() => Tier::Push,
             // Their plugin or extension delivers into idle sessions.
             "opencode" | "pi" => Tier::Push,
             _ => Tier::Turn,
@@ -127,7 +127,7 @@ impl Daemon {
         g.store.upsert_session(&remembered(l, now), &self.person)?;
         let name = l.name.clone();
         let address = self.addr(&name);
-        let pending: Vec<Message> = g.pending(&address)?;
+        let pending: Vec<Message> = g.pending(&key, &address)?;
         let wake: Vec<Message> = pending.iter().filter(|m| m.wake).cloned().collect();
         log(&format!("session {address} registered"));
         Ok((Registered { name, address, unread: pending.len() as u32 }, (key, wake)))
@@ -290,7 +290,7 @@ impl Daemon {
         let mut g = self.inner.lock().unwrap();
         let Some(l) = g.live.get(key) else { return Ok(Unread { count: 0, from: Vec::new() }) };
         let address = self.addr(&l.name);
-        let msgs = g.pending(&address)?;
+        let msgs = g.pending(key, &address)?;
         let mut from: Vec<String> = Vec::new();
         for m in &msgs {
             if !from.contains(&m.from) {
@@ -393,7 +393,7 @@ impl Daemon {
         let address = self.addr(&l.name);
         // Mid-turn, only what should interrupt; at a pause, everything.
         let msgs: Vec<Message> = if mail {
-            g.pending(&address)?.into_iter().filter(|m| event != "tool" || m.wake).collect()
+            g.pending(&key, &address)?.into_iter().filter(|m| event != "tool" || m.wake).collect()
         } else {
             Vec::new()
         };
@@ -495,6 +495,10 @@ impl Daemon {
             // Live sessions are seen now: if this daemon stops without seeing them go, their names are kept from then.
             for l in g.live.values() {
                 let _ = g.store.touch_session(&l.name, now);
+            }
+            // Messages final for a week go with their receipts (TelosWeaver retention), then their files.
+            if let Err(e) = g.store.sweep_receipts(now) {
+                log(&format!("sweeping receipts: {e:#}"));
             }
             if let Err(e) = g.store.sweep_files(now) {
                 log(&format!("sweeping the inbox folder: {e:#}"));
