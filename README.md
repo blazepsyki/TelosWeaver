@@ -13,7 +13,7 @@
 | G0 공통 계약 | 통과 |
 | G1 대표 Provider 실행 | 통과 (Claude, Windows) |
 | G2 전체 구성 통합 | 통과 확정 (Windows): 세 Provider·마스터 결정 검증·Extension·RN 연결, 각 담당 확인 완료 |
-| G3 Phase 0 수용 | 대기: Linux·Remote SSH(WSL) 검증 필요 |
+| G3 Phase 0 수용 | 대기: Linux·Remote SSH 검증 필요(WSL Ubuntu 26.04 설치됨, 도구·SSH·원격 확장 구성 남음) |
 
 **동작하는 것 (Windows 로컬에서 실제 CLI로 검증)**
 
