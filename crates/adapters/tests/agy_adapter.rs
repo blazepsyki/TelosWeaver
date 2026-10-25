@@ -332,11 +332,11 @@ async fn permission_denial_and_soft_denied_actions_are_reported() {
 
 #[tokio::test]
 async fn provider_error_is_classified_and_turn_fails() {
-    let adapter = adapter(FakeRuntime::new(Script::fixture(
+    let model_adapter = adapter(FakeRuntime::new(Script::fixture(
         "model-not-found.jsonl",
         1,
     )));
-    let events = run_to_end(&adapter).await;
+    let events = run_to_end(&model_adapter).await;
     assert_eq!(check_run_events(&events), Ok(RunTermination::ProcessExited));
     let p = payloads(&events);
     let error = p.iter().find_map(|item| match item {
@@ -355,6 +355,27 @@ async fn provider_error_is_classified_and_turn_fails() {
         panic!()
     };
     assert_eq!(exit.exit_code, Some(1));
+
+    // Linux/SSH Headless 미로그인 시 반환되는 "authentication failed or timed out"은
+    // Timeout이 아니라 Authentication으로 분류되어야 합니다 (Spec §7.3).
+    let auth_script = Script {
+        lines: vec![
+            br#"{"event":"result","result":{"conversation_id":"","status":"ERROR","response":"","error":"authentication failed or timed out","duration_seconds":0,"num_turns":0,"usage":{"input_tokens":0,"output_tokens":0,"thinking_tokens":0,"cache_read_tokens":0,"total_tokens":0}}}"#.to_vec(),
+        ],
+        stderr_lines: vec![b"Error: authentication required. Run 'agy' to log in, then retry.".to_vec()],
+        exit_code: Some(1),
+        hang: false,
+    };
+    let auth_adapter = adapter(FakeRuntime::new(auth_script));
+    let auth_events = run_to_end(&auth_adapter).await;
+    assert_eq!(
+        check_run_events(&auth_events),
+        Ok(RunTermination::ProcessExited)
+    );
+    let auth_payloads = payloads(&auth_events);
+    assert!(auth_payloads.iter().any(
+        |item| matches!(item, ProviderEventPayload::Error(e) if e.kind == FailureKind::Authentication)
+    ));
 }
 
 #[tokio::test]

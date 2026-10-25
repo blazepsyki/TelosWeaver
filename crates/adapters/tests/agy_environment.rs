@@ -2,7 +2,7 @@
 //!
 //! 실제 CLI를 실행하고 사용자 계정의 사용량을 쓰므로 기본 실행에서 제외합니다(`#[ignore]`).
 //! 실행 조건(배정표 §6): 모델 `gemini-3.8-flash-low`, `--effort low`, 저장소 밖 일회용 폴더,
-//! 시험이 만든 세션 폴더(`brain/<session_id>`)는 각 시험 끝에서 즉시 정리합니다.
+//! 시험이 만든 세션 폴더(`brain/<session_id>`)와 대화 DB(`conversations/<session_id>.db*`)는 각 시험 끝에서 즉시 정리합니다.
 //!
 //! ```text
 //! cargo test -p telos-adapters --test agy_environment -- --ignored --test-threads=1 --nocapture
@@ -43,9 +43,26 @@ fn workdir(name: &str) -> PathBuf {
     dir
 }
 
+/// 확장 데이터 디렉터리(`~/.gemini/antigravity`)에 Headless CLI 인증 상태가 있는지 확인합니다.
+///
+/// Windows 로컬에서는 OS 자격 증명 저장소와 `antigravity/jetski_state.pbtxt`가 함께 존재하지만,
+/// Linux Remote SSH(`psyki-nas`)에서는 `agy`가 SSH 세션을 감지해 디렉터리별 파일 토큰
+/// (`<app_data_dir>/antigravity-oauth-token` + `jetski_state.pbtxt`)을 쓰며,
+/// VS Code 원격 확장은 토큰을 메모리 gRPC로만 넘겨 `antigravity/`에는 CLI 토큰 파일이 없고
+/// `antigravity-cli/`에만 CLI 로그인 토큰이 존재합니다 (AGY-DATA-02 Linux 관찰).
+fn extension_dir_has_cli_auth() -> bool {
+    let ext_dir = home_dir().join(".gemini/antigravity");
+    let has_state = ext_dir.join("jetski_state.pbtxt").exists();
+    if cfg!(windows) {
+        has_state
+    } else {
+        has_state && ext_dir.join("antigravity-oauth-token").exists()
+    }
+}
+
 fn adapter(name: &str, prompt: &str, mode: Option<&str>) -> AgyAdapter {
     let host_id = fixtures::run_context(&fixtures::task_spec()).host_id;
-    AgyAdapter::configured(
+    let configured = AgyAdapter::configured(
         executable(),
         "1.4.7".into(),
         host_id,
@@ -56,7 +73,12 @@ fn adapter(name: &str, prompt: &str, mode: Option<&str>) -> AgyAdapter {
         Some("gemini-3.8-flash-low".into()),
         Some("low".into()),
         mode.map(str::to_owned),
-    )
+    );
+    if extension_dir_has_cli_auth() {
+        configured
+    } else {
+        configured.with_default_cli_data_dir()
+    }
 }
 
 fn context(run_id: &str) -> RunContext {
@@ -66,30 +88,30 @@ fn context(run_id: &str) -> RunContext {
     context
 }
 
-/// 시험이 생성한 임시 대화 폴더만 정리합니다. 기존 사용자 대화는 건드리지 않습니다.
+/// 시험이 생성한 임시 대화 폴더(`brain/<id>`)와 대화 DB(`conversations/<id>.db*`)만 정리합니다.
+/// 기존 사용자 대화는 건드리지 않습니다 (Spec §7.5, INTEGRATION 증거 §8.4).
 fn cleanup_session(session_id: &str) {
-    if session_id.is_empty() {
+    if session_id.is_empty() || session_id.contains(['/', '\\', '.']) {
         return;
     }
     let home = home_dir();
+    let mut removed = Vec::new();
     for dir_name in ["antigravity", "antigravity-cli"] {
-        let brain = home
-            .join(".gemini")
-            .join(dir_name)
-            .join("brain")
-            .join(session_id);
-        if brain.exists() {
-            let _ = std::fs::remove_dir_all(&brain);
+        let base = home.join(".gemini").join(dir_name);
+        let brain = base.join("brain").join(session_id);
+        if brain.exists() && std::fs::remove_dir_all(&brain).is_ok() {
+            removed.push(format!("{dir_name}/brain/{session_id}"));
         }
-        let conv_pb = home
-            .join(".gemini")
-            .join(dir_name)
-            .join("conversations")
-            .join(format!("{session_id}.pb"));
-        if conv_pb.exists() {
-            let _ = std::fs::remove_file(&conv_pb);
+        for ext in ["db", "db-wal", "db-shm", "pb"] {
+            let conv = base
+                .join("conversations")
+                .join(format!("{session_id}.{ext}"));
+            if conv.exists() && std::fs::remove_file(&conv).is_ok() {
+                removed.push(format!("{dir_name}/conversations/{session_id}.{ext}"));
+            }
         }
     }
+    println!("agy-cleanup: {session_id} removed={removed:?}");
 }
 
 async fn run(adapter: &AgyAdapter, context: &RunContext) -> Vec<ProviderEvent> {
@@ -167,10 +189,15 @@ async fn env_discovery_and_data_dir_option() {
     use telos_schema::{BinaryLocation, CliSource, ExtensionResolution};
 
     let home = home_dir();
-    let (platform, roots) = if cfg!(windows) {
-        ("win32-x64", vec![home.join(".vscode/extensions")])
+    let (host_id, platform, roots) = if cfg!(windows) {
+        (
+            "windows-local",
+            "win32-x64",
+            vec![home.join(".vscode/extensions")],
+        )
     } else {
         (
+            "psyki-nas",
             "linux-x64",
             vec![
                 home.join(".vscode-server/extensions"),
@@ -180,13 +207,13 @@ async fn env_discovery_and_data_dir_option() {
     };
     let rule = AgyAdapter::cli_rule(platform).unwrap();
     let request = DiscoveryRequest {
-        host_id: "windows-local".into(),
+        host_id: host_id.into(),
         target_platform: platform.into(),
         explicit_path: None,
         extension_roots: roots,
         home_dir: home,
         path_env: None,
-        checked_at: "2026-10-24T00:00:00Z".into(),
+        checked_at: "2026-10-25T00:00:00Z".into(),
     };
     let runtime = Arc::new(NativeRuntime);
     let discovery = NativeCliDiscoverer::new(runtime.clone())
@@ -199,10 +226,7 @@ async fn env_discovery_and_data_dir_option() {
     assert!(!cli.cli_version.is_empty());
     let extension = cli.extension.as_ref().unwrap();
     assert_eq!(extension.extension_id, "google.google-antigravity");
-    assert!(matches!(
-        extension.resolution,
-        ExtensionResolution::Metadata | ExtensionResolution::FolderScan
-    ));
+    assert_eq!(extension.resolution, ExtensionResolution::Metadata);
 
     let version = AgyAdapter::verify_extension_data_dir(
         runtime.as_ref(),
@@ -221,36 +245,63 @@ async fn env_completed_run_and_data_dir_comparison() {
     let home = home_dir();
 
     // 1. 확장 공유 디렉터리 (--app_data_dir=antigravity)
-    let shared_adapter = adapter(
-        "completed-shared",
-        "Reply with only the token AGY_PONG and do not call tools.",
-        Some("plan"),
+    let host_id = fixtures::run_context(&fixtures::task_spec()).host_id;
+    let shared_adapter = AgyAdapter::configured(
+        executable(),
+        "1.4.7".into(),
+        host_id,
+        Arc::new(NativeRuntime),
+        Duration::from_secs(2),
+        workdir("completed-shared"),
+        "Reply with only the token AGY_PONG and do not call tools.".into(),
+        Some("gemini-3.8-flash-low".into()),
+        Some("low".into()),
+        Some("plan".into()),
     );
     let shared_events = run(&shared_adapter, &context("env-completed-shared")).await;
-    let shared_id = session_id(&shared_events).expect("session id");
-    let shared_brain = home.join(".gemini/antigravity/brain").join(&shared_id);
-    let cli_brain_for_shared = home.join(".gemini/antigravity-cli/brain").join(&shared_id);
-    let shared_exists = shared_brain.exists();
-    let cli_exists_for_shared = cli_brain_for_shared.exists();
-    cleanup_session(&shared_id);
-
     assert_eq!(
         check_run_events(&shared_events),
         Ok(RunTermination::ProcessExited)
     );
-    assert_eq!(shared_events[0].kind, ProviderEventKind::SessionStarted);
-    assert!(text(&shared_events).contains("AGY_PONG"));
-    assert_eq!(turn_status(&shared_events), Some(TurnStatus::Completed));
-    assert!(
-        shared_exists && !cli_exists_for_shared,
-        "ExtensionShared must create brain/<id> under ~/.gemini/antigravity"
-    );
-    let exit_shared = exit(&shared_events);
-    assert_eq!(
-        (exit_shared.exit_code, exit_shared.termination),
-        (Some(0), ProcessTermination::Exited)
-    );
-    assert_eq!(exit_shared.children_reaped, Some(true));
+    if extension_dir_has_cli_auth() {
+        let shared_id = session_id(&shared_events).expect("session id");
+        let shared_brain = home.join(".gemini/antigravity/brain").join(&shared_id);
+        let shared_conv = home
+            .join(".gemini/antigravity/conversations")
+            .join(format!("{shared_id}.db"));
+        let cli_brain_for_shared = home.join(".gemini/antigravity-cli/brain").join(&shared_id);
+        let shared_exists = shared_brain.exists();
+        let shared_conv_exists = shared_conv.exists();
+        let cli_exists_for_shared = cli_brain_for_shared.exists();
+        cleanup_session(&shared_id);
+
+        assert_eq!(shared_events[0].kind, ProviderEventKind::SessionStarted);
+        assert!(text(&shared_events).contains("AGY_PONG"));
+        assert_eq!(turn_status(&shared_events), Some(TurnStatus::Completed));
+        assert!(
+            shared_exists && shared_conv_exists && !cli_exists_for_shared,
+            "ExtensionShared must create brain/<id> and conversations/<id>.db under ~/.gemini/antigravity"
+        );
+        let exit_shared = exit(&shared_events);
+        assert_eq!(
+            (exit_shared.exit_code, exit_shared.termination),
+            (Some(0), ProcessTermination::Exited)
+        );
+        assert_eq!(exit_shared.children_reaped, Some(true));
+    } else {
+        // Linux Remote SSH(`psyki-nas`)처럼 확장 디렉터리에 별도 CLI 토큰 파일이 없는 경우:
+        // 다른 디렉터리(`antigravity-cli`)로 조용히 대체하지 않고 `~/.gemini/antigravity`를 검사해
+        // Authentication 실패로 보고함을 검증합니다 (Spec §7.3, §7.5).
+        assert!(
+            home.join(".gemini/antigravity/cli.log").exists(),
+            "--app_data_dir=antigravity must target ~/.gemini/antigravity"
+        );
+        assert!(payloads(&shared_events).iter().any(
+            |p| matches!(p, ProviderEventPayload::Error(e) if e.kind == FailureKind::Authentication)
+        ));
+        assert_eq!(turn_status(&shared_events), Some(TurnStatus::Failed));
+        assert_eq!(exit(&shared_events).exit_code, Some(1));
+    }
 
     // 2. CLI 기본 디렉터리 (옵션 생략 -> ~/.gemini/antigravity-cli)
     let default_adapter = adapter(
@@ -262,8 +313,12 @@ async fn env_completed_run_and_data_dir_comparison() {
     let default_events = run(&default_adapter, &context("env-completed-default")).await;
     let default_id = session_id(&default_events).expect("session id");
     let default_cli_brain = home.join(".gemini/antigravity-cli/brain").join(&default_id);
+    let default_cli_conv = home
+        .join(".gemini/antigravity-cli/conversations")
+        .join(format!("{default_id}.db"));
     let shared_brain_for_default = home.join(".gemini/antigravity/brain").join(&default_id);
     let default_cli_exists = default_cli_brain.exists();
+    let default_cli_conv_exists = default_cli_conv.exists();
     let shared_exists_for_default = shared_brain_for_default.exists();
     cleanup_session(&default_id);
 
@@ -273,9 +328,82 @@ async fn env_completed_run_and_data_dir_comparison() {
     );
     assert!(text(&default_events).contains("CLI_PONG"));
     assert!(
-        default_cli_exists && !shared_exists_for_default,
-        "DefaultCli must create brain/<id> under ~/.gemini/antigravity-cli"
+        default_cli_exists && default_cli_conv_exists && !shared_exists_for_default,
+        "DefaultCli must create brain/<id> and conversations/<id>.db under ~/.gemini/antigravity-cli"
     );
+}
+
+/// PROV-02·07·AGY-DATA-03: `accept-edits` 모드와 정규화된 Workspace(`--add-dir`)에서
+/// Antigravity가 자체 scratch 폴더가 아닌 실제 Workspace 안에 파일을 생성하는지 확인합니다 (Spec §7.2, §7.5).
+#[tokio::test]
+#[ignore = "runs the real Antigravity CLI"]
+async fn env_workspace_file_write() {
+    let raw_dir = workdir("workspace-write");
+    let canonical = raw_dir.canonicalize().unwrap();
+    if cfg!(unix) {
+        assert!(
+            !canonical.to_string_lossy().starts_with(r"\\?\"),
+            "Unix canonicalize must not produce Windows extended-length prefix"
+        );
+    }
+    let cwd = match canonical.to_str().and_then(|s| s.strip_prefix(r"\\?\")) {
+        Some(rest) if rest.as_bytes().get(1) == Some(&b':') => PathBuf::from(rest),
+        _ => canonical,
+    };
+    let target = cwd.join("result-agy.txt");
+    let _ = std::fs::remove_file(&target);
+
+    let host_id = fixtures::run_context(&fixtures::task_spec()).host_id;
+    let configured = AgyAdapter::with_disable_slash_commands(
+        executable(),
+        "1.4.7".into(),
+        host_id,
+        Arc::new(NativeRuntime),
+        Duration::from_secs(2),
+        cwd.clone(),
+        "Create a file named result-agy.txt in the current working directory whose entire content is: pong. Do not run shell commands. Then reply done.".into(),
+        Some("gemini-3.8-flash-low".into()),
+        Some("low".into()),
+        Some("accept-edits".into()),
+        true,
+        vec![cwd.clone()],
+        vec![],
+    );
+    let adapter = if extension_dir_has_cli_auth() {
+        configured
+    } else {
+        configured.with_default_cli_data_dir()
+    };
+    let events = run(&adapter, &context("env-workspace-write")).await;
+    let id = session_id(&events).expect("session id");
+    let active_dir = if extension_dir_has_cli_auth() {
+        "antigravity"
+    } else {
+        "antigravity-cli"
+    };
+    let scratch_file = home_dir()
+        .join(".gemini")
+        .join(active_dir)
+        .join("brain")
+        .join(&id)
+        .join("scratch/result-agy.txt");
+    let scratch_root_file = home_dir()
+        .join(".gemini")
+        .join(active_dir)
+        .join("scratch/result-agy.txt");
+    let scratch_exists = scratch_file.exists() || scratch_root_file.exists();
+    let content = std::fs::read_to_string(&target);
+    let _ = std::fs::remove_file(&target);
+    cleanup_session(&id);
+
+    assert_eq!(check_run_events(&events), Ok(RunTermination::ProcessExited));
+    assert_eq!(turn_status(&events), Some(TurnStatus::Completed));
+    assert!(
+        !scratch_exists,
+        "file must not be written to Antigravity scratch directory"
+    );
+    let content = content.expect("result-agy.txt must be written inside workspace cwd");
+    assert_eq!(content.trim(), "pong");
 }
 
 /// PROV-07: Headless 기본 권한(`request-review`)에서 명령 실행 도구는 소프트 거부되고 `ToolDenied`로 기록됩니다.
@@ -306,7 +434,7 @@ async fn env_tool_denied() {
 #[ignore = "runs the real Antigravity CLI"]
 async fn env_invalid_model_fails() {
     let host_id = fixtures::run_context(&fixtures::task_spec()).host_id;
-    let adapter = AgyAdapter::configured(
+    let configured = AgyAdapter::configured(
         executable(),
         "1.4.7".into(),
         host_id,
@@ -318,6 +446,11 @@ async fn env_invalid_model_fails() {
         Some("low".into()),
         Some("plan".into()),
     );
+    let adapter = if extension_dir_has_cli_auth() {
+        configured
+    } else {
+        configured.with_default_cli_data_dir()
+    };
     let events = run(&adapter, &context("env-invalid-model")).await;
     if let Some(id) = session_id(&events) {
         cleanup_session(&id);
@@ -369,12 +502,11 @@ async fn env_cancel_terminates_process_tree() {
     }
     assert_eq!(check_run_events(&events), Ok(RunTermination::ProcessExited));
     let exit = exit(&events);
-    if turn_status(&events) == Some(TurnStatus::Cancelled) {
-        assert!(matches!(
-            exit.termination,
-            ProcessTermination::TerminatedOnRequest | ProcessTermination::Killed
-        ));
-    }
+    assert_eq!(turn_status(&events), Some(TurnStatus::Cancelled));
+    assert!(matches!(
+        exit.termination,
+        ProcessTermination::TerminatedOnRequest | ProcessTermination::Killed
+    ));
     assert_eq!(exit.children_reaped, Some(true));
 }
 
