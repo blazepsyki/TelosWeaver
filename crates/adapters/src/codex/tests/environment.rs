@@ -67,10 +67,10 @@ fn case(id: &str, prompt: &str) -> (TaskSpec, RunContext) {
     let (mut task, _) = inputs();
     task.id = id.into();
     task.objective = prompt.into();
+    task.workspace.host_id = live_host_id();
     let mut context = fixtures::run_context(&task);
     context.run_id = id.into();
     context.idempotency_key = format!("{id}:start");
-    context.host_id = live_host_id();
     (task, context)
 }
 async fn execute(
@@ -357,10 +357,15 @@ async fn env_invalid_model() {
     let (mut task, context) = case("bad-model", "Reply PONG. Do not use tools.");
     task.agent.model = Some("telos-invalid-model".into());
     let result = match execute(&adapter, &task, &context).await {
-        Err(error) => ensure(
-            error.failure_kind() == Some(FailureKind::Configuration),
-            "invalid model failure classification is incorrect",
-        ),
+        Err(error) => {
+            eprintln!("invalid model start error: {error}");
+            // Spec §7, PROV-03: reject local setup failures as live model evidence.
+            ensure(
+                error.failure_kind() == Some(FailureKind::Configuration)
+                    && !adapter.owned_thread_ids().is_empty(),
+                "invalid model was not rejected by a native thread",
+            )
+        }
         Ok((_, events, _)) => ensure(
             events.iter().any(|e| {
                 e.kind == ProviderEventKind::Error && e.payload["kind"] == "configuration"
