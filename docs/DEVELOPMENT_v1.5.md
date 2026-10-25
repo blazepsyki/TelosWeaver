@@ -1,9 +1,9 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.4)  
+> **문서 버전:** 1.5 (개정 1.5.5)  
 > **작성일:** 2026-10-23  
-> **수정일:** 2026-10-25  
+> **수정일:** 2026-10-26  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
 > **상태:** 구현 기준 설계안. 사용자 확정 결정과 이를 구체화한 설계를 포함하며 구현 완료를 뜻하지 않습니다.  
 > **초기 UI:** VS Code Extension  
@@ -37,6 +37,7 @@
 | v1.5.2 | 2026-10-25 | Phase 0의 Linux·단일 Remote SSH 실행 Host를 같은 PC의 WSL2에서 사용자의 Ubuntu 서버(`Psyki-NAS`, Ubuntu 26.04.1 LTS, 세 Provider 확장 원격 설치·로그인)로 변경(§19.5.8 앞 Host 절, §19.5.3 INTEGRATION 경로에 `docs/phase-0/LINUX_REMOTE_HOST.md` 추가). WSL2는 예비이며 그 결과는 Linux 증거로만 씀 |
 | v1.5.3 | 2026-10-25 | Managed Run 세션을 각 Provider의 VS Code 확장 대화 목록에 표시(DEC-08, §7.6). Provider별 출처 지정 방식(Claude `CLAUDE_CODE_ENTRYPOINT`, Codex `threadSource` 검증, Agy 확장 데이터 디렉터리), 운영자 설정 `listed`/`hidden`, Workspace 경로 제약, Capability `vscode_listing`과 판정 방법, 실행 중 이중 조작 금지. AGENT-05 추가, §19.1 Phase 0 확인 항목 추가 |
 | v1.5.4 | 2026-10-26 | §7.6을 Phase 0 판정 결과로 보정(REQ-021): Codex App Server는 `threadSource`(analytics 분류)·초기화 이름과 관계없이 저장된 Thread를 `vscode` 출처로 기록하므로 `hidden` 수단이 없고 운영자 정책에서 거부(사용자 결정). Antigravity `hidden`은 확장 인덱스에 CLI 출처로 색인되지만 확장 화면에서는 숨겨짐. 세 Provider `listed`·Claude/Agy `hidden`의 자동 판정과 사용자 화면 확인 결과, 운영자 정책 `vscodeListing`(Agy `dataDir`과의 관계)과 승인 Snapshot 기록, Agy 요약 인덱스 잔여 행 처리 |
+| v1.5.5 | 2026-10-26 | Antigravity 인증의 Host별 차이(§7.5 AGY-DATA-02·Host별 규칙, §7.6): Linux Remote SSH 세션의 `agy`는 데이터 디렉터리 안의 파일 토큰을 쓰고 원격 확장은 확장 디렉터리에 토큰 파일을 두지 않아, `--app_data_dir=antigravity`가 그 Host에서는 별도 로그인 없이 동작하지 않음. Phase 0의 `psyki-nas`는 이미 로그인된 CLI 기본 디렉터리(`hidden`)를 운영자 정책으로 명시해 씀(사용자 결정). 그 Host의 Antigravity Managed Run은 원격 확장 목록에 보이지 않음 |
 
 ## 목차
 
@@ -612,7 +613,7 @@ DEC-06에 따라 Provider CLI는 실행 Host에 설치된 각 에이전트의 VS
 | ID | 판정 |
 |---|---|
 | AGY-DATA-01 | 수용됨. `--hub` 없이 `--version`·`models`·Stream JSON 실행 모두 종료 코드 0. 정의되지 않은 옵션은 종료 코드 1·2로 거부되므로, 이 옵션은 조용히 무시되는 것이 아니라 실제로 데이터 디렉터리를 `~/.gemini/antigravity`로 바꿉니다 |
-| AGY-DATA-02 | 인증 상태는 데이터 디렉터리마다 따로 있습니다(상태 파일·`installation_id`, 내용 미열람). 빈 디렉터리를 지정하면 로그인을 요구하며 실패합니다. 옵션을 지정하면 별도 로그인 없이 확장의 로그인 상태를 씁니다 |
+| AGY-DATA-02 | 인증 상태는 데이터 디렉터리마다 따로 있습니다(상태 파일·`installation_id`, 내용 미열람). 빈 디렉터리를 지정하면 로그인을 요구하며 실패합니다. 옵션을 지정하면 별도 로그인 없이 확장의 로그인 상태를 씁니다(Windows 로컬, OS 자격 증명 저장소 공유). **Linux Remote SSH(`psyki-nas`, 2026-10-25):** `agy`가 SSH 세션을 감지하면 데이터 디렉터리 안의 파일 토큰(`<데이터 디렉터리>/antigravity-oauth-token`)을 씁니다. 원격 확장은 토큰을 클라이언트 쪽에 두고 허브에 메모리로만 넘기므로 `~/.gemini/antigravity`에 토큰 파일이 없고, 옵션을 지정한 실행은 인증 실패(`Authentication`)로 끝납니다. 사용자가 CLI로 로그인한 `~/.gemini/antigravity-cli`에만 토큰이 있습니다 |
 | AGY-DATA-03 | 옵션 지정 시 대화가 `~/.gemini/antigravity/brain/<id>`에 생기고 확장과 공유하는 `conversation_summaries.db`에 기록됩니다. 생략 시 `~/.gemini/antigravity-cli`에만 생기며 확장 목록과 분리됩니다 |
 | AGY-DATA-04 | 확장 허브가 떠 있는 동안 여러 Managed Run(완료·거부·취소·Resume)을 실행해도 잠금 오류·허브 중단·확장 오류가 없었습니다(SQLite WAL) |
 | AGY-DATA-05 | 권한 규칙은 두 디렉터리 모두 상위 `~/.gemini/settings.json`의 공용 규칙을 읽습니다. 디렉터리별 차이는 표시 설정 등이며, Managed 실행은 모델·`--effort`·`--mode`·`--add-dir`를 인자로 명시하므로 영향이 없습니다 |
@@ -622,6 +623,7 @@ DEC-06에 따라 Provider CLI는 실행 Host에 설치된 각 에이전트의 VS
 - Managed 실행은 기본으로 `--app_data_dir=antigravity`(확장 디렉터리)를 씁니다. DEC-06에 따라 확장의 로그인 상태를 별도 로그인·토큰 복사 없이 씁니다. 확장 대화 목록과 분리가 필요하면 운영자 설정으로 기본 디렉터리(옵션 생략)를 고를 수 있으며, 그 경우에도 토큰을 복사하지 않습니다.
 - 옵션을 쓸 때 Adapter는 실행 전 `agy --app_data_dir=antigravity --version`으로 옵션이 받아들여지는지 확인합니다(규칙 5). 거부되면 다른 디렉터리로 조용히 바꾸지 않고 Capability를 `unsupported`(사유 포함)로 둡니다.
 - 쓴 데이터 디렉터리는 Run의 Context Snapshot에 기록합니다(규칙 6).
+- **Host별 차이(AGY-DATA-02):** Windows 로컬은 기본값(확장 디렉터리)을 씁니다. Linux Remote SSH Host에서는 확장 디렉터리에 CLI 토큰이 없으면 운영자 정책으로 기본 디렉터리(`dataDir: default` = `vscodeListing: hidden`)를 **명시**해 이미 로그인된 CLI 상태를 씁니다. Core·Adapter는 인증 실패를 보고 다른 디렉터리로 자동 전환하지 않고, 토큰 파일을 복사·생성하지 않습니다. 그 Host에서 `listed`가 필요하면 사용자가 그 Host에서 `agy --app_data_dir=antigravity`로 한 번 로그인한 뒤 정책을 바꿉니다. Phase 0의 `psyki-nas`는 기본 디렉터리를 씁니다(사용자 결정 2026-10-26).
 - 옵션 지정 시 Managed 실행의 대화가 확장 화면의 기록에 나타날 수 있습니다. 확장 목록 표시의 판정과 운영자 설정은 §7.6을 따릅니다. 시험 세션은 끝난 뒤 정리합니다(배정표 §6).
 - 근거: `docs/phase-0/evidence/PH0-AGY/README.md` §3.
 
@@ -650,7 +652,7 @@ DEC-08에 따라 Adapter가 시작한 Managed Run의 세션은 각 Provider의 V
 |---|---|---|---|
 | Claude Code | 자식 프로세스 환경에 `CLAUDE_CODE_ENTRYPOINT=claude-vscode`(`listed`) 또는 `sdk-cli`(`hidden`)를 **명시적으로** 지정. Core 프로세스가 상속한 부모 Claude 세션 변수(`CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_CHILD_SESSION`, `CLAUDE_CODE_SESSION_ATTENDED`, `CLAUDE_CODE_MESSAGING_SOCKET`, `CLAUDE_CODE_MESSAGING_TOKEN`, `CLAUDE_PID`)는 자식 환경에서 제거 | 확장 2.1.310: 세션 JSONL 첫 줄 부근 `entrypoint`가 `sdk-cli`·`sdk-ts`·`sdk-py`이면 기본 목록에서 제외. `-p`는 환경 변수가 없으면 `sdk-cli`. 지정 시 모든 줄이 `claude-vscode`로 기록되고 `--resume --fork-session`도 새 세션 전체를 지정 값으로 기록 | 확장 2.1.310. `listed`: Fresh·Resume·NativeFork 세션 파일이 cwd 인코딩 폴더에 있고 모든 줄이 `claude-vscode`. `hidden`: 모든 줄 `sdk-cli`. 화면: `listed` 목록 표시·열기·확장에서 이어 쓰기(추가 줄도 `claude-vscode`), `hidden` 미표시(사용자 확인). 목록 범위는 **VS Code 첫 Workspace 폴더와 같은 cwd**, Worktree 제외 |
 | Codex | `thread/start`·`thread/fork`에 `ephemeral: false`, `threadSource: "vscode"`. 응답의 Thread 출처가 `cli`·`vscode`가 아니면 Turn 전에 거부하고 만든 Thread를 Archive. `hidden`은 거부 | 확장 26.1021.22027은 `thread/list`에 빈 `sourceKinds`(= `cli`·`vscode`만)와 `useStateDbOnly: true`로 조회. `threadSource`는 로컬 Schema 설명상 analytics 분류 | CLI 0.164.0-alpha.11.1. `threadSource` 생략·`cli`·`exec`·`appServer`, `clientInfo.name` 변경 모두 저장 후 `vscode`로 기본 목록에 포함 → **숨김 수단 없음**. `listed`: Fresh·Resume·NativeFork가 기본 DB 목록에 포함(Native 읽기 전 조회). 화면: 목록 표시·열기 사용자 확인. 실시간 반영 미검증 |
-| Antigravity | 기존 기본값 `--app_data_dir=antigravity`(§7.5 확정 규칙)를 `listed`로 사용. `hidden`은 옵션 생략(CLI 기본 디렉터리) | AGY-DATA-03: 대화가 확장 디렉터리의 `brain/<id>`와 공유 `conversation_summaries.db`에 기록됨 | 확장 1.9.0·`agy` 1.4.7. `listed`: 확장 인덱스에 `source=""`(확장 대화와 같은 값)·`workspace_uris`=실행 Workspace, Resume 같은 ID. `hidden`: `antigravity-cli`에 기록되지만 확장 허브가 확장 인덱스에도 `source="CORTEX_TRAJECTORY_SOURCE_CLI"`로 색인. 화면: `listed` 표시, `hidden` 미표시(사용자 확인). `hidden`은 디렉터리별 로그인(AGY-DATA-02) 주의 |
+| Antigravity | 기존 기본값 `--app_data_dir=antigravity`(§7.5 확정 규칙)를 `listed`로 사용. `hidden`은 옵션 생략(CLI 기본 디렉터리) | AGY-DATA-03: 대화가 확장 디렉터리의 `brain/<id>`와 공유 `conversation_summaries.db`에 기록됨 | 확장 1.9.0·`agy` 1.4.7. `listed`: 확장 인덱스에 `source=""`(확장 대화와 같은 값)·`workspace_uris`=실행 Workspace, Resume 같은 ID. `hidden`: `antigravity-cli`에 기록되지만 확장 허브가 확장 인덱스에도 `source="CORTEX_TRAJECTORY_SOURCE_CLI"`로 색인. 화면: `listed` 표시, `hidden` 미표시(사용자 확인). `hidden`은 디렉터리별 로그인(AGY-DATA-02) 주의. **Linux Remote SSH:** 확장 디렉터리에 CLI 토큰이 없어 `hidden`으로 운영(§7.5 Host별 차이), 그 Host의 Run은 원격 확장 목록에 보이지 않음 |
 
 - 세션 JSONL·SQLite·요약 DB 등 Provider 저장소를 직접 수정해 출처를 바꾸지 않습니다. Provider가 받는 인자·환경 변수·Protocol 필드로만 지정합니다.
 - 이 방식들은 각 확장의 **비공개 내부 동작**을 관찰한 결과입니다(§7.5와 같은 위험 수준). 확장·CLI 버전이 바뀌면 다시 판정합니다.
@@ -669,7 +671,7 @@ DEC-08에 따라 Adapter가 시작한 Managed Run의 세션은 각 Provider의 V
 - 확장 화면에서 실제로 보이고 열리는지는 사용자 확인이 필요하며 자동 판정과 따로 기록합니다. 확인하지 않은 화면 동작은 미검증으로 둡니다.
 - 시험은 지금처럼 저장소 밖 임시 폴더에서 실행합니다. 화면 확인이 필요한 시험만 사용자가 연 Workspace에서 실행하고, 세션 ID를 증거에 남겨 병합 시점에 정리합니다(배정표 §6 "시험 세션 정리").
 - Antigravity는 대화 파일(`brain/<id>`, `conversations/<id>.db`)을 지워도 확장 쪽 요약 인덱스(`conversation_summaries.db`)의 `listed` 행이 남아 확장 목록에 빈 항목으로 보일 수 있습니다. 이 DB는 Core가 수정하지 않으며, 정리는 사용자가 확장 UI에서 하거나 사용자 승인 아래 확장 허브를 멈춘 상태에서만 합니다.
-- Phase 0 판정: 세 Provider의 `listed`는 Adapter 자동 판정·사용자 화면 확인·Core 통합 경로(G2 실환경, 정책 기본값) 모두 통과. Claude·Antigravity의 `hidden`은 자동 판정·화면 확인 통과, Codex `hidden`은 미지원. Linux·Remote SSH는 미판정. 근거: `docs/phase-0/evidence/PH0-INTEGRATION/README.md` §10.
+- Phase 0 판정: 세 Provider의 `listed`는 Adapter 자동 판정·사용자 화면 확인·Core 통합 경로(G2 실환경, 정책 기본값) 모두 통과. Claude·Antigravity의 `hidden`은 자동 판정·화면 확인 통과, Codex `hidden`은 미지원. Linux·Remote SSH는 미판정이며, `psyki-nas`의 Antigravity는 `hidden`으로 운영하므로 `listed` 판정 대상에서 빠집니다(§7.5 Host별 차이). 근거: `docs/phase-0/evidence/PH0-INTEGRATION/README.md` §10.
 
 ## 8. 세션 수명·포크·토큰 효율
 

@@ -14,7 +14,7 @@
 | Host ID | `psyki-nas` (Windows 로컬은 `windows-local`). 증거·설정에서 Host를 섞지 않습니다 (SAFE-10, RN-POC-11) |
 | 저장소 | 서버의 `~/TelosWeaver` (검증용 Clone, 대표 저장소 아님, 배정표를 고치지 않음) |
 | Toolchain | Windows와 버전을 맞춥니다(사용자 결정): Rust 1.99.1(사용자가 Windows·서버 모두 올림, clippy 0.1.99·rustfmt 1.10.0, rustup 1.29.2), Node 24.22.1·npm 11.19.1(Windows를 24.14.0에서 올림) |
-| Provider | 서버에 원격 설치된 세 VS Code 확장과 그 로그인 상태를 그대로 씁니다. Windows의 인증 파일·토큰을 복사하지 않습니다 |
+| Provider | 서버에 원격 설치된 세 VS Code 확장과 그 로그인 상태를 그대로 씁니다. Windows의 인증 파일·토큰을 복사하지 않습니다. **Antigravity:** SSH 세션의 `agy`는 데이터 디렉터리 안의 파일 토큰을 쓰는데 확장 디렉터리(`~/.gemini/antigravity`)에는 토큰이 없으므로, 이미 로그인된 CLI 기본 디렉터리(`~/.gemini/antigravity-cli`)를 정책 `agy.vscodeListing: hidden`으로 명시해 씁니다(사용자 결정 2026-10-26, Spec v1.5.5 §7.5). 이 Host의 Antigravity Run은 원격 확장 목록에 보이지 않습니다 |
 | 실환경 시험 | 실제 계정으로 수행(사용자 허락). 가벼운 모델·서버의 일회용 임시 폴더, 서버의 기존 대화·설정은 건드리지 않음, 시험 세션은 병합 시점에 삭제(배정표 §6 "시험 세션 정리") |
 | 자원 | 시간·자원 제한 없음(사용자). 사용자 단위 프로세스·사용자 전용 Socket만 쓰고 시스템 설정은 바꾸지 않습니다 |
 
