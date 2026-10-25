@@ -1,7 +1,11 @@
-# Upstream E2E scripts (not maintained in this fork yet)
+# Upstream E2E scripts (dropped in PH0-RN-08)
 
-These Python scripts are upstream Reason Network's and still use its names (`reason-network`, `REASON_NETWORK_*`) and
-features this fork removed: Reason sign-in proofs (`proofs.py`, which also holds the relay-list signing helpers the
-others import, `names.py`, `two_machines.py`), an older upstream build (`mixed_versions.py`), `--no-setup` and the
-login service. They are not run in TelosWeaver Phase 0. Whether to port or drop each one is decided in PH0-RN-08 (see
-`../../TELOSWEAVER.md`).
+The upstream Python E2E scripts were dropped in PH0-RN-08 (2026-10-26) by user decision.
+
+### Rationale
+- The upstream scripts depended on removed features: Reason sign-in proofs (`proofs.py`), Reason CLI integration, automatic updates, login-service registration, legacy naming (`reason-network`), and external network services.
+- TelosWeaver's acceptance and regression test suite replaces them with:
+  1. Isolated Rust tests in `rn-fork` (204 tests on Windows, 212 tests on Linux) covering stores, envelopes, receipts, IPC DACL/permissions, and RPC protocols.
+  2. `telos-rn-client` contract and protocol tests (`crates/rn-client/tests/client.rs`, 6 tests).
+  3. Core integration tests (`crates/core/tests/phase0_rn.rs`, 3 offline tests + live integration tests).
+  4. Live daemon round-trip, restart, and fault-independence verification under TelosWeaver Core supervisor.
