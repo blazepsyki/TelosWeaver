@@ -359,6 +359,38 @@ Provider·모델 호출은 없었습니다. 다음은 작업별 실환경 시험
 
 **시험 세션:** Codex Thread 7개는 Archive 완료([CODEX](../PH0-CODEX/LINUX.md)에 ID), Antigravity 대화 7개는 AGY가 즉시 삭제했고 빈 폴더를 확인([AGY](../PH0-AGY/LINUX.md)에 ID), HOST·EXT는 Provider 세션 없음. 병합 시 서버 임시 폴더(`/tmp/telos-codex-live-*`, `/tmp/telos-codex-linux-audit-*`)를 지웁니다.
 
+### 9.4 INTEGRATION 몫 Linux 재실행 (`psyki-nas`, 2026-10-26)
+
+[작업 지시](G3_LINUX_ASSIGNMENTS.md) §6의 실환경 재실행(사용자가 대기를 해제). Branch `ph0/integration-linux`, 서버 Worktree `~/TelosWeaver-wt/integration-linux`(`91f0789`).
+
+| 항목 | 값 |
+|---|---|
+| Host | `psyki-nas` (Ubuntu 26.04.1 LTS, 커널 7.0.0-38-generic), rustc 1.99.1, Node v24.22.1 |
+| CLI | Claude 2.1.310(`~/.vscode-server/extensions/anthropic.claude-code-2.1.310-linux-x64/.../claude`, `metadata` 탐지), Codex 0.164.0-alpha.11.1(확장 26.1021.22027), Antigravity `~/.gemini/bin/agy` 1.4.7(확장 1.9.0) |
+| 모델 | Windows와 같음: Claude `haiku`, Codex `gpt-6-luna`, Antigravity `gemini-3.8-flash-low`, effort low |
+| 환경 변수 | `TELOS_HOST_ID=psyki-nas`, `TELOS_CLAUDE_CLI`, `TELOS_RN_EXECUTABLE`(서버에서 빌드한 `rn-fork/target/debug/telos-rn`), `TELOS_AGY_VSCODE_LISTING=hidden` |
+| Antigravity | 사용자 결정(2026-10-26): 이미 로그인된 CLI 기본 디렉터리(`~/.gemini/antigravity-cli`) 사용 → Spec v1.5.5 §7.5 "Host별 차이". G2 정책에 `agy.vscodeListing: hidden`을 명시 |
+
+**시험 코드 보정(`91f0789`):** `phase0_g2`가 Antigravity 표시 모드를 `TELOS_AGY_VSCODE_LISTING`(기본 `listed`)으로 받고 목록 기록 검사도 그 값으로 판정(`hidden`이면 대화가 CLI 디렉터리에만 있어야 함). `claude_environment`의 탐지 시험 Host ID를 `TELOS_HOST_ID`로 받음(기본 `windows-local`). Windows 기본 동작은 그대로입니다.
+
+| 묶음 | 명령(`-- --ignored --test-threads=1 --nocapture`) | 결과 | 확인 |
+|---|---|---|---|
+| PH0-CLAUDE | `cargo test -p telos-adapters --test claude_environment` | **7개 통과**, 60.2초 | 탐지(Remote SSH 확장, `metadata`)·완료·도구 거부·잘못된 모델·취소(취소→종료 817ms, Process Group)·Resume/Fork·목록 표시(`listed`·`hidden`) |
+| G1 | `cargo test -p telos-core --test phase0_g1` | **5개 통과**, 136.4초 | 완료·결과 파일, Provider 실패, 실제 종료 보고 취소, 시작 전 미승인 거부, Daemon 종료 시 Run 취소 |
+| 마스터 | `cargo test -p telos-core --test phase0_master` | **2개 통과**, 72.4초 | 위임·결과 수신, 허가 밖 결정(Codex 작업) 거부 |
+| PH0-RN | `cargo test -p telos-core --test phase0_rn` | **2개 통과**, 33.9초 | Core가 시작한 실제 `telos-rn`(RPC 0.1)과 Client 왕복·강제 종료 뒤 재시작·정지, RN 정지 중 `core.health`의 `rn` degraded와 실제 Claude Run 진행·취소 |
+| G2 | `cargo test -p telos-core --test phase0_g2` | **4개 통과**, 332.6초 | 세 Provider 완료·결과 파일, Codex·Antigravity 실패·실제 종료 취소, Daemon 종료 시 모든 Provider Run 취소. 목록 기록: Claude `Some(true)`, Codex `Some(true)`, Antigravity `Some(false)`(정책 `hidden`과 일치) |
+
+Windows 병합 전 확인: Workspace 166개 통과·36개 제외, fmt 통과(엄격 Clippy는 보정 커밋 때 통과).
+
+**시험 세션:**
+
+- Claude(서버 `~/.claude/projects/`의 시험 폴더 16개, 모두 `/tmp/telos-*` cwd): `-tmp-telos-claude-env-{cancel,completed,denied,invalid-model,listing,listing-hidden,resume}`, `-tmp-telos-phase0-g1-{cancel,completed,failure,shutdown}-workspace`, `-tmp-telos-phase0-g2-completed-workspace`, `-tmp-telos-phase0-master-{delegate-master,delegate-work,forbidden-master}`, `-tmp-telos-phase0-rn-independent-workspace`. 병합 시 폴더째 삭제
+- Codex: G2 시험이 Archive(`01a173df-2607-73b2-9f29-82dc192eec1f` cancel, `01a173e0-6a02-7790-ae99-dd951769c5e6` failure, `01a173e1-9e97-7692-835c-b75c54980e74` shutdown, `01a173e2-dd31-7593-a41a-788e3c06e7f2` completed). 독립 App Server 조회에서 활성 0개·Archive 4개
+- Antigravity: G2 시험이 `antigravity-cli`의 `brain`·`conversations`를 삭제(`63e1a7fe-110f-4c50-a338-eaab1134c914`, `6baf4644-255a-476b-a3f3-f7d5d4311bb8` 등). 남은 대화 0개
+
+**남은 G3 항목:** PH0-EXT E2(Remote-SSH Extension Host), Remote SSH 시나리오(절차 §4.4), DEC-08 Linux 화면 확인(Claude·Codex), HOST `discovery_environment` 두 벌 단언(§9.3 후속 1), PH0-RN-08, G3 대조표·판정.
+
 ## 10. DEC-08 VS Code 확장 목록 표시 통합 (2026-10-26)
 
 | 항목 | 값 |
