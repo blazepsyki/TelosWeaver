@@ -15,7 +15,7 @@
    git -C ~/TelosWeaver fetch origin
    git -C ~/TelosWeaver worktree add ~/TelosWeaver-wt/<작업> -b <Branch> origin/main
    ```
-3. **Branch와 Windows 반영:** 문서·코드 변경은 Windows의 `D:\worktree\TelosWeaver\<작업>`에서 하고, 서버로는 `git push Psyki-NAS:TelosWeaver <Branch>`로 보낸 뒤 서버 Worktree에서 `git reset --hard <Branch>`로 맞춥니다. 서버에서만 생긴 Linux 수정은 그 Branch에 커밋하고 Windows에서 `git fetch Psyki-NAS:TelosWeaver <Branch>`로 가져옵니다. 서버에서 `main`에 통합하거나 GitHub로 push하지 않습니다.
+3. **Branch와 Windows 반영:** 문서·코드 변경은 Windows의 `D:\worktree\TelosWeaver\<작업>`에서 하고, 서버로는 `git push Psyki-NAS:TelosWeaver <Branch>`로 보낸 뒤 서버 Worktree에서 `git reset --hard <Branch>`로 맞춥니다. 서버에서만 생긴 Linux 수정은 그 Branch에 커밋하고 Windows에서 `git fetch Psyki-NAS:TelosWeaver <Branch>`로 가져옵니다. 서버에서 `main`에 통합하거나 GitHub로 push하지 않습니다. **주의(2026-10-25 실행에서 확인):** 서버 Worktree가 그 Branch를 체크아웃하고 있으면 Git이 push를 거부합니다. 서버 Worktree는 `git worktree add --detach ~/TelosWeaver-wt/<작업> <Branch>`처럼 detached HEAD로 만들고, push 뒤 `git reset --hard <Branch>`로 맞춥니다.
 4. **소유권:** 자기 작업의 독점 경로만 수정합니다. 공통 파일·계약 변경이 필요하면 배정표 §4에 변경 요청을 올립니다.
 5. **환경 기록:** 증거마다 [절차](../../LINUX_REMOTE_HOST.md) §4.1의 출력(Host ID `psyki-nas`, 커널, OS, rustc·cargo·node·npm, Commit)을 붙이고, 시험 표의 Host 열을 `psyki-nas`로 적어 Windows 행과 나눕니다.
 6. **실환경 시험:** 서버의 실제 계정으로 수행(사용자 허락). 가벼운 모델·서버의 일회용 임시 폴더만 쓰고 서버의 기존 대화를 재개·수정하지 않습니다. 실행하지 않은 시험을 통과로 적지 않습니다.
