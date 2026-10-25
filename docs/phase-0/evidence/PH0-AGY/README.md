@@ -1,5 +1,7 @@
 # PH0-AGY 구현 및 검증 기록
 
+> DEC-08(VS Code 대화 목록 표시, Spec §7.6) 작업 기록은 [VSCODE_LISTING.md](VSCODE_LISTING.md)에 있습니다.
+
 | 항목 | 값 |
 |---|---|
 | 작업 ID·담당 | PH0-AGY · `gemini-4-argon/session-9e6137eb` |

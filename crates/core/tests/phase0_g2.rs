@@ -271,6 +271,46 @@ async fn wait_for_session(client: &mut Client) {
     }
 }
 
+fn home() -> PathBuf {
+    PathBuf::from(
+        std::env::var_os("USERPROFILE")
+            .or_else(|| std::env::var_os("HOME"))
+            .unwrap(),
+    )
+}
+
+/// 확장 목록의 조회 대상 기록 여부 (§7.6). 정리 전에 확인합니다.
+/// - Claude: 세션 파일의 모든 `entrypoint`가 `claude-vscode`
+/// - Codex: Adapter가 Native 출처가 `cli`·`vscode`가 아니면 Turn 전에 거부하므로 완료 자체가 근거
+/// - Antigravity: 대화가 확장 데이터 디렉터리(`~/.gemini/antigravity`)에만 있음
+fn listing_record(provider: &str, events: &[Value]) -> Option<bool> {
+    let id = events.iter().find_map(|e| e["nativeSessionId"].as_str())?;
+    match provider {
+        "claude" => {
+            let projects = home().join(".claude").join("projects");
+            let file = std::fs::read_dir(projects)
+                .ok()?
+                .map(|entry| entry.unwrap().path().join(format!("{id}.jsonl")))
+                .find(|path| path.is_file())?;
+            let text = std::fs::read_to_string(file).ok()?;
+            let values: Vec<_> = text
+                .lines()
+                .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+                .filter_map(|v| v["entrypoint"].as_str().map(str::to_owned))
+                .collect();
+            Some(!values.is_empty() && values.iter().all(|e| e == "claude-vscode"))
+        }
+        "codex" => Some(find(events, "turn_finished").is_some()),
+        "agy" => {
+            let gemini = home().join(".gemini");
+            let in_extension = gemini.join("antigravity/brain").join(id).is_dir();
+            let in_cli = gemini.join("antigravity-cli/brain").join(id).exists();
+            Some(in_extension && !in_cli)
+        }
+        _ => None,
+    }
+}
+
 /// G2: 한 Daemon의 세 Provider가 각각 시작 → 이벤트 → 완료 → 결과 파일을 만듭니다.
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "runs the real Claude, Codex and Antigravity CLIs"]
@@ -291,11 +331,15 @@ async fn g2_each_provider_completes_and_writes_a_result_file() {
         setup.remember(provider, &events);
         let content = std::fs::read_to_string(setup.workspace.join(&file));
         let inspect = settle_status(&mut client, &run_id, RunStatus::Succeeded).await;
-        results.push((provider, events, content, inspect));
+        let listing = listing_record(provider, &events);
+        results.push((provider, events, content, inspect, listing));
     }
     // 판정 실패로 정리가 빠지지 않도록 세션을 먼저 정리합니다.
     setup.cleanup().await;
-    for (provider, events, content, inspect) in results {
+    for (provider, events, content, inspect, listing) in results {
+        // §7.6 (DEC-08): 정책 기본값(`listed`)으로 실행한 세션이 확장 목록의 조회 대상으로 기록됩니다.
+        println!("{provider} listing: {listing:?}");
+        assert_eq!(listing, Some(true), "{provider} session must be listed");
         assert_eq!(
             events.first().unwrap()["kind"],
             "session_started",

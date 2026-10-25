@@ -657,13 +657,15 @@ try {
 
 # E. TelosWeaver Adapter와의 관계
 
-현재 TelosWeaver Codex Adapter(`crates/adapters/src/codex.rs`)는 `codex exec`가 아니라 `app-server --stdio`와 `thread/start`·`thread/resume`·`thread/fork`를 사용합니다. 따라서 `--thread-source cli`를 Adapter 실행 인자에 그대로 추가하는 변경은 적용 대상이 아닙니다. App Server에서 `thread/list.sourceKinds`는 **조회할 출처를 고르는 필터**이며, 지정한다고 생성된 Thread의 출처가 바뀌지는 않습니다.
+TelosWeaver Adapter가 시작한 Run도 확장 목록에 보이도록 Spec DEC-08·[§7.6](DEVELOPMENT_v1.5.md#76-vs-code-확장-대화-목록-표시)에 따라 구현했습니다(v1.5.4, 2026-10-26 통합). 운영자 정책의 Provider별 `vscodeListing`(`listed` 기본 / `hidden`)으로 정합니다.
 
-현재 TelosWeaver Claude Adapter(`crates/adapters/src/claude.rs`)는 `claude -p`를 실행하고 `CLAUDE_CODE_ENTRYPOINT`를 지정하지 않으므로, 상위 환경에 값이 없으면 세션이 `sdk-cli`로 기록되어 Claude Code 확장 목록에서 제외됩니다.
+| Adapter | `listed` (기본) | `hidden` |
+|---|---|---|
+| Claude (`crates/adapters/src/claude.rs`) | 자식 환경 `CLAUDE_CODE_ENTRYPOINT=claude-vscode`, 부모 Claude 세션 변수 제거 | `CLAUDE_CODE_ENTRYPOINT=sdk-cli` |
+| Codex (`crates/adapters/src/codex.rs`) | App Server `thread/start`·`thread/fork`에 `ephemeral: false`, `threadSource: "vscode"`. 응답 출처가 `cli`·`vscode`가 아니면 거부 | **미지원.** App Server는 `threadSource`(analytics 분류)와 관계없이 저장된 Thread를 `vscode`로 기록하므로 정책 로드에서 거부 |
+| Antigravity (`crates/adapters/src/agy.rs`) | `--app_data_dir=antigravity` | 옵션 생략(`~/.gemini/antigravity-cli`). 확장 인덱스에 CLI 출처로 색인되지만 화면에는 나타나지 않음 |
 
-현재 TelosWeaver Antigravity Adapter(`crates/adapters/src/agy.rs`)는 기본값으로 `AgyDataDirMode::ExtensionShared`(`--app_data_dir=antigravity`)를 사용하므로 세션이 VS Code 확장과 공유하는 `~/.gemini/antigravity/conversation_summaries.db`에 기록됩니다(`AgyDataDirMode::DefaultCli`로 바꾸면 `~/.gemini/antigravity-cli`로 분리됨). 다만 기본 실행 인자에 `--project`는 포함하지 않으므로 `AgyLaunch::extra_args`에 `["--project".into(), "<프로젝트 이름 또는 UUID>".into()]`를 전달하지 않으면 `project_id`가 `default-cli-project`로 기록됩니다.
-
-Adapter가 시작한 Run도 확장 목록에 보이도록 하는 요구는 Spec v1.5.3의 DEC-08·[§7.6](DEVELOPMENT_v1.5.md#76-vs-code-확장-대화-목록-표시)으로 확정했고, 각 Adapter 담당에게 [작업 지시](phase-0/evidence/PH0-INTEGRATION/VSCODE_LISTING_ASSIGNMENTS.md)로 배정했습니다. 구현·판정 전까지는 위 설명이 현재 상태입니다.
+세 Provider 모두 자동 판정과 사용자 화면 확인을 통과했습니다. 근거는 각 담당의 `VSCODE_LISTING.md`와 [통합 기록](phase-0/evidence/PH0-INTEGRATION/README.md) §10입니다. 위 A~D절의 수동 호출 절차는 Adapter를 거치지 않는 외부 에이전트 호출에 그대로 적용됩니다. App Server에서 `thread/list.sourceKinds`는 **조회할 출처를 고르는 필터**이며, 지정한다고 생성된 Thread의 출처가 바뀌지는 않습니다. Antigravity Adapter는 `--project`를 넘기지 않으므로 `project_id`는 `default-cli-project`로 기록됩니다.
 
 이 문서는 외부 에이전트의 CLI 호출 절차를 정리한 운영 문서이며 Adapter 구현, 공통 계약, Phase 0의 완료 판정은 변경하지 않습니다. 기존 구현·시험 근거는 [PH0-CODEX 검증 기록](phase-0/evidence/PH0-CODEX/README.md), [PH0-CLAUDE 검증 기록](phase-0/evidence/PH0-CLAUDE/README.md), [PH0-AGY 검증 기록](phase-0/evidence/PH0-AGY/README.md)([Linux 검증 기록](phase-0/evidence/PH0-AGY/LINUX.md))을 참고합니다.
 

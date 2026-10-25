@@ -19,7 +19,7 @@ use std::{
 use futures::StreamExt;
 use telos_adapters::{
     AdapterError, AgentAdapter, ClaudeCodeAdapter,
-    claude::{ClaudeCodeConfig, ClaudeLaunch, ClaudeLaunchResolver},
+    claude::{ClaudeCodeConfig, ClaudeLaunch, ClaudeLaunchResolver, VsCodeListing},
     runtime::NativeRuntime,
 };
 use telos_schema::{
@@ -292,6 +292,133 @@ async fn env_resume_and_fork() {
         Some(parent.as_str()),
         "fork must get a new session id"
     );
+}
+
+/// 세션 파일 위치. 기본 설정 디렉터리(`CLAUDE_CONFIG_DIR` 또는 `~/.claude`)의 `projects/*/<id>.jsonl`입니다.
+fn session_file(session_id: &str) -> PathBuf {
+    let config = std::env::var_os("CLAUDE_CONFIG_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(
+                std::env::var_os("USERPROFILE")
+                    .or_else(|| std::env::var_os("HOME"))
+                    .expect("home directory"),
+            )
+            .join(".claude")
+        });
+    let file = format!("{session_id}.jsonl");
+    std::fs::read_dir(config.join("projects"))
+        .unwrap()
+        .map(|entry| entry.unwrap().path().join(&file))
+        .find(|path| path.is_file())
+        .unwrap_or_else(|| panic!("session file for {session_id}"))
+}
+
+/// 확장의 프로젝트 폴더 이름 규칙: 영숫자가 아닌 문자를 `-`로 바꿉니다(200자 이하 경로).
+fn project_dir_name(cwd: &str) -> String {
+    cwd.chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect()
+}
+
+fn same_path(a: &std::path::Path, b: &std::path::Path) -> bool {
+    let canonical = |p: &std::path::Path| {
+        let text = std::fs::canonicalize(p).unwrap().display().to_string();
+        let text = text.strip_prefix(r"\\?\").unwrap_or(&text).to_owned();
+        if cfg!(windows) {
+            text.to_lowercase()
+        } else {
+            text
+        }
+    };
+    canonical(a) == canonical(b)
+}
+
+/// 세션 파일이 확장 목록의 조회 범위(Workspace = cwd인 프로젝트 폴더)에 있고,
+/// 모든 줄의 `entrypoint`가 기대 값인지 확인합니다. 확장 2.1.310은 첫 줄 부근 값으로 판정합니다 (§7.6).
+fn assert_listing(session_id: &str, workspace: &std::path::Path, entrypoint: &str) {
+    let path = session_file(session_id);
+    println!("session-file: {}", path.display());
+    let text = std::fs::read_to_string(&path).unwrap();
+    let mut recorded_cwd = None;
+    let mut entrypoints = Vec::new();
+    for line in text.lines() {
+        let value: serde_json::Value = serde_json::from_str(line).unwrap();
+        if let Some(cwd) = value["cwd"].as_str() {
+            recorded_cwd.get_or_insert_with(|| cwd.to_owned());
+        }
+        if let Some(e) = value["entrypoint"].as_str() {
+            entrypoints.push(e.to_owned());
+        }
+    }
+    let cwd = recorded_cwd.expect("session records its cwd");
+    assert!(
+        same_path(std::path::Path::new(&cwd), workspace),
+        "cwd {cwd}"
+    );
+    let dir = path
+        .parent()
+        .unwrap()
+        .file_name()
+        .unwrap()
+        .to_string_lossy();
+    let expected_dir = project_dir_name(&cwd);
+    assert!(
+        dir.eq_ignore_ascii_case(&expected_dir),
+        "project folder {dir} != {expected_dir}"
+    );
+    assert!(!entrypoints.is_empty());
+    assert!(
+        entrypoints.iter().all(|e| e == entrypoint),
+        "entrypoints {entrypoints:?}"
+    );
+}
+
+fn session_id(events: &[ProviderEvent]) -> String {
+    events
+        .iter()
+        .find_map(|e| e.native_session_id.clone())
+        .expect("session id")
+}
+
+/// §7.6·DEC-08·AGENT-05: 기본(`listed`) Run은 Fresh·Resume·Fork 모두 확장 목록 조회 대상으로 기록되고,
+/// `hidden` Run은 자동화 출처로 기록됩니다. 시험 셸이 상속한 값(`claude-vscode` 등)과 관계없이 명시 값이 쓰입니다.
+#[tokio::test]
+#[ignore = "runs the real Claude Code CLI"]
+async fn env_vscode_listing() {
+    let listed = launch(
+        "listing",
+        "Remember this codeword: cedar-42. Reply only: ok",
+    );
+    let workspace = listed.cwd.clone();
+    let first = run(&adapter(listed), &context("env-listing-base")).await;
+    assert_eq!(check_run_events(&first), Ok(RunTermination::ProcessExited));
+    let parent = session_id(&first);
+    assert_listing(&parent, &workspace, "claude-vscode");
+
+    let follow = |mode, run_id: &str| {
+        let mut context = context(run_id);
+        context.session.mode = mode;
+        context.session.source_session_id = Some(parent.clone());
+        context
+    };
+    let ask = || adapter(launch("listing", "What was the codeword? Reply only it."));
+    let resumed = run(&ask(), &follow(SessionMode::Resume, "env-listing-resume")).await;
+    assert!(text(&resumed).contains("cedar-42"));
+    assert_eq!(session_id(&resumed), parent, "resume keeps the session");
+    assert_listing(&parent, &workspace, "claude-vscode");
+
+    let forked = run(&ask(), &follow(SessionMode::NativeFork, "env-listing-fork")).await;
+    assert!(text(&forked).contains("cedar-42"));
+    let fork_id = session_id(&forked);
+    assert_ne!(fork_id, parent);
+    assert_listing(&fork_id, &workspace, "claude-vscode");
+
+    let hidden = adapter(launch("listing-hidden", "Reply with exactly: pong"))
+        .with_vscode_listing(VsCodeListing::Hidden);
+    let events = run(&hidden, &context("env-listing-hidden")).await;
+    assert_eq!(check_run_events(&events), Ok(RunTermination::ProcessExited));
+    assert_listing(&session_id(&events), &workdir("listing-hidden"), "sdk-cli");
 }
 
 /// PROV-01: 설치된 VS Code 확장에서 공통 탐지로 CLI를 찾습니다. 버전 명령만 실행하며 사용량을 쓰지 않습니다.
