@@ -34,6 +34,9 @@
 //! # 메시지
 //! - 요청 [`ApiRequest`]와 응답 [`ApiResponse`]는 `requestId`로 짝을 맞춥니다.
 //! - 구독 이벤트는 [`ApiNotification`]으로 보내며 응답과 섞여 도착할 수 있습니다.
+//! - 다만 한 구독의 `runs.event`·`runs.subscriptionClosed`는 그 구독을 만든 `runs.subscribe` 응답 뒤에만 보냅니다
+//!   (재생 이벤트 포함). Client는 응답을 받는 즉시 `subscriptionId`를 연결하면 그 구독의 알림을 놓치지 않습니다.
+//!   다른 요청의 응답과 다른 구독의 알림은 사이사이에 올 수 있습니다 (REQ-017).
 //! - 메서드별 `params`·`result` 타입은 [`ApiMethod`] 각 항목의 문서를 따릅니다.
 
 use std::fmt;
