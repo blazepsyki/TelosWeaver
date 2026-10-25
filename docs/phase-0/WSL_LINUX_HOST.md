@@ -2,7 +2,7 @@
 
 > **소유:** PH0-INTEGRATION (Spec §19.5.3)  
 > **근거:** Spec §19.1(Windows/Linux Build, VS Code 로컬과 단일 Remote SSH), §19.5.8 G3  
-> **상태:** 배포판 설치 완료(2026-10-25, §2.0). §2.3 이후 구성은 아직 하지 않았습니다.
+> **상태:** **예비.** Spec v1.5.2(2026-10-25)부터 Linux·Remote SSH 실행 Host는 사용자의 Ubuntu 서버입니다([Linux·Remote SSH Host 절차](LINUX_REMOTE_HOST.md)). 이 WSL 배포판은 설치·systemd·패키지·SSH 서버까지 구성한 상태로 두며(§2.0), 쓸 경우 결과는 Linux 증거로만 씁니다.
 
 ## 1. 목적과 결정 사항
 

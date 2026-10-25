@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.1)  
+> **문서 버전:** 1.5 (개정 1.5.2)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-25  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -34,6 +34,7 @@
 | v1.4.4 | 2026-10-24 | RN Fork의 비공개 CLI 연동·자동 업데이트 등 민감 기능 제거 방향(DEC-07), 유지·제거·대체 정책과 미확정 경계(§12.4~12.5), PH0-RN-00~08의 선행 조건·산출물·소유권·검증(§19.5.10)을 추가. Upstream 변경은 선택적으로 반영하며 제거 경로의 재유입을 검사. 작업 배정·착수를 뜻하지 않음 |
 | **v1.5** | **2026-10-24** | **v1.4.1~1.4.4 정리와 RN 방향 확정. DEC-07을 사용자 결정대로 좁힘: RN Fork는 클로즈드 소스 Reason CLI 연동, 자동 업데이트·받아서 실행하는 설치 경로, Reason 계정 로그인만 제거하고 Claude·Codex 세션 탐지·메시지 전달·MCP·Hook·네트워크 기능은 유지(§12.1·§12.4·§12.5 확정, RN-09~12·RN-POC-13~15·PH0-RN-03 문구 조정). Fork는 `rn-fork/`에 subtree(squash)로 도입, 실행 파일·상태·MCP 이름 분리, 실제 에이전트 설정 변경은 시험 시에만 백업·Diff·복원과 사전 확인. 이 밖에 v1.4.1 INTEGRATION 경로, v1.4.2 Antigravity 데이터 디렉터리 확정, v1.4.3 병합 후 정리 규칙, v1.4.4 RN 서브 태스크 계획을 포함** |
 | v1.5.1 | 2026-10-25 | RN Core 연결(PH0-RN-07)의 Phase 0 방식과 재검토 조건(§12.3, §12.5): Core가 운영자 정책의 RN 실행 파일을 프로젝트별 상태 폴더로 자식 프로세스로 시작·정지하고, 예기치 않은 종료 시 제한된 재시작 후 Degraded. 사용자 단위 공유 RN은 P1 기존 세션 연결·P2 원격·팀 착수 전에 재검토(Core별 메일함·이벤트 범위·수명). RN RPC 계약(REQ-018)과 연결된 세션만 전송하는 Phase 0 규칙 반영 |
+| v1.5.2 | 2026-10-25 | Phase 0의 Linux·단일 Remote SSH 실행 Host를 같은 PC의 WSL2에서 사용자의 Ubuntu 서버(`Psyki-NAS`, Ubuntu 26.04.1 LTS, 세 Provider 확장 원격 설치·로그인)로 변경(§19.5.8 앞 Host 절, §19.5.3 INTEGRATION 경로에 `docs/phase-0/LINUX_REMOTE_HOST.md` 추가). WSL2는 예비이며 그 결과는 Linux 증거로만 씀 |
 
 ## 목차
 
@@ -1249,7 +1250,7 @@ G0 완료 시 공통 인터페이스와 최소 컴파일 가능한 등록 경로
 
 | 작업 ID | 책임·산출물 | 독점 수정 경로 | 선행 조건 |
 |---|---|---|---|
-| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/src/integration/**, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, AGENTS.md, CLAUDE.md, docs/DEVELOPMENT_v1.5.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md | 최초 지정, G0 준비부터 담당 |
+| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/src/integration/**, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, AGENTS.md, CLAUDE.md, docs/DEVELOPMENT_v1.5.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md, docs/phase-0/LINUX_REMOTE_HOST.md | 최초 지정, G0 준비부터 담당 |
 | PH0-CONTRACT | 공통 Rust 계약·Payload Schema·생성 원본·Wire/Schema 시험, Adapter Trait·공통 오류 | crates/schema/**, schemas/**, crates/adapters/src/lib.rs, crates/adapters/src/unimplemented.rs, crates/adapters/tests/unimplemented.rs | INTEGRATION과 G0 확정 |
 | PH0-HOST | 공용 프로세스 I/O·취소·자식 회수, VS Code 확장 CLI 공통 탐색, 최소 Core API·Supervisor와 Fixture 경로 | crates/adapters/src/runtime/**, crates/adapters/src/discovery/**, crates/adapters/tests/runtime_*.rs, crates/adapters/tests/discovery_*.rs, crates/adapters/tests/support/runtime/**, crates/adapters/tests/fixtures/runtime/**, crates/core/src/api/**, crates/core/src/execution/**, crates/core/tests/host_*.rs, crates/core/tests/fixtures/host/** | G0, 공용 런타임·API 계약 |
 | PH0-CODEX | Codex App Server 접속·신규 실행·이벤트 매핑·오류·취소, Resume/Fork 실험 | crates/adapters/src/codex.rs, crates/adapters/src/codex/**, crates/adapters/tests/codex_*.rs, crates/adapters/tests/fixtures/codex/** | G0, HOST 공개 인터페이스 |
@@ -1343,7 +1344,7 @@ PROV 범위는 해당 Provider의 실제 지원 상태와 환경을 기록하는
 
 개별 작업이 `integrated`가 되어도 G3 통과 전 Phase 0 전체 완료를 선언하지 않습니다. G3의 환경 조건은 Spec이 정한 대상 범위이며 모든 Provider를 모든 OS 조합에서 검증했다는 식으로 확대하지 않습니다. 실행하지 못한 필수 환경은 미검증으로 남기고 게이트 통과를 보류합니다.
 
-Phase 0의 Linux 실행 Host와 단일 Remote SSH 실행 Host는 같은 PC의 WSL2 배포판으로 확보하며 구성·검증 절차는 [WSL Linux Host 절차](phase-0/WSL_LINUX_HOST.md)를 따릅니다. Remote SSH 증거는 VS Code Remote-SSH로 WSL의 SSH 서버에 접속한 경로에서만 인정하고 Remote-WSL 확장 경로는 Linux 증거로만 씁니다. 같은 물리 장비·Loopback 네트워크라는 한계는 각 증거에 기록합니다.
+Phase 0의 Linux 실행 Host와 단일 Remote SSH 실행 Host는 사용자의 Ubuntu 서버(`Psyki-NAS`, Ubuntu 26.04.1 LTS) 하나로 확보하며 구성·검증 절차는 [Linux·Remote SSH Host 절차](phase-0/LINUX_REMOTE_HOST.md)를 따릅니다(v1.5.2). 서버에는 세 Provider의 VS Code 확장이 원격(`~/.vscode-server/extensions`)으로 설치·로그인되어 있으며 Windows의 인증 정보를 옮기지 않습니다. Remote SSH 증거는 VS Code Remote-SSH로 이 서버에 접속한 경로에서 얻습니다. 같은 PC의 WSL2 배포판은 예비로 두며([WSL Linux Host 절차](phase-0/WSL_LINUX_HOST.md)), 그 결과는 Linux 증거로만 쓰고 Remote SSH 증거로 쓰지 않습니다. 같은 LAN·실제 계정 사용이라는 조건은 각 증거에 기록합니다.
 
 각 `docs/phase-0/evidence/<작업 ID>/README.md`에는 다음을 기록합니다.
 
