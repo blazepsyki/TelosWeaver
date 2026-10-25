@@ -8,6 +8,8 @@
 //! - Print 모드에는 실행 중 승인 응답 경로가 없습니다. 권한은 시작 전에 [`ClaudeLaunch`]로 정하고
 //!   `answer_approval`은 미지원입니다 (§7.4와 같은 원칙).
 //! - Resume(`--resume`)·Fork(`--resume` + `--fork-session`) 인자는 구성하지만 Capability는 실험 전까지 `unverified`입니다.
+//! - 세션을 VS Code 확장 대화 목록에 표시할지는 [`VsCodeListing`]으로 정하고 `CLAUDE_CODE_ENTRYPOINT`로
+//!   지정합니다 (§7.6, DEC-08). 기본은 표시입니다.
 
 use std::{
     collections::HashMap,
@@ -39,6 +41,24 @@ pub const EXTENSION_ID: &str = "anthropic.claude-code";
 
 /// 실환경 시험으로 기본 실행 경로를 확인한 CLI 버전입니다. 다른 버전은 `unverified`로 보고합니다.
 const VERIFIED_CLI_VERSIONS: &[&str] = &["2.1.310"];
+
+/// 확장 대화 목록 표시를 실환경으로 판정한 CLI 버전입니다 (§7.6). Claude는 확장과 CLI 버전이 같습니다.
+const VSCODE_LISTING_VERIFIED_VERSIONS: &[&str] = &["2.1.310"];
+
+/// 세션 출처를 정하는 환경 변수. 확장은 `sdk-cli`·`sdk-ts`·`sdk-py` 세션을 기본 목록에서 뺍니다 (§7.6).
+const ENTRYPOINT_ENV: &str = "CLAUDE_CODE_ENTRYPOINT";
+
+/// Core가 Claude 세션 안에서 시작되었을 때 상속될 수 있는 부모 세션 변수입니다.
+/// Managed Run은 별도 세션이므로 자식 환경에서 제거합니다 (§7.6).
+const PARENT_SESSION_ENV: &[&str] = &[
+    "CLAUDECODE",
+    "CLAUDE_CODE_SESSION_ID",
+    "CLAUDE_CODE_CHILD_SESSION",
+    "CLAUDE_CODE_SESSION_ATTENDED",
+    "CLAUDE_CODE_MESSAGING_SOCKET",
+    "CLAUDE_CODE_MESSAGING_TOKEN",
+    "CLAUDE_PID",
+];
 
 /// Stream JSON 한 줄의 상한. 도구 결과가 큰 경우를 고려하되 상한을 넘으면 Protocol 오류로 처리합니다.
 const OUTPUT_LIMITS: OutputLimits = OutputLimits {
@@ -82,6 +102,26 @@ pub struct ClaudeLaunch {
     pub setting_sources: Option<String>,
 }
 
+/// Managed Run 세션의 VS Code 확장 대화 목록 표시 모드입니다 (§7.6, DEC-08, AGENT-05).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum VsCodeListing {
+    /// 확장 목록의 조회 대상으로 기록합니다(`claude-vscode`).
+    #[default]
+    Listed,
+    /// 자동화 출처로 기록해 확장 기본 목록에서 뺍니다(`sdk-cli`).
+    Hidden,
+}
+
+impl VsCodeListing {
+    /// 세션에 기록할 `CLAUDE_CODE_ENTRYPOINT` 값입니다.
+    pub fn entrypoint(self) -> &'static str {
+        match self {
+            Self::Listed => "claude-vscode",
+            Self::Hidden => "sdk-cli",
+        }
+    }
+}
+
 /// Task·Run에서 [`ClaudeLaunch`]를 만듭니다. Core가 승인된 Workspace·Policy·문맥 조립으로 구현합니다.
 pub trait ClaudeLaunchResolver: Send + Sync {
     fn resolve(&self, task: &TaskSpec, context: &RunContext) -> Result<ClaudeLaunch, AdapterError>;
@@ -101,6 +141,7 @@ pub struct ClaudeCodeConfig {
 
 pub struct ClaudeCodeAdapter {
     config: Option<ClaudeCodeConfig>,
+    listing: VsCodeListing,
     runs: Mutex<HashMap<String, Arc<RunEntry>>>,
     keys: Mutex<HashMap<String, String>>,
     clock: Clock,
@@ -121,10 +162,21 @@ impl ClaudeCodeAdapter {
     fn with_config(config: Option<ClaudeCodeConfig>) -> Self {
         Self {
             config,
+            listing: VsCodeListing::default(),
             runs: Mutex::new(HashMap::new()),
             keys: Mutex::new(HashMap::new()),
             clock: Arc::new(timestamp),
         }
+    }
+
+    /// 운영자 설정의 확장 목록 표시 모드를 적용합니다. 지정하지 않으면 [`VsCodeListing::Listed`]입니다.
+    pub fn with_vscode_listing(mut self, listing: VsCodeListing) -> Self {
+        self.listing = listing;
+        self
+    }
+
+    pub fn vscode_listing(&self) -> VsCodeListing {
+        self.listing
     }
 
     fn config(&self) -> Result<&ClaudeCodeConfig, AdapterError> {
@@ -144,10 +196,10 @@ impl ClaudeCodeAdapter {
             })
     }
 
-    fn verified(&self) -> bool {
+    fn verified(&self, versions: &[&str]) -> bool {
         self.config.as_ref().is_some_and(|c| {
             let version = c.cli_version.split_whitespace().next();
-            VERIFIED_CLI_VERSIONS.iter().any(|v| version == Some(v))
+            versions.iter().any(|v| version == Some(v))
         })
     }
 
@@ -232,6 +284,13 @@ fn command_args(
     Ok(args)
 }
 
+/// 자식 환경: 세션 출처를 명시하고 부모 세션 변수를 제거합니다. 상속된 값에 기대지 않습니다 (§7.6).
+fn command_env(listing: VsCodeListing) -> Vec<(OsString, Option<OsString>)> {
+    let mut env = vec![(ENTRYPOINT_ENV.into(), Some(listing.entrypoint().into()))];
+    env.extend(PARENT_SESSION_ENV.iter().map(|key| ((*key).into(), None)));
+    env
+}
+
 /// Stream JSON 입력의 사용자 메시지 한 줄입니다.
 fn prompt_line(prompt: &str) -> Vec<u8> {
     let mut line = serde_json::to_vec(&serde_json::json!({
@@ -295,7 +354,7 @@ impl AgentAdapter for ClaudeCodeAdapter {
             );
             return Ok(caps);
         }
-        let (state, evidence, reason) = if self.verified() {
+        let (state, evidence, reason) = if self.verified(VERIFIED_CLI_VERSIONS) {
             (
                 CapabilityState::Supported,
                 EvidenceLevel::EnvironmentTested,
@@ -337,6 +396,23 @@ impl AgentAdapter for ClaudeCodeAdapter {
                 ),
             );
         }
+        // 운영자 설정과 무관하게 수단의 지원 여부를 보고합니다 (§7.6).
+        caps.insert(
+            "vscode_listing".into(),
+            if self.verified(VSCODE_LISTING_VERIFIED_VERSIONS) {
+                capability(
+                    CapabilityState::Supported,
+                    EvidenceLevel::EnvironmentTested,
+                    None,
+                )
+            } else {
+                capability(
+                    CapabilityState::Unverified,
+                    EvidenceLevel::ContractTested,
+                    Some("extension listing rule has not been checked for this version"),
+                )
+            },
+        );
         Ok(caps)
     }
 
@@ -362,7 +438,7 @@ impl AgentAdapter for ClaudeCodeAdapter {
                 program: config.executable.clone(),
                 args,
                 cwd: launch.cwd.clone(),
-                env: vec![],
+                env: command_env(self.listing),
                 stdin: StdinMode::Piped,
                 limits: OUTPUT_LIMITS,
             })
