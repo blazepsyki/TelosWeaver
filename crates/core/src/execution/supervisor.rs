@@ -324,7 +324,7 @@ impl ExecutionSupervisor {
                         || state.bytes.saturating_add(bytes) > 8 * 1024 * 1024
                         || state.events.len() >= 4096
                         || event_bytes
-                            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |total| {
+                            .try_update(Ordering::AcqRel, Ordering::Acquire, |total| {
                                 total
                                     .checked_add(bytes)
                                     .filter(|total| *total <= 32 * 1024 * 1024)
