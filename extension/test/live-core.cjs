@@ -1,7 +1,10 @@
 // Explicit local Core test with no policy; no model or provider invocation.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const path = require("node:path");
 const { CoreConnection } = require("../dist/core");
+const { CoreClient } = require("../dist/client");
 const { environment } = require("./helpers.cjs");
 
 test(
@@ -36,6 +39,42 @@ test(
     assert.equal(rn?.status, "degraded");
     assert.match(rn.detail, /not configured/);
     assert.equal(first.state.hello.projectId, `project-${env.location.key}`);
+    // Check actual Core credentials and Unix IPC, not fixture permissions (§3.3, SAFE-10).
+    const token = await fs.readFile(env.location.tokenPath, "utf8");
+    assert.match(token, /^[0-9a-f]{64}$/);
+    assert.notEqual(token, env.token, "Core must replace the fixture token");
+    if (process.platform !== "win32") {
+      const socket = await fs.stat(env.location.endpoint);
+      assert.ok(socket.isSocket());
+      assert.equal(socket.mode & 0o777, 0o600);
+      const credentials = await fs.stat(env.location.tokenPath);
+      assert.equal(credentials.mode & 0o777, 0o600);
+      for (const directory of [
+        path.dirname(env.location.endpoint),
+        path.dirname(env.location.tokenPath),
+      ]) {
+        const info = await fs.stat(directory);
+        assert.equal(info.mode & 0o777, 0o700);
+        assert.equal(info.uid, process.getuid());
+      }
+      assert.equal(socket.uid, process.getuid());
+      assert.equal(credentials.uid, process.getuid());
+      console.log("Unix Socket/token 0600; directories 0700; current UID owns IPC");
+    }
+    const unauthenticated = await CoreClient.connect(env.location.endpoint);
+    try {
+      await assert.rejects(
+        unauthenticated.request("core.hello", {
+          clientName: "telos-weaver-extension-negative-test",
+          clientVersion: "0.0.0",
+          token: `${token[0] === "0" ? "1" : "0"}${token.slice(1)}`,
+        }),
+        (e) => e.code === "unauthenticated",
+      );
+    } finally {
+      unauthenticated.close();
+    }
+    console.log(`Temporary project: ${env.root}; invalid token rejected`);
     const task = {
       id: "deny-fixture",
       revision: 1,
