@@ -391,6 +391,50 @@ Windows 병합 전 확인: Workspace 166개 통과·36개 제외, fmt 통과(엄
 
 **남은 G3 항목:** PH0-EXT E2(Remote-SSH Extension Host), Remote SSH 시나리오(절차 §4.4), DEC-08 Linux 화면 확인(Claude·Codex), HOST `discovery_environment` 두 벌 단언(§9.3 후속 1), PH0-RN-08, G3 대조표·판정.
 
+### 9.5 Remote SSH: PH0-EXT E2와 시나리오 (`psyki-nas`, 2026-10-26, 사용자 VS Code)
+
+사용자가 Windows VS Code로 조작하고 INTEGRATION이 서버에서 프로세스·권한·로그를 확인했습니다. 서버 Worktree `~/TelosWeaver-wt/g3-remote`(`1733bf3`, 시험 뒤 삭제), 시험 상태·Socket은 `.telos-weaver/remote-e2/state`(`XDG_STATE_HOME`·`XDG_RUNTIME_DIR`), Remote Settings `telosWeaver.corePath`·`telosWeaver.hostId=psyki-nas`(시험 뒤 사용자가 복구). Run 시작·조회는 빌드된 Extension 모듈(`dist/core`)을 쓰는 서버 보조 스크립트로 했습니다(토큰 미출력).
+
+**E2: Remote-SSH Extension Host**(절차 [PH0-EXT Linux](../PH0-EXT/LINUX.md) §4를 이 Worktree 경로로 수행)
+
+| 단계 | 결과 |
+|---|---|
+| 원격 창(`SSH: Psyki-NAS`) → F5 개발 Host | Running Extensions에서 TelosWeaver가 `SSH: Psyki-NAS`(원격 Extension Host)로 표시. 활성화만으로 Core 미시작(`미연결`) |
+| Core 시작 / 연결 | `연결됨 (degraded)`, Host `psyki-nas`, `rn` degraded. Core PID 107682(01:44:18), 부모 = 원격 Extension Host(105081), 자기 세션(SID=PID). Core 환경에 시험 XDG 경로 전달. Socket `0600`·토큰 `0600`·디렉터리 `0700`, 소유 `gth1919` |
+| 연결 해제(Core 유지) → Core 연결 | 같은 Core에 재연결(이 프로젝트의 Core 1개 유지) |
+| 개발 Host 창 종료 | Core 107682가 같은 시작 시각으로 생존, 부모가 1로 바뀜(UI 수명과 분리). **E2 통과** |
+
+**시나리오 1: Run 중 SSH 단절**(절차 §4.4 1~3). 정책 Core(PID 109370, Claude `haiku`, Write 허용)를 서버에서 시작하고 개발 Host가 연결. Run `run-f8cb7ba356a0375ed0cb471b4da72255`(파일 5개를 차례로 쓰기)
+
+| 시각 | 사건(근거) |
+|---|---|
+| 01:51:47 | Run 시작, Claude PID 115177 |
+| 01:52:00~01:52:16 | `part1~3.txt` 작성 |
+| **01:52:22.7** | 사용자가 Windows에서 `Get-Process ssh \| Stop-Process -Force` → sshd `Connection closed by 192.168.1.2`(VS Code 연결 모두) |
+| 01:52:24·01:52:37 | **단절 중** `part4·5.txt` 작성 |
+| 01:52:43~46 | SSH 재접속, VS Code Server `The client has reconnected` |
+| 이후 | Run `Succeeded`, attempt 1, 이벤트 19개(`process_exited` 포함), Core PID 109370 유지, 파일 5개. 개발 Host에서 `Run 출력 구독`으로 1~19 전체 수신 |
+
+판정: UI 연결과 원격 실제 실행이 분리되고 중복 실행이 없음(§14.2 "Remote SSH 단절" P0) **통과**.
+
+**시나리오 2: Host 유실(Core 강제 종료)**(절차 §4.4 4, SSH 단절과 별도)
+
+| 시각 | 사건 |
+|---|---|
+| 01:54:06 | Run `run-04a295fb27bece7f7aea1a6bb37dd901` 시작, Claude PID 117764 |
+| **01:54:16.4** | `kill -9 109370`(Core) |
+| 01:54:16~01:54:54 | **Core 없이 Claude가 계속 실행**해 `part1~5.txt`를 모두 쓰고 스스로 종료 |
+| 사용자 화면 | 패널 `연결 오류`, 진단 "실행 중인 Core에 연결할 수 없습니다" |
+| 01:56:53 | 사용자 `Core 시작 / 연결` → 새 Core 119715(정책 없음) `연결됨 (degraded)`. 남은 Socket 파일이 시작을 막지 않음. 새 Core는 이전 Run 두 개를 `not_found`로 거부(Phase 0 메모리 기록, Health `no crash recovery`와 일치) |
+
+**발견 사항(G3 판정 전 처리 필요):**
+
+1. **Linux에서 Core 비정상 종료 시 Provider 프로세스가 감독 없이 계속 실행됨**(HOST). Core가 죽어도 자식 Claude가 40초 가까이 작업을 마치고 파일을 썼고, 그 부작용은 어떤 Core 기록에도 남지 않습니다. Spec §14.2 "Core 비정상 종료" P0(불명확 상태 차단)와 §3 프로세스 감독 관점에서 검토가 필요합니다. Windows Job Object 경로의 같은 상황 결과는 아직 확인하지 않았습니다.
+2. **Claude가 긴 `sleep`을 백그라운드로 돌리고 Turn을 끝낸 Run이 `Interrupted`로 끝남**(CLAUDE). 첫 시도 Run `run-eaeaed12408ec00ac1994ec808187035`: 이벤트 1~9(`turn_finished`까지)만 있고 `process_exited` 없이 `Interrupted`, 백그라운드 `sleep`·결과 파일 없음. 원인(백그라운드 작업이 남은 상태의 `-p` 종료 처리) 조사 필요.
+3. **연결 오류 중 패널에 마지막 Health 값이 남아 표시됨**(EXT, 비차단). `연결 오류`와 함께 `execution ok` 등이 현재 상태처럼 보입니다.
+
+**시험 세션 정리:** 서버 Claude 시험 폴더 `-home-gth1919-TelosWeaver-wt-g3-remote--telos-weaver-remote-e2-workspace`(세션 `041d7056-a6f6-4a3b-b2a0-af4ac5166fa6`, `64afc33c-471b-4c17-98ca-a05c6cd73b7f`, `a2cd2986-655d-4146-b179-172bfc40c566`) 삭제, 시험 Core 정지, Worktree 삭제. Codex·Antigravity 세션은 만들지 않았습니다.
+
 ## 10. DEC-08 VS Code 확장 목록 표시 통합 (2026-10-26)
 
 | 항목 | 값 |

@@ -2,7 +2,7 @@
 
 > **소유:** PH0-INTEGRATION (Spec §19.5.3)  
 > **근거:** Spec v1.5.2 §19.1(Windows/Linux Build, VS Code 로컬과 단일 Remote SSH)·§19.5.8 G3, 사용자 결정 2026-10-25  
-> **상태:** 서버 조사 완료(2026-10-25, §2). Toolchain(Rust 1.99.1·Node 24.22.1)과 Git 이메일 정렬, `~/TelosWeaver` Clone, 공통 검사 통과(`836fb11`, [INTEGRATION 증거](evidence/PH0-INTEGRATION/README.md) §9.2). 작업별 실환경 시험(§4.3)은 아직 하지 않았습니다.  
+> **상태:** 서버 조사 완료(2026-10-25, §2). Toolchain(Rust 1.99.1·Node 24.22.1)과 Git 이메일 정렬, `~/TelosWeaver` Clone, 공통 검사 통과(`836fb11`, [INTEGRATION 증거](evidence/PH0-INTEGRATION/README.md) §9.2). 작업별 실환경 시험(§4.3)과 Remote SSH 시나리오(§4.4)는 2026-10-26 수행([INTEGRATION 증거](evidence/PH0-INTEGRATION/README.md) §9.3~§9.5).  
 > **예비:** 같은 PC의 WSL2 `Ubuntu-26.04`는 [WSL 절차](WSL_LINUX_HOST.md)대로 예비로 둡니다. WSL 결과는 Linux 증거로만 쓰고 Remote SSH 증거로 쓰지 않습니다.
 
 ## 1. 결정 사항 (2026-10-25)
