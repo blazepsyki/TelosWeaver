@@ -354,3 +354,47 @@ async fn external_signal_is_not_reported_as_a_natural_exit() {
     assert_eq!(status.code, None);
     assert_eq!(status.cause, TerminationCause::External);
 }
+
+// Spec §7.3, SAFE-03: a Unix group that ignores SIGTERM must be killed in full.
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn unix_sigterm_resistance_escalates_and_removes_the_process_group() {
+    let mut command = spec("sleep");
+    command.program = "/bin/sh".into();
+    command.args = vec!["-c".into(), "trap '' TERM; sleep 60 & echo $!; wait".into()];
+    let handle = NativeRuntime.spawn(command).await.unwrap();
+    let mut stream = handle.take_output().unwrap();
+    let event = tokio::time::timeout(Duration::from_secs(3), stream.next())
+        .await
+        .unwrap()
+        .unwrap();
+    let child = match event {
+        OutputEvent::Line { data, .. } => String::from_utf8(data).unwrap().parse::<i32>().unwrap(),
+        _ => panic!("missing child pid"),
+    };
+    let group = handle.identity().pid as i32;
+    assert_eq!(unsafe { libc::getpgid(group) }, group);
+    assert_eq!(unsafe { libc::getpgid(child) }, group);
+    let report = tokio::time::timeout(
+        Duration::from_secs(5),
+        handle.terminate(Duration::from_millis(50)),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(report.status.cause, TerminationCause::Killed);
+    assert_eq!(report.children, ChildrenReaped::All);
+    assert_eq!(unsafe { libc::kill(-group, 0) }, -1);
+    assert_eq!(
+        std::io::Error::last_os_error().raw_os_error(),
+        Some(libc::ESRCH)
+    );
+    assert_eq!(unsafe { libc::kill(child, 0) }, -1);
+    assert_eq!(
+        std::io::Error::last_os_error().raw_os_error(),
+        Some(libc::ESRCH)
+    );
+    tokio::time::timeout(Duration::from_secs(3), stream.collect::<Vec<_>>())
+        .await
+        .unwrap();
+}
