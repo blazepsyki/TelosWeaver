@@ -19,6 +19,7 @@ enum Mode {
     IgnoreInterrupt,
     Steer,
     Permissions,
+    NonInteractive,
 }
 #[derive(Default)]
 struct MockRuntime {
@@ -100,7 +101,7 @@ impl ProcessHandle for MockHandle {
             Some("config/read")=>self.emit(json!({"id":id,"result":{"config":{"mcp_servers":{"fixture":{"credential":"fixture-secret"}}}}})),
             Some("thread/start"|"thread/resume"|"thread/fork")=>{
                 if matches!(self.mode,Mode::StartError){self.emit(json!({"id":id,"error":{"code":-32602,"message":"invalid model fixture-secret"}}));}
-                else {let thread=match request["method"].as_str().unwrap(){"thread/resume"=>params["threadId"].as_str().unwrap().to_owned(),"thread/fork"=>"fork-fixture".into(),_=>"thread-fixture".into()};*self.thread.lock().unwrap()=thread.clone();self.emit(json!({"id":id,"result":{"thread":{"id":thread}}}));}
+                else {let thread=match request["method"].as_str().unwrap(){"thread/resume"=>params["threadId"].as_str().unwrap().to_owned(),"thread/fork"=>"fork-fixture".into(),_=>"thread-fixture".into()};*self.thread.lock().unwrap()=thread.clone();let source=if matches!(self.mode,Mode::NonInteractive){"appServer"}else{"vscode"};self.emit(json!({"id":id,"result":{"thread":{"id":thread,"source":source}}}));}
             }
             Some("turn/start")=>{
                 self.emit(json!({"id":id,"result":{"turn":{"id":"turn-fixture","status":"inProgress"}}}));
@@ -170,23 +171,33 @@ impl CodexLaunchResolver for Resolver {
     }
 }
 fn configured(mode: Mode, approvals: CodexApprovals) -> (CodexAdapter, Arc<MockRuntime>) {
+    configured_listing(mode, approvals, CodexVscodeListing::default())
+}
+fn configured_listing(
+    mode: Mode,
+    approvals: CodexApprovals,
+    listing: CodexVscodeListing,
+) -> (CodexAdapter, Arc<MockRuntime>) {
     let runtime = Arc::new(MockRuntime {
         mode,
         ..Default::default()
     });
     (
-        CodexAdapter::new(CodexConfig {
-            executable: "fixture.exe".into(),
-            cli_version: "fixture-version".into(),
-            host_id: fixtures::HOST_ID.into(),
-            runtime: runtime.clone(),
-            launcher: Arc::new(Resolver {
-                cwd: std::env::temp_dir(),
-                approvals,
-            }),
-            request_timeout: Duration::from_secs(1),
-            cancel_grace: Duration::from_millis(20),
-        }),
+        CodexAdapter::with_vscode_listing(
+            CodexConfig {
+                executable: "fixture.exe".into(),
+                cli_version: "fixture-version".into(),
+                host_id: fixtures::HOST_ID.into(),
+                runtime: runtime.clone(),
+                launcher: Arc::new(Resolver {
+                    cwd: std::env::temp_dir(),
+                    approvals,
+                }),
+                request_timeout: Duration::from_secs(1),
+                cancel_grace: Duration::from_millis(20),
+            },
+            listing,
+        ),
         runtime,
     )
 }
@@ -194,6 +205,98 @@ fn inputs() -> (TaskSpec, RunContext) {
     let task = fixtures::task_spec();
     let context = fixtures::run_context(&task);
     (task, context)
+}
+
+// Spec §7.6, DEC-08: defaults preserve visible, persistent threads across session modes.
+#[tokio::test]
+async fn listed_defaults_persist_creation_and_fork_without_reclassifying_resume() {
+    assert_eq!(CodexVscodeListing::default(), CodexVscodeListing::Listed);
+    for mode in [
+        SessionMode::Fresh,
+        SessionMode::Capsule,
+        SessionMode::Resume,
+        SessionMode::NativeFork,
+    ] {
+        let (adapter, runtime) = configured(Mode::Good, CodexApprovals::Deny);
+        let (task, mut context) = inputs();
+        context.session.mode = mode;
+        if matches!(mode, SessionMode::Resume | SessionMode::NativeFork) {
+            context.session.source_session_id = Some("source-fixture".into());
+        }
+        adapter.start_run(&task, &context).await.unwrap();
+        collect(&adapter, &context.run_id).await;
+        let requests = runtime.requests.lock().unwrap();
+        let method = match mode {
+            SessionMode::Resume => "thread/resume",
+            SessionMode::NativeFork => "thread/fork",
+            _ => "thread/start",
+        };
+        let params = &requests.iter().find(|r| r["method"] == method).unwrap()["params"];
+        if mode == SessionMode::Resume {
+            assert!(params.get("threadSource").is_none());
+            assert!(params.get("ephemeral").is_none());
+        } else {
+            assert_eq!(params["ephemeral"], false);
+            assert_eq!(params["threadSource"], "vscode");
+        }
+        assert_eq!(params["cwd"], std::env::temp_dir().to_str().unwrap());
+        assert_eq!(params["sandbox"], "read-only");
+        assert_eq!(params["approvalPolicy"], "on-request");
+    }
+}
+
+#[tokio::test]
+async fn hidden_is_explicitly_unsupported_and_never_starts_a_process() {
+    let (adapter, runtime) =
+        configured_listing(Mode::Good, CodexApprovals::Deny, CodexVscodeListing::Hidden);
+    let capability = adapter
+        .detect(fixtures::HOST_ID)
+        .await
+        .unwrap()
+        .remove("vscode_listing")
+        .unwrap();
+    assert_eq!(capability.state, CapabilityState::Unsupported);
+    let (task, context) = inputs();
+    assert!(matches!(
+        adapter.start_run(&task, &context).await,
+        Err(AdapterError::UnsupportedCapability { .. })
+    ));
+    assert_eq!(runtime.spawns.load(Ordering::SeqCst), 0);
+    assert!(adapter.owned_thread_ids().is_empty());
+}
+
+#[tokio::test]
+async fn unlisted_native_sources_fail_before_generation_and_preserve_source_ownership() {
+    for mode in [SessionMode::Fresh, SessionMode::Resume] {
+        let (adapter, runtime) = configured(Mode::NonInteractive, CodexApprovals::Deny);
+        let (task, mut context) = inputs();
+        context.session.mode = mode;
+        context.session.source_session_id = Some("source-fixture".into());
+        assert!(matches!(
+            adapter.start_run(&task, &context).await,
+            Err(AdapterError::UnsupportedCapability { .. })
+        ));
+        let requests = runtime.requests.lock().unwrap();
+        assert!(!requests.iter().any(|r| r["method"] == "turn/start"));
+        assert_eq!(
+            requests.iter().any(|r| r["method"] == "thread/archive"),
+            mode == SessionMode::Fresh
+        );
+    }
+}
+
+#[tokio::test]
+async fn listing_capability_does_not_claim_an_unverified_cli_or_extension() {
+    let (adapter, _) = configured(Mode::Good, CodexApprovals::Deny);
+    let capabilities = adapter.detect(fixtures::HOST_ID).await.unwrap();
+    assert_eq!(
+        capabilities["vscode_listing"].state,
+        CapabilityState::Unverified
+    );
+    assert_eq!(
+        capabilities["vscode_listing"].evidence_level,
+        EvidenceLevel::MockTested
+    );
 }
 async fn collect(adapter: &CodexAdapter, id: &str) -> Vec<ProviderEvent> {
     tokio::time::timeout(

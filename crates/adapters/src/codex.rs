@@ -95,6 +95,14 @@ pub trait CodexLaunchResolver: Send + Sync {
         })
     }
 }
+/// VS Code list visibility (Spec §7.6, DEC-08). Hidden must fail if no native means exists.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum CodexVscodeListing {
+    #[default]
+    Listed,
+    Hidden,
+}
+
 pub struct CodexConfig {
     pub executable: PathBuf,
     pub cli_version: String,
@@ -118,6 +126,7 @@ struct Registry {
 struct Inner {
     config: Option<CodexConfig>,
     registry: Mutex<Registry>,
+    vscode_listing: CodexVscodeListing,
 }
 pub struct CodexAdapter {
     inner: Arc<Inner>,
@@ -128,16 +137,22 @@ impl Default for CodexAdapter {
             inner: Arc::new(Inner {
                 config: None,
                 registry: Mutex::new(Registry::default()),
+                vscode_listing: CodexVscodeListing::default(),
             }),
         }
     }
 }
 impl CodexAdapter {
     pub fn new(config: CodexConfig) -> Self {
+        Self::with_vscode_listing(config, CodexVscodeListing::default())
+    }
+    /// Explicit listing configuration without breaking existing Core configuration literals (§7.6).
+    pub fn with_vscode_listing(config: CodexConfig, vscode_listing: CodexVscodeListing) -> Self {
         Self {
             inner: Arc::new(Inner {
                 config: Some(config),
                 registry: Mutex::new(Registry::default()),
+                vscode_listing,
             }),
         }
     }
@@ -249,7 +264,7 @@ impl AgentAdapter for CodexAdapter {
                 "Codex belongs to another Host",
             ));
         }
-        Ok([
+        let mut capabilities: HashMap<String, Capability> = [
             "managed",
             "stream",
             "cancel",
@@ -272,7 +287,27 @@ impl AgentAdapter for CodexAdapter {
                 },
             )
         })
-        .collect())
+        .collect();
+        // §7.6, DEC-08: source/list checks are version/Host-specific; UI opening is separate evidence.
+        let listing_verified = target == "win32-x64"
+            && config.cli_version == "codex-cli 0.164.0-alpha.11.1"
+            && config
+                .executable
+                .components()
+                .any(|part| part.as_os_str() == "openai.chatgpt-26.1021.22027-win32-x64");
+        capabilities.insert("vscode_listing".into(), Capability {
+            state: match self.inner.vscode_listing {
+                CodexVscodeListing::Hidden => CapabilityState::Unsupported,
+                CodexVscodeListing::Listed if listing_verified => CapabilityState::Supported,
+                CodexVscodeListing::Listed => CapabilityState::Unverified,
+            },
+            provider_version: config.cli_version.clone(),
+            host_id: host_id.into(),
+            checked_at: timestamp(),
+            evidence_level: if listing_verified { EvidenceLevel::EnvironmentTested } else { EvidenceLevel::MockTested },
+            reason: Some("Windows x64 extension 26.1021.22027 / CLI 0.164.0-alpha.11.1: persisted vscode threads are in the default DB list; hidden has no verified native creation mechanism and is rejected; UI listing/opening remains unverified".into()),
+        });
+        Ok(capabilities)
     }
     async fn start_run(
         &self,
@@ -431,6 +466,12 @@ async fn start_once(
     context: RunContext,
 ) -> Result<RunStarted, AdapterError> {
     let config = inner.config.as_ref().unwrap();
+    if inner.vscode_listing == CodexVscodeListing::Hidden {
+        return Err(AdapterError::UnsupportedCapability {
+            capability: "vscode_listing:hidden".into(),
+            reason: "this App Server classifies threads as vscode even when threadSource is omitted; hidden creation has no verified native mechanism".into(),
+        });
+    }
     let launch = config.launcher.resolve(&task, &context)?;
     if launch.model.is_empty()
         || launch.effort.is_empty()
@@ -463,11 +504,22 @@ async fn start_once(
                 if context.session.mode==SessionMode::NativeFork {if let Some(turn)=&context.session.source_turn_id {params["lastTurnId"]=json!(turn);} "thread/fork"}else{"thread/resume"}
             }
         };
+        // §7.6, DEC-08: preserve sessions; threadSource is analytics, not a proven visibility switch.
+        if method != "thread/resume" {
+            params["ephemeral"] = json!(false);
+            params["threadSource"] = json!("vscode");
+        }
         let response=client.request(method,params).await?;
         let thread=response.pointer("/thread/id").and_then(Value::as_str).filter(|id|!id.is_empty()).ok_or_else(||error(FailureKind::ProtocolParse,"Codex did not return a thread ID"))?.to_owned();
         if context.session.mode==SessionMode::NativeFork&&context.session.source_session_id.as_deref()==Some(&thread){return Err(error(FailureKind::ProtocolParse,"Codex fork reused the source thread ID"));}
         if context.session.mode==SessionMode::Resume&&context.session.source_session_id.as_deref()!=Some(&thread){return Err(error(FailureKind::ProtocolParse,"Codex resume changed the thread ID"));}
         if context.session.mode!=SessionMode::Resume {inner.registry.lock().unwrap().owned_threads.insert(thread.clone(),false);created_thread=Some(thread.clone());}
+        if !matches!(response.pointer("/thread/source").and_then(Value::as_str), Some("cli" | "vscode")) {
+            return Err(AdapterError::UnsupportedCapability {
+                capability: "vscode_listing".into(),
+                reason: "App Server did not return a thread source included in the default interactive list".into(),
+            });
+        }
         let response=client.request("turn/start",json!({"threadId":thread,"input":[{"type":"text","text":launch.prompt}],"model":launch.model,"effort":launch.effort,"approvalPolicy":"on-request","approvalsReviewer":"user"})).await?;
         let turn=response.pointer("/turn/id").and_then(Value::as_str).filter(|id|!id.is_empty()).ok_or_else(||error(FailureKind::ProtocolParse,"Codex did not return a turn ID"))?.to_owned();
         let events=client.take_events()?;
