@@ -85,6 +85,8 @@ pub struct ClaudePolicy {
     /// §7.5-4 명시 경로. 없으면 확장에서 찾습니다.
     #[serde(default)]
     pub executable: Option<PathBuf>,
+    #[serde(default)]
+    pub vscode_listing: VsCodeListing,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -98,6 +100,18 @@ pub struct CodexPolicy {
     pub run_timeout_secs: u64,
     #[serde(default)]
     pub executable: Option<PathBuf>,
+    /// `hidden`은 지원 수단이 없어 설정 단계에서 거부합니다 (§7.6, REQ-021).
+    #[serde(default)]
+    pub vscode_listing: VsCodeListing,
+}
+
+/// Managed Run 세션의 VS Code 확장 대화 목록 표시 (Spec §7.6, DEC-08, AGENT-05). 기본은 표시입니다.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum VsCodeListing {
+    #[default]
+    Listed,
+    Hidden,
 }
 
 /// Antigravity 데이터 디렉터리 (Spec §7.5 확정 규칙).
@@ -120,10 +134,29 @@ pub struct AgyPolicy {
     /// 쓰기 가능 Workspace에서 쓰는 실행 모드(`accept-edits` 등). 읽기 전용 Run은 CLI 기본(검토 요청)으로 둡니다.
     #[serde(default)]
     pub mode: Option<String>,
+    /// `vscodeListing`과 같은 선택의 이전 표현입니다(`extension` = `listed`, `default` = `hidden`).
     #[serde(default)]
-    pub data_dir: AgyDataDir,
+    pub data_dir: Option<AgyDataDir>,
     #[serde(default)]
     pub executable: Option<PathBuf>,
+    #[serde(default)]
+    pub vscode_listing: Option<VsCodeListing>,
+}
+
+impl AgyPolicy {
+    /// 실제 적용할 표시 모드. 두 설정이 서로 다르면 오류입니다 (§7.6).
+    pub fn listing(&self) -> Result<VsCodeListing, String> {
+        let from_dir = self.data_dir.map(|dir| match dir {
+            AgyDataDir::Extension => VsCodeListing::Listed,
+            AgyDataDir::Default => VsCodeListing::Hidden,
+        });
+        match (self.vscode_listing, from_dir) {
+            (Some(listing), Some(dir)) if listing != dir => {
+                Err("agy.vscodeListing conflicts with agy.dataDir".into())
+            }
+            (listing, dir) => Ok(listing.or(dir).unwrap_or_default()),
+        }
+    }
 }
 
 impl LocalPolicyConfig {
@@ -187,6 +220,12 @@ impl LocalPolicyConfig {
             if codex.run_timeout_secs == 0 {
                 return Err("codex.runTimeoutSecs must be positive".into());
             }
+            if codex.vscode_listing == VsCodeListing::Hidden {
+                return Err(
+                    "codex.vscodeListing hidden is not supported: App Server threads are listed as vscode (Spec §7.6)"
+                        .into(),
+                );
+            }
         }
         if let Some(agy) = &self.agy {
             if agy.models.is_empty() {
@@ -199,8 +238,30 @@ impl LocalPolicyConfig {
             {
                 return Err("agy.mode must not bypass permissions".into());
             }
+            agy.listing()?;
         }
         Ok(())
+    }
+
+    /// Provider별 표시 모드와 실제 지정 방식 (§7.6). 정책에 없는 Provider는 `None`입니다.
+    pub fn vscode_listing(&self, provider: &str) -> Option<(VsCodeListing, &'static str)> {
+        use VsCodeListing::*;
+        let listing = match provider {
+            telos_adapters::claude::PROVIDER_ID => self.claude.as_ref()?.vscode_listing,
+            telos_adapters::codex::PROVIDER_ID => self.codex.as_ref()?.vscode_listing,
+            telos_adapters::agy::PROVIDER_ID => self.agy.as_ref()?.listing().ok()?,
+            _ => return None,
+        };
+        let method = match (provider, listing) {
+            (telos_adapters::claude::PROVIDER_ID, Listed) => "CLAUDE_CODE_ENTRYPOINT=claude-vscode",
+            (telos_adapters::claude::PROVIDER_ID, Hidden) => "CLAUDE_CODE_ENTRYPOINT=sdk-cli",
+            (telos_adapters::codex::PROVIDER_ID, _) => {
+                "persisted thread (ephemeral=false, threadSource=vscode)"
+            }
+            (_, Listed) => "--app_data_dir=antigravity",
+            (_, Hidden) => "--app_data_dir omitted (antigravity-cli)",
+        };
+        Some((listing, method))
     }
 
     /// Provider별 허용 모델. 정책에 없는 Provider는 `None`입니다.
@@ -238,6 +299,9 @@ pub struct RunSnapshot {
     pub policy_revision: String,
     /// 이 Run이 쓸 CLI 탐지 결과 (§7.5-6).
     pub cli: Option<CliDiscovery>,
+    /// VS Code 확장 목록 표시 모드와 실제 지정 방식 (§7.6, DEC-08).
+    pub vscode_listing: VsCodeListing,
+    pub vscode_listing_method: &'static str,
 }
 
 pub struct LocalRunPolicy {
@@ -313,7 +377,13 @@ impl LocalRunPolicy {
         if session.mode == SessionMode::Capsule {
             return Err(forbidden("capsule sessions are not supported in Phase 0"));
         }
+        let (vscode_listing, vscode_listing_method) = self
+            .config
+            .vscode_listing(&task.agent.provider)
+            .ok_or_else(|| forbidden("provider is not granted"))?;
         Ok(RunSnapshot {
+            vscode_listing,
+            vscode_listing_method,
             id: new_id("ctx")?,
             task_id: task.id.clone(),
             task_revision: task.revision,

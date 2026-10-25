@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.3)  
+> **문서 버전:** 1.5 (개정 1.5.4)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-25  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -36,6 +36,7 @@
 | v1.5.1 | 2026-10-25 | RN Core 연결(PH0-RN-07)의 Phase 0 방식과 재검토 조건(§12.3, §12.5): Core가 운영자 정책의 RN 실행 파일을 프로젝트별 상태 폴더로 자식 프로세스로 시작·정지하고, 예기치 않은 종료 시 제한된 재시작 후 Degraded. 사용자 단위 공유 RN은 P1 기존 세션 연결·P2 원격·팀 착수 전에 재검토(Core별 메일함·이벤트 범위·수명). RN RPC 계약(REQ-018)과 연결된 세션만 전송하는 Phase 0 규칙 반영 |
 | v1.5.2 | 2026-10-25 | Phase 0의 Linux·단일 Remote SSH 실행 Host를 같은 PC의 WSL2에서 사용자의 Ubuntu 서버(`Psyki-NAS`, Ubuntu 26.04.1 LTS, 세 Provider 확장 원격 설치·로그인)로 변경(§19.5.8 앞 Host 절, §19.5.3 INTEGRATION 경로에 `docs/phase-0/LINUX_REMOTE_HOST.md` 추가). WSL2는 예비이며 그 결과는 Linux 증거로만 씀 |
 | v1.5.3 | 2026-10-25 | Managed Run 세션을 각 Provider의 VS Code 확장 대화 목록에 표시(DEC-08, §7.6). Provider별 출처 지정 방식(Claude `CLAUDE_CODE_ENTRYPOINT`, Codex `threadSource` 검증, Agy 확장 데이터 디렉터리), 운영자 설정 `listed`/`hidden`, Workspace 경로 제약, Capability `vscode_listing`과 판정 방법, 실행 중 이중 조작 금지. AGENT-05 추가, §19.1 Phase 0 확인 항목 추가 |
+| v1.5.4 | 2026-10-26 | §7.6을 Phase 0 판정 결과로 보정(REQ-021): Codex App Server는 `threadSource`(analytics 분류)·초기화 이름과 관계없이 저장된 Thread를 `vscode` 출처로 기록하므로 `hidden` 수단이 없고 운영자 정책에서 거부(사용자 결정). Antigravity `hidden`은 확장 인덱스에 CLI 출처로 색인되지만 확장 화면에서는 숨겨짐. 세 Provider `listed`·Claude/Agy `hidden`의 자동 판정과 사용자 화면 확인 결과, 운영자 정책 `vscodeListing`(Agy `dataDir`과의 관계)과 승인 Snapshot 기록, Agy 요약 인덱스 잔여 행 처리 |
 
 ## 목차
 
@@ -637,17 +638,19 @@ DEC-08에 따라 Adapter가 시작한 Managed Run의 세션은 각 Provider의 V
 
 **운영자 설정**
 
-- Provider별 `vscodeListing`: `listed`(기본) 또는 `hidden`. `hidden`은 자동화 출처로 기록해 확장 목록에서 제외합니다. 설정 위치·형식은 운영자 정책(§13.1)이며 Phase 0에서는 INTEGRATION 통합 구성이 각 Adapter 설정으로 전달합니다.
+- Provider별 `vscodeListing`: `listed`(기본) 또는 `hidden`. `hidden`은 자동화 출처로 기록해 확장 목록에서 제외합니다. 설정 위치·형식은 운영자 정책(§13.1)이며 Phase 0에서는 INTEGRATION 통합 구성(`claude`·`codex`·`agy` 절의 `vscodeListing`)이 각 Adapter 설정으로 전달합니다.
+- **Codex는 `hidden`을 지원하지 않습니다.** 숨김 수단이 확인되지 않아(아래 표) 정책 로드에서 거부하고, Adapter도 프로세스 생성 전에 `unsupported`로 거부합니다. 목록에 보이는 Thread를 만든 뒤 Archive하는 것을 숨김으로 대신하지 않습니다(사용자 결정 2026-10-25).
+- Antigravity의 기존 `dataDir`(`extension`·`default`)은 같은 선택의 이전 표현입니다(`extension` = `listed`, `default` = `hidden`). 두 값이 서로 다르면 정책 로드에서 거부합니다.
 - 실제 적용 값과 방식(아래 "Adapter 처리")은 Run의 Context Snapshot에 기록합니다(§7.5 규칙 6과 같은 위치).
 - 세션 영속성을 끄는 옵션(Claude `--no-session-persistence`, Codex `ephemeral: true`)은 어느 설정에서도 쓰지 않습니다. 저장되지 않은 세션은 Resume·Fork도 할 수 없습니다.
 
 **Adapter 처리**
 
-| Provider | 방식 | 확인 사실 (2026-10-25, Windows) | Phase 0 판정 항목 |
+| Provider | 방식 | 확인 사실 (2026-10-25, Windows) | Phase 0 판정 결과 (2026-10-25~26, Windows) |
 |---|---|---|---|
-| Claude Code | 자식 프로세스 환경에 `CLAUDE_CODE_ENTRYPOINT=claude-vscode`(`listed`) 또는 `sdk-cli`(`hidden`)를 **명시적으로** 지정. Core 프로세스가 상속한 부모 Claude 세션 변수(`CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_CHILD_SESSION`, `CLAUDE_CODE_SESSION_ATTENDED`, `CLAUDE_CODE_MESSAGING_SOCKET`, `CLAUDE_CODE_MESSAGING_TOKEN`, `CLAUDE_PID`)는 자식 환경에서 제거 | 확장 2.1.310: 세션 JSONL 첫 줄 부근 `entrypoint`가 `sdk-cli`·`sdk-ts`·`sdk-py`이면 기본 목록에서 제외. `-p`는 환경 변수가 없으면 `sdk-cli`. 지정 시 모든 줄이 `claude-vscode`로 기록되고 `--resume --fork-session`도 새 세션 전체를 지정 값으로 기록 | 세션 파일 위치·`entrypoint` 값, 같은 Session의 Resume·Fork에서 값 유지, 확장 화면 표시. 확장 목록은 **VS Code 첫 Workspace 폴더와 같은 cwd**의 세션만 조회하고 Worktree를 제외함 |
-| Codex | App Server `thread/start`·`thread/fork`에 `ephemeral: false`와 목록 대상 출처를 지정. 후보는 `threadSource` 필드(로컬 Schema에 존재, 설명은 "analytics source classification"). 목록 분류(`cli`·`vscode` 대 `exec`·`appServer`)를 실제로 바꾸는 수단을 실험으로 확정 | `codex exec --thread-source cli`는 CLI 도움말로 확인. 확장 26.1021.22027은 `thread/list`에 빈 `sourceKinds`(= `cli`·`vscode`만)와 `useStateDbOnly: true`로 조회. App Server 경로의 효과는 미확인 | 생성한 Thread가 기본 `thread/list`(빈 `sourceKinds`) 결과에 포함되는지, Fork·Resume 후 유지, 확장 화면 표시. 수단을 찾지 못하면 `unsupported`(사유 포함) |
-| Antigravity | 기존 기본값 `--app_data_dir=antigravity`(§7.5 확정 규칙)를 `listed`로 사용. `hidden`은 옵션 생략(CLI 기본 디렉터리) | AGY-DATA-03: 대화가 확장 디렉터리의 `brain/<id>`와 공유 `conversation_summaries.db`에 기록됨. 확장 화면 표시와 Workspace 필터는 미확인 | 확장 목록이 읽는 기록에 Run이 포함되는지, Workspace별 필터 여부, 확장 화면 표시. `hidden`일 때 로그인 상태가 디렉터리별로 달라 실행이 실패할 수 있음(AGY-DATA-02)을 Capability 사유에 기록 |
+| Claude Code | 자식 프로세스 환경에 `CLAUDE_CODE_ENTRYPOINT=claude-vscode`(`listed`) 또는 `sdk-cli`(`hidden`)를 **명시적으로** 지정. Core 프로세스가 상속한 부모 Claude 세션 변수(`CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_CHILD_SESSION`, `CLAUDE_CODE_SESSION_ATTENDED`, `CLAUDE_CODE_MESSAGING_SOCKET`, `CLAUDE_CODE_MESSAGING_TOKEN`, `CLAUDE_PID`)는 자식 환경에서 제거 | 확장 2.1.310: 세션 JSONL 첫 줄 부근 `entrypoint`가 `sdk-cli`·`sdk-ts`·`sdk-py`이면 기본 목록에서 제외. `-p`는 환경 변수가 없으면 `sdk-cli`. 지정 시 모든 줄이 `claude-vscode`로 기록되고 `--resume --fork-session`도 새 세션 전체를 지정 값으로 기록 | 확장 2.1.310. `listed`: Fresh·Resume·NativeFork 세션 파일이 cwd 인코딩 폴더에 있고 모든 줄이 `claude-vscode`. `hidden`: 모든 줄 `sdk-cli`. 화면: `listed` 목록 표시·열기·확장에서 이어 쓰기(추가 줄도 `claude-vscode`), `hidden` 미표시(사용자 확인). 목록 범위는 **VS Code 첫 Workspace 폴더와 같은 cwd**, Worktree 제외 |
+| Codex | `thread/start`·`thread/fork`에 `ephemeral: false`, `threadSource: "vscode"`. 응답의 Thread 출처가 `cli`·`vscode`가 아니면 Turn 전에 거부하고 만든 Thread를 Archive. `hidden`은 거부 | 확장 26.1021.22027은 `thread/list`에 빈 `sourceKinds`(= `cli`·`vscode`만)와 `useStateDbOnly: true`로 조회. `threadSource`는 로컬 Schema 설명상 analytics 분류 | CLI 0.164.0-alpha.11.1. `threadSource` 생략·`cli`·`exec`·`appServer`, `clientInfo.name` 변경 모두 저장 후 `vscode`로 기본 목록에 포함 → **숨김 수단 없음**. `listed`: Fresh·Resume·NativeFork가 기본 DB 목록에 포함(Native 읽기 전 조회). 화면: 목록 표시·열기 사용자 확인. 실시간 반영 미검증 |
+| Antigravity | 기존 기본값 `--app_data_dir=antigravity`(§7.5 확정 규칙)를 `listed`로 사용. `hidden`은 옵션 생략(CLI 기본 디렉터리) | AGY-DATA-03: 대화가 확장 디렉터리의 `brain/<id>`와 공유 `conversation_summaries.db`에 기록됨 | 확장 1.9.0·`agy` 1.4.7. `listed`: 확장 인덱스에 `source=""`(확장 대화와 같은 값)·`workspace_uris`=실행 Workspace, Resume 같은 ID. `hidden`: `antigravity-cli`에 기록되지만 확장 허브가 확장 인덱스에도 `source="CORTEX_TRAJECTORY_SOURCE_CLI"`로 색인. 화면: `listed` 표시, `hidden` 미표시(사용자 확인). `hidden`은 디렉터리별 로그인(AGY-DATA-02) 주의 |
 
 - 세션 JSONL·SQLite·요약 DB 등 Provider 저장소를 직접 수정해 출처를 바꾸지 않습니다. Provider가 받는 인자·환경 변수·Protocol 필드로만 지정합니다.
 - 이 방식들은 각 확장의 **비공개 내부 동작**을 관찰한 결과입니다(§7.5와 같은 위험 수준). 확장·CLI 버전이 바뀌면 다시 판정합니다.
@@ -655,7 +658,7 @@ DEC-08에 따라 Adapter가 시작한 Managed Run의 세션은 각 Provider의 V
 **Workspace 경로**
 
 - Adapter는 표시를 위해 실행 cwd를 바꾸지 않습니다. Run은 §10의 Task Workspace에서 실행합니다.
-- 확장마다 목록의 경로 범위가 다릅니다. Claude Code 확장은 VS Code 창의 첫 Workspace 폴더와 cwd가 정확히 같은 세션만 보여 주므로, 별도 Worktree에서 실행한 Run은 그 폴더를 VS Code 창으로 열어야 보입니다. Codex·Antigravity의 경로 범위는 Phase 0에서 확인합니다.
+- 확장마다 목록의 경로 범위가 다릅니다. Claude Code 확장은 VS Code 창의 첫 Workspace 폴더와 cwd가 정확히 같은 세션만 보여 주므로, 별도 Worktree에서 실행한 Run은 그 폴더를 VS Code 창으로 열어야 보입니다. Codex Thread에는 실행 cwd가 기록되며 화면 확인은 Run의 Workspace 폴더를 연 창에서 했습니다(다른 창에서의 표시 범위는 미확인). Antigravity는 `workspace_uris`에 실행 Workspace가 기록됩니다.
 - Core는 Run의 실행 Host·Workspace 경로를 기록하고, Extension은 Run 상세에서 Provider·Native 세션 ID와 그 경로를 보여 줍니다(P1에서 "해당 폴더 열기" 동작 검토).
 - 원격 실행 Host의 Run은 그 Host의 확장(Remote SSH 창)에서만 보입니다(§3.3).
 
@@ -665,6 +668,8 @@ DEC-08에 따라 Adapter가 시작한 Managed Run의 세션은 각 Provider의 V
 - `supported`(`environment-tested`)는 **자동 판정**이 통과한 Provider 버전·Host에만 씁니다. 자동 판정은 확장과 같은 기준의 목록 조회 결과입니다: Codex는 App Server `thread/list`(빈 `sourceKinds`), Claude는 설치된 확장의 목록 규칙(세션 파일 경로와 첫 줄 부근 `entrypoint`), Antigravity는 확장이 읽는 대화 기록. 판정에 쓴 확장 버전·규칙을 증거에 남깁니다.
 - 확장 화면에서 실제로 보이고 열리는지는 사용자 확인이 필요하며 자동 판정과 따로 기록합니다. 확인하지 않은 화면 동작은 미검증으로 둡니다.
 - 시험은 지금처럼 저장소 밖 임시 폴더에서 실행합니다. 화면 확인이 필요한 시험만 사용자가 연 Workspace에서 실행하고, 세션 ID를 증거에 남겨 병합 시점에 정리합니다(배정표 §6 "시험 세션 정리").
+- Antigravity는 대화 파일(`brain/<id>`, `conversations/<id>.db`)을 지워도 확장 쪽 요약 인덱스(`conversation_summaries.db`)의 `listed` 행이 남아 확장 목록에 빈 항목으로 보일 수 있습니다. 이 DB는 Core가 수정하지 않으며, 정리는 사용자가 확장 UI에서 하거나 사용자 승인 아래 확장 허브를 멈춘 상태에서만 합니다.
+- Phase 0 판정: 세 Provider의 `listed`는 Adapter 자동 판정·사용자 화면 확인·Core 통합 경로(G2 실환경, 정책 기본값) 모두 통과. Claude·Antigravity의 `hidden`은 자동 판정·화면 확인 통과, Codex `hidden`은 미지원. Linux·Remote SSH는 미판정. 근거: `docs/phase-0/evidence/PH0-INTEGRATION/README.md` §10.
 
 ## 8. 세션 수명·포크·토큰 효율
 

@@ -15,7 +15,7 @@ mod tracked;
 
 pub use policy::{
     AgyDataDir, AgyLauncher, AgyPolicy, ClaudeLauncher, ClaudePolicy, CodexLauncher, CodexPolicy,
-    LocalPolicyConfig, LocalRunPolicy, RnPolicy, RunSnapshot, WorkspaceGrant,
+    LocalPolicyConfig, LocalRunPolicy, RnPolicy, RunSnapshot, VsCodeListing, WorkspaceGrant,
 };
 pub use rn::{RnLaunch, RnService};
 pub use tracked::{ShutdownReport, TrackedAdapter};
@@ -30,9 +30,9 @@ use std::{
 use telos_adapters::{
     AgentAdapter, AgyAdapter, ClaudeCodeAdapter, CliDiscoverer, CodexAdapter, DiscoveryRequest,
     NativeCliDiscoverer, ProviderCliRule,
-    agy::{AgyConfig, AgyDataDirMode},
-    claude::ClaudeCodeConfig,
-    codex::CodexConfig,
+    agy::{AgyConfig, AgyVsCodeListing},
+    claude::{self, ClaudeCodeConfig},
+    codex::{CodexConfig, CodexVscodeListing},
     runtime::ProcessRuntime,
 };
 use telos_schema::{CliDiscovery, CliDiscoveryFailure, CliDiscoveryOutcome};
@@ -192,7 +192,18 @@ impl Phase0Execution {
             discoveries.insert(telos_adapters::agy::PROVIDER_ID.to_owned(), found);
         }
 
-        let agy_data_dir = config.agy.as_ref().map(|a| a.data_dir);
+        // §7.6 (DEC-08): 운영자 정책의 표시 모드를 각 Adapter에 전달합니다. 값 검사는 정책 로드에서 끝났습니다.
+        let listing = |provider| {
+            config
+                .vscode_listing(provider)
+                .map(|(listing, _)| listing)
+                .unwrap_or_default()
+        };
+        let claude_listing = listing(telos_adapters::claude::PROVIDER_ID);
+        let agy_listing = config
+            .agy
+            .is_some()
+            .then(|| listing(telos_adapters::agy::PROVIDER_ID));
         let policy = Arc::new(LocalRunPolicy::new(
             config,
             revision.clone(),
@@ -206,41 +217,55 @@ impl Phase0Execution {
             .get(telos_adapters::claude::PROVIDER_ID)
             .and_then(CliDiscovery::found)
         {
-            registered.push(Arc::new(ClaudeCodeAdapter::new(ClaudeCodeConfig {
-                executable: PathBuf::from(&cli.executable_path),
-                cli_version: cli.cli_version.clone(),
-                host_id: host_id.clone(),
-                runtime: runtime.clone(),
-                launcher: Arc::new(ClaudeLauncher::new(policy.clone())),
-                cancel_grace: CANCEL_GRACE,
-            })));
+            registered.push(Arc::new(
+                ClaudeCodeAdapter::new(ClaudeCodeConfig {
+                    executable: PathBuf::from(&cli.executable_path),
+                    cli_version: cli.cli_version.clone(),
+                    host_id: host_id.clone(),
+                    runtime: runtime.clone(),
+                    launcher: Arc::new(ClaudeLauncher::new(policy.clone())),
+                    cancel_grace: CANCEL_GRACE,
+                })
+                .with_vscode_listing(match claude_listing {
+                    VsCodeListing::Listed => claude::VsCodeListing::Listed,
+                    VsCodeListing::Hidden => claude::VsCodeListing::Hidden,
+                }),
+            ));
         }
         if let Some(cli) = discoveries
             .get(telos_adapters::codex::PROVIDER_ID)
             .and_then(CliDiscovery::found)
         {
-            let codex = Arc::new(CodexAdapter::new(CodexConfig {
-                executable: PathBuf::from(&cli.executable_path),
-                cli_version: cli.cli_version.clone(),
-                host_id: host_id.clone(),
-                runtime: runtime.clone(),
-                launcher: Arc::new(CodexLauncher::new(policy.clone())),
-                request_timeout: CODEX_REQUEST_TIMEOUT,
-                cancel_grace: CANCEL_GRACE,
-            }));
+            // Codex `hidden`은 정책 로드에서 거부하므로 항상 `Listed`입니다 (§7.6).
+            let codex = Arc::new(CodexAdapter::with_vscode_listing(
+                CodexConfig {
+                    executable: PathBuf::from(&cli.executable_path),
+                    cli_version: cli.cli_version.clone(),
+                    host_id: host_id.clone(),
+                    runtime: runtime.clone(),
+                    launcher: Arc::new(CodexLauncher::new(policy.clone())),
+                    request_timeout: CODEX_REQUEST_TIMEOUT,
+                    cancel_grace: CANCEL_GRACE,
+                },
+                CodexVscodeListing::Listed,
+            ));
             codex_handle = Some(codex.clone());
             registered.push(codex);
         }
-        if let (Some(cli), Some(data_dir)) = (
+        if let (Some(cli), Some(agy_listing)) = (
             discoveries
                 .get(telos_adapters::agy::PROVIDER_ID)
                 .and_then(CliDiscovery::found),
-            agy_data_dir,
+            agy_listing,
         ) {
             let executable = PathBuf::from(&cli.executable_path);
-            let (data_dir_mode, option_supported) = match data_dir {
-                AgyDataDir::Default => (AgyDataDirMode::DefaultCli, true),
-                AgyDataDir::Extension => {
+            let agy_listing = match agy_listing {
+                VsCodeListing::Listed => AgyVsCodeListing::Listed,
+                VsCodeListing::Hidden => AgyVsCodeListing::Hidden,
+            };
+            let option_supported = match agy_listing {
+                AgyVsCodeListing::Hidden => true,
+                AgyVsCodeListing::Listed => {
                     // §7.5 확정 규칙: 실행 전 옵션 수용을 확인하고, 거부되면 다른 디렉터리로 바꾸지 않습니다.
                     let checked = AgyAdapter::verify_extension_data_dir(
                         runtime.as_ref(),
@@ -253,9 +278,10 @@ impl Phase0Execution {
                             "agy: --app_data_dir is not accepted; runs are unsupported ({error})"
                         ));
                     }
-                    (AgyDataDirMode::ExtensionShared, checked.is_ok())
+                    checked.is_ok()
                 }
             };
+            let data_dir_mode = agy_listing.data_dir_mode();
             registered.push(Arc::new(AgyAdapter::new(AgyConfig {
                 executable,
                 cli_version: cli.cli_version.clone(),

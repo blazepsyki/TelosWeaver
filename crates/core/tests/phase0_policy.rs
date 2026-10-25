@@ -461,6 +461,85 @@ fn invalid_codex_and_agy_policies_are_rejected() {
     assert!(LocalPolicyConfig::load(&dir.write_policy(json)).is_err());
 }
 
+// --- VS Code 확장 목록 표시 (Spec §7.6, DEC-08) ---
+
+/// 기본은 세 Provider 모두 표시이고, 실제 지정 방식이 승인 Snapshot에 남습니다.
+#[tokio::test]
+async fn runs_are_listed_by_default_and_the_method_is_recorded() {
+    use telos_core::integration::VsCodeListing;
+
+    let dir = Dir::new("listing-default");
+    let policy = multi_policy(&dir, true);
+    for (provider, method) in [
+        ("claude", "CLAUDE_CODE_ENTRYPOINT=claude-vscode"),
+        (
+            "codex",
+            "persisted thread (ephemeral=false, threadSource=vscode)",
+        ),
+        ("agy", "--app_data_dir=antigravity"),
+    ] {
+        let mut t = task();
+        t.agent.provider = provider.into();
+        let permit = policy.authorize(&t, &session()).await.unwrap();
+        let snapshot = policy.snapshot(&permit.context_snapshot_id).unwrap();
+        assert_eq!(snapshot.vscode_listing, VsCodeListing::Listed, "{provider}");
+        assert_eq!(snapshot.vscode_listing_method, method);
+    }
+}
+
+#[tokio::test]
+async fn hidden_listing_is_recorded_for_claude_and_agy() {
+    use telos_core::integration::VsCodeListing;
+
+    let dir = Dir::new("listing-hidden");
+    let mut json = policy_json(&dir, true);
+    json["claude"]["vscodeListing"] = "hidden".into();
+    json["agy"] = serde_json::json!({"models": ["m"], "vscodeListing": "hidden"});
+    let (config, revision) = LocalPolicyConfig::load(&dir.write_policy(json)).unwrap();
+    let policy = LocalRunPolicy::new(config, revision, Default::default());
+    for (provider, method) in [
+        ("claude", "CLAUDE_CODE_ENTRYPOINT=sdk-cli"),
+        ("agy", "--app_data_dir omitted (antigravity-cli)"),
+    ] {
+        let mut t = task();
+        t.agent.provider = provider.into();
+        if provider == "agy" {
+            t.agent.model = Some("m".into());
+        }
+        let permit = policy.authorize(&t, &session()).await.unwrap();
+        let snapshot = policy.snapshot(&permit.context_snapshot_id).unwrap();
+        assert_eq!(snapshot.vscode_listing, VsCodeListing::Hidden, "{provider}");
+        assert_eq!(snapshot.vscode_listing_method, method);
+    }
+}
+
+#[test]
+fn unsupported_or_conflicting_listing_policies_are_rejected() {
+    let dir = Dir::new("listing-invalid");
+    // Codex는 숨김 수단이 없습니다 (§7.6, REQ-021).
+    let mut json = policy_json(&dir, true);
+    json["codex"] = serde_json::json!({"models": ["m"], "effort": "low", "runTimeoutSecs": 60, "vscodeListing": "hidden"});
+    let error = LocalPolicyConfig::load(&dir.write_policy(json)).unwrap_err();
+    assert!(error.contains("codex.vscodeListing"), "{error}");
+
+    // Agy의 이전 표현(`dataDir`)과 새 표현이 다르면 거부합니다.
+    let mut json = policy_json(&dir, true);
+    json["agy"] =
+        serde_json::json!({"models": ["m"], "dataDir": "extension", "vscodeListing": "hidden"});
+    let error = LocalPolicyConfig::load(&dir.write_policy(json)).unwrap_err();
+    assert!(error.contains("conflicts"), "{error}");
+
+    // 같은 뜻이면 허용하고, 이전 표현만 있어도 그대로 해석합니다.
+    let mut json = policy_json(&dir, true);
+    json["agy"] =
+        serde_json::json!({"models": ["m"], "dataDir": "default", "vscodeListing": "hidden"});
+    assert!(LocalPolicyConfig::load(&dir.write_policy(json)).is_ok());
+
+    let mut json = policy_json(&dir, true);
+    json["claude"]["vscodeListing"] = "invisible".into();
+    assert!(LocalPolicyConfig::load(&dir.write_policy(json)).is_err());
+}
+
 // --- 마스터 (PH0-MASTER) ---
 
 #[tokio::test]

@@ -358,3 +358,56 @@ Provider·모델 호출은 없었습니다. 다음은 작업별 실환경 시험
 3. PH0-AGY 인계: Linux Remote SSH에서 `agy`는 `<app_data_dir>/antigravity-oauth-token` 파일 토큰을 쓰는데 확장 공유 폴더(`~/.gemini/antigravity`)에는 이 파일이 없습니다. `phase0_g2`의 Linux 재실행은 기본 CLI 폴더(`~/.gemini/antigravity-cli`)로 하거나 사용자가 `--app_data_dir=antigravity`로 한 번 로그인해야 합니다(AGY-DATA-02).
 
 **시험 세션:** Codex Thread 7개는 Archive 완료([CODEX](../PH0-CODEX/LINUX.md)에 ID), Antigravity 대화 7개는 AGY가 즉시 삭제했고 빈 폴더를 확인([AGY](../PH0-AGY/LINUX.md)에 ID), HOST·EXT는 Provider 세션 없음. 병합 시 서버 임시 폴더(`/tmp/telos-codex-live-*`, `/tmp/telos-codex-linux-audit-*`)를 지웁니다.
+
+## 10. DEC-08 VS Code 확장 목록 표시 통합 (2026-10-26)
+
+| 항목 | 값 |
+|---|---|
+| 수행 | PH0-INTEGRATION 몫을 사용자 지시로 `claude-opus-5.5/session-be1c1774`가 수행 |
+| 기준 | `main` `f91108a`, Spec v1.5.3 → v1.5.4, 계약 `7497877`(변경 없음) |
+| Branch | `ph0/listing-int` / `D:\worktree\TelosWeaver\ph0-listing-int` |
+| 병합 | `ph0/claude-listing`(`21da117`), `ph0/codex-listing`(`5449185`), `ph0/agy-listing`(`07b7210`). 충돌 없음 |
+| 지시 | [VSCODE_LISTING_ASSIGNMENTS.md](VSCODE_LISTING_ASSIGNMENTS.md) §5 I1~I4, REQ-021 |
+
+### 10.1 담당 결과 검토
+
+| 작업 | 범위 | 검토 |
+|---|---|---|
+| PH0-CLAUDE | `CLAUDE_CODE_ENTRYPOINT` 명시·부모 세션 변수 제거, `with_vscode_listing` 빌더, Capability. [증거](../PH0-CLAUDE/VSCODE_LISTING.md) | 독점 경로만 수정. Mock 15개·실환경 7개, 화면 확인 통과 |
+| PH0-CODEX | `listed`: 영속 생성·Fork에 `threadSource: "vscode"`, 응답 출처 검사·비대화형 출처 거부, `hidden` 프로세스 생성 전 거부, `with_vscode_listing` 생성자. [증거](../PH0-CODEX/VSCODE_LISTING.md) | 독점 경로만 수정. 출처 실측으로 숨김 수단 없음 확인(REQ-021), 사용자 결정(Hidden 거부) 반영. 화면 확인 통과 |
+| PH0-AGY | `AgyVsCodeListing`↔`AgyDataDirMode` 대응, Capability, 취소 정규화 Mock 시험(§9.3 후속 2). [증거](../PH0-AGY/VSCODE_LISTING.md) | 독점 경로만 수정. `listed`·`hidden` 화면 확인 통과. 비차단: `AgyVsCodeListing::Hidden` 문서 주석이 "UI에서 숨겨지는지 미검증"으로 남아 있어 증거(§3.3·§4 화면 확인 통과)와 다름 → 다음 AGY 작업에서 갱신 |
+
+### 10.2 통합 변경 (I1·I2, REQ-021)
+
+| 경로 | 내용 |
+|---|---|
+| `crates/core/src/integration/policy.rs` | `VsCodeListing`(`listed` 기본/`hidden`), `claude`·`codex`·`agy` 절의 `vscodeListing`. Codex `hidden`은 정책 로드에서 거부. Agy `dataDir`은 이전 표현으로 유지하고 `vscodeListing`과 다르면 거부. 승인 Snapshot(`RunSnapshot`)에 `vscode_listing`·`vscode_listing_method` 기록 |
+| `crates/core/src/integration/mod.rs` | 정책 값을 Claude `with_vscode_listing`, Codex `CodexAdapter::with_vscode_listing(…, Listed)`, Agy `AgyVsCodeListing::data_dir_mode()`로 전달. Agy `--app_data_dir` 사전 검증은 `listed`일 때만 |
+| `crates/core/tests/phase0_policy.rs` | 시험 3개: 기본 `listed`와 Provider별 지정 방식 기록, Claude·Agy `hidden` 기록, Codex `hidden`·Agy 충돌·알 수 없는 값 거부 |
+| `crates/core/tests/phase0_g2.rs` | `g2_each_provider_completes_and_writes_a_result_file`에 세션별 목록 대상 기록 검사 추가(정리 전 확인) |
+| `docs/DEVELOPMENT_v1.5.md` | v1.5.4: §7.6 판정 결과·Codex `hidden` 미지원·Agy `dataDir` 관계·요약 인덱스 잔여 행 처리 |
+| `docs/AGENT_CLI_VSCODE_SESSIONS.md` | E절을 통합 결과로 갱신 |
+
+### 10.3 검사 (Windows `windows-local`)
+
+| 검사 | 결과 |
+|---|---|
+| `cargo test --workspace --locked` | 166개 통과(기존 155 + CLAUDE 2 + CODEX 4 + AGY 2 + 정책 3), 실환경 36개 기본 제외 |
+| `cargo clippy --workspace --all-targets --locked -- -D warnings` | 통과 |
+| `cargo fmt --all --check`, `git diff --check` | 통과 |
+| `phase0_g2::g2_each_provider_completes_and_writes_a_result_file` (실환경, 정책 기본값) | 통과(66초). 한 Daemon에서 세 Provider 완료·결과 파일 작성, 목록 대상 기록: Claude 모든 줄 `claude-vscode`, Codex 출처 검사 통과 후 완료, Agy 대화가 확장 데이터 디렉터리에만 생성. 세션 `214bc038-9e58-4aca-a59f-a95774e87c4d`(Claude), `01a17393-4cc9-7773-b953-b765bfaa714c`(Codex, Archive), `df215f30-17a7-4a11-b5ba-6b8b942a4083`(Agy, 파일 삭제) |
+| Extension | 변경 없음. 통합 Worktree에 `node_modules`가 없어 `npm test` 미실행 |
+
+### 10.4 판정
+
+- 세 Provider `listed`: Adapter 자동 판정·사용자 화면 확인·Core 통합 경로 모두 통과. §19.1 DEC-08 항목은 Windows 로컬 기준 충족.
+- `hidden`: Claude·Antigravity 통과, Codex 미지원(정책 거부, 사용자 결정).
+- 미판정: Linux·Remote SSH, 실시간 화면 반영, 실행 중 확장 쪽 입력과의 경합(§7.6은 안내만 규정).
+
+### 10.5 시험 세션 정리 (사용자 지시 2026-10-26)
+
+| Provider | 처리 |
+|---|---|
+| Claude | `~/.claude/projects/`의 시험 폴더 8개 삭제(`C--Users-Psyki-HOME-AppData-Local-Temp-telos-claude-env-{cancel,completed,denied,invalid-model,listing,listing-hidden,resume}`, `…-telos-phase0-g2-completed-workspace`). 사용자 Workspace 폴더 `d--Downloads-Vibe-dev`에서는 화면 확인용 파일 2개(`46ad660e…`, `d1e69e03…`)만 삭제하고 다른 대화는 건드리지 않음 |
+| Codex | DEC-08 시험 Thread는 CODEX가 모두 공식 Archive(증거 §6). G2 통합 시험 Thread `01a17393…`도 Archive |
+| Antigravity | 대화 파일은 AGY·G2 정리로 삭제됨. 남은 `33339a4c-298f-4432-ab36-f22d4d30c013`(Codex 화면 확인 폴더의 시험 대화)의 `brain`·`conversations/*.db`를 삭제. 요약 인덱스(`conversation_summaries.db`)의 시험 행(확장 쪽 12개, CLI 쪽 12개)은 확장 내부 DB라 수정하지 않음(§7.6). 확장 쪽 `listed` 행은 확장 목록에 빈 항목으로 보일 수 있어 사용자 결정 필요 |
