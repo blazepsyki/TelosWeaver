@@ -377,3 +377,79 @@ async fn env_invalid_model() {
     result.unwrap();
     cleaned.unwrap();
 }
+
+// §7.6, DEC-08: check the native DB-backed filter; do not infer UI success from it.
+async fn listing_in_default_catalog(
+    adapter: &CodexAdapter,
+    cwd: &std::path::Path,
+    started: &RunStarted,
+    label: &str,
+) -> Result<(), AdapterError> {
+    let config = adapter.config()?;
+    let client = connect(config, cwd.to_path_buf()).await?;
+    let result = async {
+        let thread_id = started.native_session_id.as_deref().unwrap();
+        let cwd_text = cwd.to_string_lossy();
+        let query_cwd = if cfg!(windows) { cwd_text.strip_prefix(r"\\?\").unwrap_or(&cwd_text) } else { &cwd_text };
+        // Query DB-only before thread/read, which must not repair the metadata for this assertion.
+        for empty_sources in [false, true] {
+            let mut params = json!({"cwd":query_cwd,"limit":100,"useStateDbOnly":true});
+            if empty_sources { params["sourceKinds"] = json!([]); }
+            let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+            loop {
+                let list = client.request("thread/list", params.clone()).await?;
+                let included = list["data"].as_array().is_some_and(|rows| rows.iter().any(|t| t["id"] == thread_id));
+                if included { break; }
+                ensure(tokio::time::Instant::now() < deadline, "persisted thread is missing from the default DB catalog")?;
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+        }
+        let read = client.request("thread/read", json!({"threadId":thread_id,"includeTurns":false})).await?;
+        let source = read.pointer("/thread/source").and_then(Value::as_str).unwrap_or("");
+        let native_cwd = read.pointer("/thread/cwd").and_then(Value::as_str).unwrap_or("");
+        ensure(matches!(source, "cli" | "vscode"), "native source is outside the interactive filter")?;
+        ensure(std::path::Path::new(native_cwd).canonicalize().ok().as_deref() == Some(cwd), "native cwd changed")?;
+        eprintln!("listing {label}: thread={thread_id} source={source} cwd={native_cwd} default=true emptySourceKinds=true useStateDbOnly=true");
+        Ok(())
+    }.await;
+    let closed = client.close(config.cancel_grace).await;
+    result?;
+    closed.map(|_| ())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "uses the approved account for three short listing checks; archives only owned test threads"]
+async fn env_vscode_listing_fresh_resume_and_fork() {
+    let (adapter, cwd) = live();
+    let result = async {
+        let (task, context) = case("listing-fresh", "Reply only PONG. Do not use tools.");
+        let (fresh, events, _) = execute(&adapter, &task, &context).await?;
+        ensure(completed(&events), "fresh listing run failed")?;
+        listing_in_default_catalog(&adapter, &cwd, &fresh, "fresh").await?;
+
+        let (task, mut context) = case("listing-resume", "Reply only PONG. Do not use tools.");
+        context.session.mode = SessionMode::Resume;
+        context.session.source_session_id = fresh.native_session_id.clone();
+        let (resumed, events, _) = execute(&adapter, &task, &context).await?;
+        ensure(
+            completed(&events) && resumed.native_session_id == fresh.native_session_id,
+            "resume listing run failed",
+        )?;
+        listing_in_default_catalog(&adapter, &cwd, &resumed, "resume").await?;
+
+        let (task, mut context) = case("listing-fork", "Reply only PONG. Do not use tools.");
+        context.session.mode = SessionMode::NativeFork;
+        context.session.source_session_id = fresh.native_session_id.clone();
+        let (forked, events, _) = execute(&adapter, &task, &context).await?;
+        ensure(
+            completed(&events) && forked.native_session_id != fresh.native_session_id,
+            "fork listing run failed",
+        )?;
+        listing_in_default_catalog(&adapter, &cwd, &forked, "fork").await?;
+        Ok::<(), AdapterError>(())
+    }
+    .await;
+    let cleaned = cleanup(&adapter, &cwd).await;
+    result.unwrap();
+    cleaned.unwrap();
+}
