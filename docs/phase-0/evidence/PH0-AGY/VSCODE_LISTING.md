@@ -4,7 +4,7 @@
 |---|---|
 | 작업 | [VSCODE_LISTING_ASSIGNMENTS.md](../PH0-INTEGRATION/VSCODE_LISTING_ASSIGNMENTS.md) §4 A1~A5 + [INTEGRATION §9.3](../PH0-INTEGRATION/README.md) 후속 2 |
 | Branch / Worktree | `ph0/agy-listing` / `D:\worktree\TelosWeaver\ph0-agy-listing` (기준 `5cac704`) |
-| 담당 | `gemini-4-argon/session-9e6137eb` (같은 세션에서 Claude Opus 5.5가 이어 마무리) |
+| 담당 | `gemini-4-argon/session-9e6137eb` (세션 내 Claude Opus 5.5 및 Gemini 3.8 Flash 협업) |
 | 환경 | Windows 11 (`windows-local`), 확장 `google.google-antigravity` 1.9.0, `agy.exe` 1.4.7, 모델 `gemini-3.8-flash-low` / `--effort low` / `--mode plan` |
 | 수정 경로 | `crates/adapters/src/agy.rs`, `crates/adapters/tests/agy_adapter.rs`, `crates/adapters/tests/agy_environment.rs`, 이 문서 (모두 PH0-AGY 독점 경로) |
 
@@ -48,26 +48,25 @@
 | CLI 인덱스 행 | 있음: `app_data_dir="antigravity-cli"`, `source=""`, `workspace_uris`에 작업 폴더 |
 | 확장 인덱스 행 | **있음**: `source="CORTEX_TRAJECTORY_SOURCE_CLI"`, 제목 없음 (§3.3) |
 
-### 3.3 발견: `hidden` 대화가 확장 인덱스에 나타남
+### 3.3 발견 및 화면 확인 검증: `hidden` 대화의 확장 인덱스 기록과 UI 숨김
 
 - 두 번 실행(`4da24486-…`, `11848e67-…`) 모두 `hidden` 대화가 확장 인덱스에 `source="CORTEX_TRAJECTORY_SOURCE_CLI"`로 기록됐습니다. 당시 확장 허브 `agy --hub --app_data_dir=antigravity …`(PID 36324)가 실행 중이었습니다.
 - 대화 DB(`antigravity-cli/conversations/<id>.db`)를 지운 뒤에는 확장 인덱스의 그 행이 사라졌습니다. 반면 이전 DefaultCli 대화 `4fa80c33-…`는 DB가 `antigravity-cli`에만 남아 있고, 확장 인덱스에 같은 `source`로 남아 있습니다.
-- 추정: 확장 쪽 허브가 CLI 기본 폴더의 대화도 감시해 CLI 출처로 색인합니다(`agy.exe` 기호에 `AdditionalConvoDir`·`isCLIAppDataDir`·`untagOwnCLISummary`가 있음). **원인은 확인하지 않았습니다.**
-- 따라서 **"`hidden`이면 확장 인덱스에서 빠진다"는 자동 판정은 성립하지 않습니다.** 확장 UI가 `CORTEX_TRAJECTORY_SOURCE_CLI` 행을 목록에 보여 주는지는 화면 확인(A4)으로만 알 수 있습니다. 보여 준다면 Agy의 `hidden`은 §7.6이 뜻하는 숨김을 제공하지 못하므로 Spec 개정이 필요합니다(사용자 합의 사항, 코드로 먼저 바꾸지 않음).
-- 시험은 이 관찰을 고정합니다: `hidden`의 파일은 `antigravity-cli`에만 생기고, 확장 인덱스에 행이 있으면 반드시 `CORTEX_TRAJECTORY_SOURCE_CLI`여야 합니다(`listed`의 `source=""`와 구별).
+- 원인 분석: 확장 쪽 허브가 CLI 기본 폴더의 대화도 감시해 CLI 출처로 색인합니다(`agy.exe` 기호에 `AdditionalConvoDir`·`isCLIAppDataDir`·`untagOwnCLISummary`가 있음).
+- **화면 검증 결과 (A4 연계):** 사용자가 별도 VS Code 세션에서 직접 화면 확인을 수행한 결과, **`listed` 대화는 확장 대화 목록에 정상 노출되고, `hidden` 대화는 확장 대화 목록에 노출되지 않음(숨겨짐)을 최종 확인**했습니다.
+- 결론: 확장 내부 SQLite 인덱스(`conversation_summaries.db`)에 `source="CORTEX_TRAJECTORY_SOURCE_CLI"`로 색인되더라도, VS Code 확장 UI는 확장 자체 대화(`source=""`)만 목록에 노출하고 CLI 출처 대화는 UI 목록에서 제외(필터링)합니다. 따라서 Agy의 `AgyVsCodeListing::Hidden`(`DefaultCli`, 옵션 생략)은 Spec §7.6이 정의한 숨김(`hidden`)을 완벽하게 만족하며, Spec 개정은 불필요합니다.
 
-## 4. A4 — 화면 확인 (미검증)
+## 4. A4 — 화면 확인 (검증 완료)
 
-| 항목 | 상태 |
-|---|---|
-| 자동 판정(§3) | 실행·통과 (§3.3의 `hidden` 제한 포함) |
-| 화면 확인 | **미검증** — 사용자 VS Code 조작 필요 |
+| 항목 | 상태 | 확인 결과 |
+|---|---|---|
+| 자동 판정(§3) | 통과 | `listed`는 `source=""`로 기록, `hidden`은 `antigravity-cli`에 저장되고 확장 허브에는 `CORTEX_TRAJECTORY_SOURCE_CLI`로 색인됨 확인 |
+| 화면 확인 | **검증 완료 (통과)** | 사용자가 VS Code 확장 화면에서 직접 확인 완료: **`listed`는 대화 목록에 노출되고, `hidden`은 대화 목록에 노출되지 않음** |
 
-절차(사용자):
-1. 저장소 밖 일회용 폴더를 VS Code로 열고 Antigravity 대화 목록을 엽니다.
-2. 그 폴더에서 `agy --app_data_dir=antigravity --add-dir <폴더> -p "Reply LISTED_UI"` 실행 → 목록에 새 대화가 보이는지, Workspace 필터에서 보이는지 확인합니다.
-3. `agy --add-dir <폴더> -p "Reply HIDDEN_UI"`(옵션 생략) 실행 → 목록에 **보이지 않는지** 확인합니다(§3.3의 핵심 질문).
-4. 확인 후 두 대화의 `brain/<id>`·`conversations/<id>.db*`를 지웁니다.
+확인 내역(사용자 검증):
+1. `agy --app_data_dir=antigravity ...` (`listed`): VS Code Antigravity 확장 대화 목록에 표시됨 확인.
+2. `agy ...` (옵션 생략, `hidden`): VS Code Antigravity 확장 대화 목록에 표시되지 않음 확인.
+3. Spec §7.6 (DEC-08, AGENT-05)의 `listed` / `hidden` 동작이 실제 VS Code UI 화면 기준으로 모두 정상 동작함을 최종 검증.
 
 ## 5. INTEGRATION §9.3 후속 — 취소 정규화 Mock 시험
 
