@@ -283,3 +283,17 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 | 시험 후 프로세스 | `telos-weaver` 없음. Provider·모델 호출 없음 |
 
 **비차단 발견 → REQ-017**: 공통 계약 `telos_schema::api` 모듈 문서에는 "구독 이벤트는 응답과 섞여 도착할 수 있습니다"라고만 적혀 있습니다. **한 구독의 알림은 그 구독의 응답 뒤에만 온다**는 보장은 Core 구현과 HOST 시험에만 있습니다. Extension이 이제 이 순서에 기대므로 계약 문서에 이 보장을 명시해야 합니다(문서만 바뀌고 JSON Schema 변화 없음). 판정: **통합**, REQ-016 완료.
+
+### 8.9 RN Core 연결과 G2 판정
+
+PH0-RN-07([기록](../PH0-RN/RN-07/README.md))로 G2의 남은 조건인 RN 연결 증거가 갖춰졌습니다. 이 Branch에는 INTEGRATION 몫(Core 연결 `integration/rn.rs`·`start_rn`·`main.rs`, REQ-019)이 함께 들어 있습니다.
+
+| G2 조건 (Spec §19.5.6) | 증거 (Windows 11 실환경) |
+|---|---|
+| 세 Provider | §8.4: 한 Daemon에서 Claude·Codex·Antigravity 완료·결과 파일·실패·취소·Daemon 종료 정리 (`aef3297`) |
+| 마스터 검증 | `evidence/PH0-MASTER/README.md`: 실제 Claude 마스터의 결정 회수·검증·거부·집행·결과 왕복 (`e14de42`) |
+| RN RPC | RN-06: 실제 RN의 RPC(인증·탐색·전송·구독·재동기화)와 실제 Claude 세션 왕복 (`cfba833`). RN-07: Core가 RN을 띄워 Client로 메시지 왕복, 강제 종료 뒤 재시작, RN 장애 중 실제 Claude Managed Run의 추적·취소 독립성, `core.health`의 `rn` |
+| Extension 연결 | §8.7·§8.8: 실제 Core와 격리 Extension Host, REQ-016 (`43ce639`, `2331c7c`) |
+| 공통 Contract·생성 시험 | 계약 기준 `7497877`(REQ-017·018 포함), `json_schemas` 포함 Schema 시험, Workspace 152개, Extension 28개 |
+
+판정: **통과 판정 (각 담당 확인 대기)**. Spec은 G2를 "INTEGRATION, 각 담당 확인"으로 정합니다. CODEX·HOST·EXT(Codex), AGY(Gemini)의 확인을 요청합니다. HOST에는 REQ-019 사후 확인도 함께 요청합니다. Linux·Remote SSH는 G3 조건이며 이 판정에 포함하지 않습니다.

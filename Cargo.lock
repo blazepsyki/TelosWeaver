@@ -445,6 +445,8 @@ dependencies = [
  "serde",
  "serde_json",
  "telos-schema",
+ "tokio",
+ "windows-sys",
 ]
 
 [[package]]

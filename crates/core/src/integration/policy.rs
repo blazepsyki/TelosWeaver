@@ -46,6 +46,16 @@ pub struct LocalPolicyConfig {
     pub codex: Option<CodexPolicy>,
     #[serde(default)]
     pub agy: Option<AgyPolicy>,
+    /// RN Fork를 Core가 띄웁니다(Spec v1.5.1 §12.5, PH0-RN-07). 없으면 RN을 쓰지 않습니다.
+    #[serde(default)]
+    pub rn: Option<RnPolicy>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RnPolicy {
+    /// `telos-rn` 실행 파일의 절대 경로. 자동 빌드·다운로드하지 않습니다.
+    pub executable: PathBuf,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -156,6 +166,11 @@ impl LocalPolicyConfig {
                 return Err(format!("workspace '{}' is not a directory", grant.id));
             }
             grant.path = plain_path(canonical);
+        }
+        if let Some(rn) = &self.rn
+            && !rn.executable.is_absolute()
+        {
+            return Err("rn.executable must be an absolute path".into());
         }
         if let Some(claude) = &self.claude {
             if claude.models.is_empty() {
