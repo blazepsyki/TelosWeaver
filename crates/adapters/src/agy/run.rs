@@ -182,8 +182,27 @@ impl RunEntry {
                                         state.native_session_id = Some(id.to_owned());
                                     }
                                 }
+                                let cancelled = self.cancel_requested.load(Ordering::SeqCst);
                                 for payload in payloads {
-                                    self.push(payload);
+                                    match payload {
+                                        // Linux에서 SIGTERM 수신 시 내부 서버가 먼저 닫히며 출력하는
+                                        // 종료 직전 result(ERROR)는 취소로 귀결시킵니다 (PROV-08).
+                                        ProviderEventPayload::Error(_) if cancelled => {}
+                                        ProviderEventPayload::TurnFinished(
+                                            TurnFinishedPayload {
+                                                status: TurnStatus::Failed,
+                                                ..
+                                            },
+                                        ) if cancelled => {
+                                            self.push(ProviderEventPayload::TurnFinished(
+                                                TurnFinishedPayload {
+                                                    status: TurnStatus::Cancelled,
+                                                    reason: Some("cancelled".into()),
+                                                },
+                                            ));
+                                        }
+                                        other => self.push(other),
+                                    }
                                 }
                             }
                             Err(error) => {

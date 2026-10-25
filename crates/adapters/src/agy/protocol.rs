@@ -328,6 +328,8 @@ pub(crate) fn classify_error_message(message: &str) -> FailureKind {
         FailureKind::ToolDenied
     } else if lower.contains("please sign in")
         || lower.contains("authentication required")
+        || lower.contains("authentication failed")
+        || lower.contains("not logged in")
         || lower.contains("not authenticated")
         || lower.contains("unauthenticated")
         || lower.contains("unauthorized")
