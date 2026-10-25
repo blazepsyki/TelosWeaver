@@ -1,4 +1,4 @@
-//! Antigravity (`agy`) Adapter의 Mock·Contract 시험 (PH0-AGY, PROV-01·03·05·06·07·08·09, FORK-POC-01, AGY-DATA-01~05).
+//! Antigravity (`agy`) Adapter의 Mock·Contract 시험 (PH0-AGY, PROV-01·03·05·06·07·08·09, FORK-POC-01, AGY-DATA-01~05, DEC-08, AGENT-05).
 //!
 //! 실제 CLI 출력(`fixtures/agy/*.jsonl`, `agy` 1.4.7)을 가짜 프로세스 런타임으로 재생합니다.
 //! 실제 CLI·프로세스 시험은 `agy_environment.rs`에 있습니다.
@@ -11,7 +11,11 @@ use std::{
 
 use async_trait::async_trait;
 use futures::{StreamExt, stream::BoxStream};
-use telos_adapters::{AdapterError, AgentAdapter, AgyAdapter, CliBinaryRule, runtime::*};
+use telos_adapters::{
+    AdapterError, AgentAdapter, AgyAdapter, CliBinaryRule,
+    agy::{AgyDataDirMode, AgyVsCodeListing},
+    runtime::*,
+};
 use telos_schema::{
     ApprovalAnswer, CapabilityState, EvidenceLevel, FailureKind, ProviderEvent, ProviderEventKind,
     ProviderEventPayload, RunInspection, RunTermination, SessionMode, ToolOutcome, TurnStatus,
@@ -25,6 +29,8 @@ use tokio::sync::watch;
 struct Script {
     lines: Vec<Vec<u8>>,
     stderr_lines: Vec<Vec<u8>>,
+    /// 종료 신호(`terminate`) 수신 직후 닫히기 전에 내보낼 stdout 줄(Linux SIGTERM 직전 `result(ERROR)` 재현용).
+    lines_on_exit: Vec<Vec<u8>>,
     exit_code: Option<i32>,
     /// 출력 뒤 종료 요청까지 멈춥니다(취소 시험).
     hang: bool,
@@ -39,6 +45,7 @@ impl Script {
         Self {
             lines: text.lines().map(|l| l.as_bytes().to_vec()).collect(),
             stderr_lines: Vec::new(),
+            lines_on_exit: Vec::new(),
             exit_code: Some(exit_code),
             hang: false,
         }
@@ -97,11 +104,21 @@ impl ProcessRuntime for FakeRuntime {
                 sequence: i as u64 + 500,
                 data,
             });
+        let exit_lines = script.lines_on_exit;
         let tail = futures::stream::once(async move {
             let _ = exited.wait_for(Option::is_some).await;
+            exit_lines
         })
-        .flat_map(|()| {
-            futures::stream::iter([
+        .flat_map(|exit_lines| {
+            let trailing = exit_lines
+                .into_iter()
+                .enumerate()
+                .map(|(i, data)| OutputEvent::Line {
+                    stream: OutputStream::Stdout,
+                    sequence: i as u64 + 800,
+                    data,
+                });
+            futures::stream::iter(trailing.chain([
                 OutputEvent::Closed {
                     stream: OutputStream::Stdout,
                     sequence: 1000,
@@ -110,7 +127,7 @@ impl ProcessRuntime for FakeRuntime {
                     stream: OutputStream::Stderr,
                     sequence: 1001,
                 },
-            ])
+            ]))
         });
         Ok(Arc::new(FakeHandle {
             identity: ProcessIdentity {
@@ -363,6 +380,7 @@ async fn provider_error_is_classified_and_turn_fails() {
             br#"{"event":"result","result":{"conversation_id":"","status":"ERROR","response":"","error":"authentication failed or timed out","duration_seconds":0,"num_turns":0,"usage":{"input_tokens":0,"output_tokens":0,"thinking_tokens":0,"cache_read_tokens":0,"total_tokens":0}}}"#.to_vec(),
         ],
         stderr_lines: vec![b"Error: authentication required. Run 'agy' to log in, then retry.".to_vec()],
+        lines_on_exit: vec![],
         exit_code: Some(1),
         hang: false,
     };
@@ -447,6 +465,58 @@ async fn cancel_terminates_the_process_and_reports_the_actual_exit() {
     assert!(matches!(&p[2], ProviderEventPayload::ProcessExited(e)
         if e.termination == telos_schema::ProcessTermination::TerminatedOnRequest));
     assert_eq!(adapter.cancel_run("run-1").await, Ok(false));
+}
+
+/// PROV-08 (INTEGRATION §9.3 후속): Linux에서 SIGTERM 수신 시 내부 서버가 먼저 닫히며 종료 직전
+/// `result(status: "ERROR")` 줄을 출력하더라도, 이미 취소가 요청된 Run이면 `Error` 이벤트를 억제하고
+/// `TurnFinished(Cancelled)`로 정규화하며 종료 경로에서 중복 `TurnFinished`를 내지 않습니다.
+#[tokio::test]
+async fn cancel_normalizes_trailing_error_result_to_cancelled() {
+    let mut script = Script::fixture("success.jsonl", 0);
+    script.lines.truncate(1);
+    script.lines_on_exit = vec![
+        br#"{"event":"result","result":{"conversation_id":"72037980-2e05-44b8-bfd5-17d21149859e","status":"ERROR","response":"","error":"failed to send message: trajectory not found","duration_seconds":0.2,"num_turns":1,"usage":{"input_tokens":0,"output_tokens":0,"thinking_tokens":0,"cache_read_tokens":0,"total_tokens":0}}}"#.to_vec(),
+    ];
+    script.hang = true;
+    let adapter = adapter(FakeRuntime::new(script));
+    let task = fixtures::task_spec();
+    let context = fixtures::run_context(&task);
+    adapter.start_run(&task, &context).await.unwrap();
+
+    let mut stream = adapter.events("run-1", 0);
+    assert_eq!(
+        stream.next().await.unwrap().unwrap().kind,
+        ProviderEventKind::SessionStarted
+    );
+    assert_eq!(adapter.cancel_run("run-1").await, Ok(true));
+
+    let events = collect(&adapter, "run-1", 0).await;
+    assert_eq!(check_run_events(&events), Ok(RunTermination::ProcessExited));
+    assert_eq!(
+        kinds(&events),
+        [
+            ProviderEventKind::SessionStarted,
+            ProviderEventKind::Usage,
+            ProviderEventKind::TurnFinished,
+            ProviderEventKind::ProcessExited,
+        ]
+    );
+    let p = payloads(&events);
+    assert!(
+        !p.iter()
+            .any(|item| matches!(item, ProviderEventPayload::Error(_))),
+        "trailing result(ERROR) after cancel must not emit Error event"
+    );
+    assert!(matches!(
+        &p[2],
+        ProviderEventPayload::TurnFinished(t)
+            if t.status == TurnStatus::Cancelled && t.reason.as_deref() == Some("cancelled")
+    ));
+    assert!(matches!(
+        &p[3],
+        ProviderEventPayload::ProcessExited(e)
+            if e.termination == telos_schema::ProcessTermination::TerminatedOnRequest
+    ));
 }
 
 #[tokio::test]
@@ -642,6 +712,7 @@ async fn data_dir_modes_and_option_rejection_follow_spec_7_5() {
         adapter(runtime_unsupported.clone()).with_data_dir_option_supported(false);
     let caps = rejected_adapter.detect(&context.host_id).await.unwrap();
     assert_eq!(caps["managed_run"].state, CapabilityState::Unsupported);
+    assert_eq!(caps["vscode_listing"].state, CapabilityState::Unsupported);
     assert!(matches!(
         rejected_adapter.start_run(&task, &context).await,
         Err(AdapterError::UnsupportedCapability {
@@ -655,6 +726,7 @@ async fn data_dir_modes_and_option_rejection_follow_spec_7_5() {
     let version_runtime = FakeRuntime::new(Script {
         lines: vec![b"1.4.7".to_vec()],
         stderr_lines: vec![],
+        lines_on_exit: vec![],
         exit_code: Some(0),
         hang: false,
     });
@@ -674,13 +746,102 @@ async fn data_dir_modes_and_option_rejection_follow_spec_7_5() {
     assert_eq!(probe_args, ["--app_data_dir=antigravity", "--version"]);
 }
 
+/// Spec §7.6 (DEC-08, AGENT-05): VS Code 확장 대화 목록 표시 모드(`listed` 기본 / `hidden`) 대응과
+/// `vscode_listing` Capability 보고를 검증합니다.
+#[tokio::test]
+async fn vscode_listing_modes_and_capability_follow_spec_7_6() {
+    let host_id = fixtures::run_context(&fixtures::task_spec()).host_id;
+
+    // 1. 기본값은 Listed이며 ExtensionShared(--app_data_dir=antigravity)와 대응합니다.
+    assert_eq!(AgyVsCodeListing::default(), AgyVsCodeListing::Listed);
+    assert_eq!(
+        AgyDataDirMode::from(AgyVsCodeListing::Listed),
+        AgyDataDirMode::ExtensionShared
+    );
+    assert_eq!(
+        AgyDataDirMode::from_vscode_listing(AgyVsCodeListing::Hidden),
+        AgyDataDirMode::DefaultCli
+    );
+    assert_eq!(
+        AgyDataDirMode::ExtensionShared.vscode_listing(),
+        Some(AgyVsCodeListing::Listed)
+    );
+    assert_eq!(
+        AgyDataDirMode::DefaultCli.vscode_listing(),
+        Some(AgyVsCodeListing::Hidden)
+    );
+    assert_eq!(
+        AgyDataDirMode::Custom("custom-dir".into()).vscode_listing(),
+        None
+    );
+
+    // 2. Adapter 기본 설정은 Listed이고, Hidden으로 바꾸면 --app_data_dir 인자가 생략됩니다.
+    let runtime_listed = FakeRuntime::new(Script::fixture("success.jsonl", 0));
+    let listed_adapter = adapter(runtime_listed.clone());
+    assert_eq!(
+        listed_adapter.vscode_listing(),
+        Some(AgyVsCodeListing::Listed)
+    );
+    let _ = run_to_end(&listed_adapter).await;
+    let listed_args: Vec<_> = runtime_listed.spawned.lock().unwrap()[0]
+        .args
+        .iter()
+        .map(|a| a.to_str().unwrap().to_owned())
+        .collect();
+    assert!(
+        listed_args
+            .iter()
+            .any(|a| a == "--app_data_dir=antigravity")
+    );
+
+    let runtime_hidden = FakeRuntime::new(Script::fixture("success.jsonl", 0));
+    let hidden_adapter =
+        adapter(runtime_hidden.clone()).with_vscode_listing(AgyVsCodeListing::Hidden);
+    assert_eq!(
+        hidden_adapter.vscode_listing(),
+        Some(AgyVsCodeListing::Hidden)
+    );
+    let _ = run_to_end(&hidden_adapter).await;
+    let hidden_args: Vec<_> = runtime_hidden.spawned.lock().unwrap()[0]
+        .args
+        .iter()
+        .map(|a| a.to_str().unwrap().to_owned())
+        .collect();
+    assert!(!hidden_args.iter().any(|a| a.starts_with("--app_data_dir")));
+
+    // 3. 운영자 설정이 Hidden이어도 Capability는 수단의 지원 여부를 나타내므로 Supported입니다 (§7.6).
+    let hidden_caps = hidden_adapter.detect(&host_id).await.unwrap();
+    assert_eq!(
+        hidden_caps["vscode_listing"].state,
+        CapabilityState::Supported
+    );
+    assert_eq!(
+        hidden_caps["vscode_listing"].evidence_level,
+        EvidenceLevel::EnvironmentTested
+    );
+    let reason = hidden_caps["vscode_listing"]
+        .reason
+        .as_deref()
+        .expect("vscode_listing reason");
+    assert!(reason.contains("--app_data_dir=antigravity"));
+    assert!(reason.contains("AGY-DATA-02"));
+
+    // 4. Hidden 모드여도 --app_data_dir 옵션 자체가 CLI에서 거부된 경우 vscode_listing은 Unsupported입니다.
+    let hidden_unsupported = hidden_adapter.with_data_dir_option_supported(false);
+    let hidden_unsupported_caps = hidden_unsupported.detect(&host_id).await.unwrap();
+    assert_eq!(
+        hidden_unsupported_caps["vscode_listing"].state,
+        CapabilityState::Unsupported
+    );
+}
+
 #[tokio::test]
 async fn detect_reports_only_verified_capabilities_and_host_mismatch() {
     let host_id = fixtures::run_context(&fixtures::task_spec()).host_id;
     let runtime = FakeRuntime::new(Script::default());
     let verified = adapter(runtime.clone());
     let caps = verified.detect(&host_id).await.unwrap();
-    for name in ["managed_run", "event_stream", "cancel"] {
+    for name in ["managed_run", "event_stream", "cancel", "vscode_listing"] {
         assert_eq!(caps[name].state, CapabilityState::Supported);
         assert_eq!(caps[name].evidence_level, EvidenceLevel::EnvironmentTested);
     }
@@ -696,6 +857,11 @@ async fn detect_reports_only_verified_capabilities_and_host_mismatch() {
     let unverified = adapter_with_version(runtime, "9.9.9");
     let caps = unverified.detect(&host_id).await.unwrap();
     assert_eq!(caps["managed_run"].state, CapabilityState::Unverified);
+    assert_eq!(caps["vscode_listing"].state, CapabilityState::Unverified);
+    assert_eq!(
+        caps["vscode_listing"].evidence_level,
+        EvidenceLevel::ContractTested
+    );
     assert_eq!(caps["native_resume"].state, CapabilityState::Unverified);
     assert_eq!(caps["native_fork"].state, CapabilityState::Unsupported);
 
