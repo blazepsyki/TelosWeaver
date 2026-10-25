@@ -114,7 +114,7 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 항목 | 결정 | 상태 | 결정일 |
 |---|---|---|---|
 | 줄바꿈 | 저장소 전체 LF 고정, `.cmd`·`.bat`만 CRLF (`.gitattributes`) | 적용 | 2026-10-24 |
-| Linux·Remote SSH 실행 Host | **v1.5.2 (2026-10-25) 사용자 결정으로 변경:** 사용자의 Ubuntu 서버 `Psyki-NAS`(Ubuntu 26.04.1 LTS, Host ID `psyki-nas`, 저장소 `~/TelosWeaver`)가 Linux Host 겸 Remote SSH Host. 세 Provider 확장이 원격 설치·로그인되어 있어 그대로 사용, 실제 계정 시험 허용, 시간·자원 제한 없음. 절차·조사: [LINUX_REMOTE_HOST.md](LINUX_REMOTE_HOST.md). 같은 PC의 WSL2 `Ubuntu-26.04`는 예비([WSL_LINUX_HOST.md](WSL_LINUX_HOST.md), 패키지·SSH 서버·Windows 경로 제외까지 구성), 결과는 Linux 증거로만 | 서버 조사 완료. Clone·Rust 1.94.0 추가는 남음 | 2026-10-24, 변경 2026-10-25 |
+| Linux·Remote SSH 실행 Host | **v1.5.2 (2026-10-25) 사용자 결정으로 변경:** 사용자의 Ubuntu 서버 `Psyki-NAS`(Ubuntu 26.04.1 LTS, Host ID `psyki-nas`, 저장소 `~/TelosWeaver`)가 Linux Host 겸 Remote SSH Host. 세 Provider 확장이 원격 설치·로그인되어 있어 그대로 사용, 실제 계정 시험 허용, 시간·자원 제한 없음. 절차·조사: [LINUX_REMOTE_HOST.md](LINUX_REMOTE_HOST.md). 같은 PC의 WSL2 `Ubuntu-26.04`는 예비([WSL_LINUX_HOST.md](WSL_LINUX_HOST.md), 패키지·SSH 서버·Windows 경로 제외까지 구성), 결과는 Linux 증거로만 | 서버 조사 완료. Toolchain은 Windows와 맞춤(Node 24.22.1 양쪽, Rust 1.94.0은 사용자가 서버를 올림), 서버 Git 전역 이메일 noreply로 변경. Clone 남음 | 2026-10-24, 변경 2026-10-25 |
 | CI | 원격 저장소는 생겼으나(2026-10-24) 사용자 결정으로 계속 보류. 도입 전까지는 통합 담당이 Spec §19.5.8의 검사 명령을 수동 실행하고 증거에 기록 | 보류 | 2026-10-24 |
 | 대상 OS 우선순위 | 구현·일상 검증은 Windows 로컬 우선. Linux·Remote SSH는 G3 전에 사용자 Ubuntu 서버로 확보(v1.5.2) | 적용 | 2026-10-24 |
 | G1 대표 Provider | Claude Code. Spec §19.5.6의 기본값(Codex)에서 변경. 이유: PH0-CODEX 미배정, 통합 담당이 PH0-CLAUDE를 함께 맡음. 마스터 Provider 선택(MASTER-01)과는 무관 | 적용 | 2026-10-24 |
@@ -220,5 +220,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-25 16:31 | `claude-opus-5.5/session-c9336d2c` | 사용자가 WSL `Ubuntu-26.04`를 설치. 읽기 전용으로 확인해 WSL 절차 §2.0에 현황 기록(`a060c37`): §2.1 배포판·§2.2 systemd 완료, §2.3~§3 미구성. §6 "Linux·Remote SSH 실행 Host" 상태 갱신. G3 Linux·Remote SSH 검증은 §2.3~§2.9·§3 구성 뒤 착수 | `a060c37` |
 | 2026-10-25 16:40 | `claude-opus-5.5/session-c9336d2c` | WSL 구성 진행 확인: 사용자가 기본 패키지·SSH 서버 구성(§2.3·§2.6), 사용자 결정으로 `appendWindowsPath=false` 적용(`wsl -u root`). Windows에서 `127.0.0.1:2222` SSH 배너 확인. WSL 절차 §2.0·§6 상태 갱신 | `4783fca` |
 | 2026-10-25 16:48 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정: Linux·Remote SSH 실행 Host를 WSL에서 사용자 Ubuntu 서버 `Psyki-NAS`(Ubuntu 26.04.1 LTS, 세 확장 원격 설치·로그인, 저장소 `~/TelosWeaver`, 실제 계정 시험 허용, 제한 없음)로 변경. 서버를 읽기 전용으로 조사(Rust 1.93.0·Node 24.22.1로 Windows와 다름, `pkg-config` 없음, 확장 두 벌, Git 전역 이메일이 개인 주소라 저장소 단위 noreply 설정 예정). Spec v1.5.2·절차 [LINUX_REMOTE_HOST.md](LINUX_REMOTE_HOST.md)(`5126d9b`), WSL 절차는 예비로 표시. §6·G3 행 갱신 | `5126d9b` |
+| 2026-10-25 17:03 | `claude-opus-5.5/session-c9336d2c` | 사용자 요청으로 버전 정렬: Windows Node를 winget으로 24.14.0 → 24.22.1(npm 11.19.1, 서버와 같음, Extension 시험 29개 재통과), 서버 Git 전역 `user.email`을 GitHub noreply로 변경. Rust는 사용자가 서버를 1.94.0으로 올림. 절차 문서 갱신, 공통 검사는 Rust 정렬 뒤 진행 | `7c423ce` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
