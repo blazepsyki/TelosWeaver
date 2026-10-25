@@ -13,7 +13,7 @@
 | G0 공통 계약 | 통과 |
 | G1 대표 Provider 실행 | 통과 (Claude, Windows) |
 | G2 전체 구성 통합 | 통과 확정 (Windows): 세 Provider·마스터 결정 검증·Extension·RN 연결, 각 담당 확인 완료 |
-| G3 Phase 0 수용 | 대기: Linux·Remote SSH 검증 필요(WSL Ubuntu 26.04 설치됨, 도구·SSH·원격 확장 구성 남음) |
+| G3 Phase 0 수용 | 대기: Linux·Remote SSH 검증 필요(사용자 Ubuntu 서버로 수행, 서버 조사 완료) |
 
 **동작하는 것 (Windows 로컬에서 실제 CLI로 검증)**
 
@@ -29,7 +29,7 @@
 - **VS Code Extension:** 지정한 Core 실행 파일을 명시적으로 시작하거나 실행 중인 Core에 연결해 인증·Health를 표시합니다(StatusBar·Explorer 상태 View·출력 창). UI를 닫아도 Core는 계속 실행되고, 다시 열면 같은 Core에 연결합니다. 알려진 Run ID의 이벤트를 읽기 전용으로 구독·재생합니다. 사용법은 [extension/README.md](extension/README.md).
 - **마스터:** 마스터 에이전트(Phase 0 임시 Claude)가 구조화 결정을 내면 Core가 검증해 잘못된 결정·중복·권한 초과를 거부하고, 허용된 결정(`create_tasks`·`request_run`·`request_cancel`)을 집행해 결과를 다음 Turn에 돌려줍니다.
 
-**아직 없는 것:** Reason Network의 제거 검증·Linux 확인(PH0-RN-08)과 메시지 기능의 외부 노출(Core는 RN을 띄워 `core.health`의 `rn`으로 알리고 내부 Rust API로만 씀), Extension의 전체 UI(Task 목록·마스터 대화·승인·Artifact), 영속 저장소·재시작 복구, Scheduler·Workspace 관리·검증·Artifact, Linux·Remote SSH 검증. 미구현 기능은 지원하는 것처럼 표시하지 않습니다.
+**아직 없는 것:** Reason Network의 제거 검증·Linux 확인(PH0-RN-08)과 메시지 기능의 외부 노출(Core는 RN을 띄워 `core.health`의 `rn`으로 알리고 내부 Rust API로만 씀), Extension의 전체 UI(Task 목록·마스터 대화·승인·Artifact), 영속 저장소·재시작 복구, Scheduler·Workspace 관리·검증·Artifact, Linux·Remote SSH 검증(사용자 Ubuntu 서버, [절차](docs/phase-0/LINUX_REMOTE_HOST.md)). 미구현 기능은 지원하는 것처럼 표시하지 않습니다.
 
 ## 저장소 구조 (Spec §3.4)
 
