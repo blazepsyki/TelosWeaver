@@ -40,8 +40,8 @@ cargo fmt && cargo clippy --locked --all-targets -- -D warnings && cargo test --
 ```
 
 Run the tests with `USERPROFILE`/`HOME`, `APPDATA`, `LOCALAPPDATA` and `TELOS_RN_HOME` pointed at a temporary folder, so
-they never touch your own agents' settings. The Python scripts in `tests/e2e/` are upstream's and are not maintained
-in this fork yet (see TELOSWEAVER.md).
+they never touch your own agents' settings. Upstream's Python E2E scripts were dropped in PH0-RN-08 (see
+`tests/e2e/README.md` and TELOSWEAVER.md).
 
 `DESIGN.md`, `CONTRIBUTING.md` and `SECURITY.md` are upstream's documents, kept for reference.
 

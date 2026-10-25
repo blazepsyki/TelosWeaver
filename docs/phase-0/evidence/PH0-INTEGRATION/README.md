@@ -457,6 +457,30 @@ Windows 병합 전 확인: Workspace 166개 통과·36개 제외, fmt 통과(엄
 
 **시험 세션 정리:** 직접 재현 세션 `87ec58ea-5124-43d1-ac6a-6bc1ea8b09fb`·`e63a155f-3751-4df2-8917-e883e506aef5`(Windows 임시 폴더 `/tmp/telos-bg-*`), 실환경 시험 세션 2개(각 Host의 `telos-claude-env/background`). 병합 시 Claude 시험 폴더를 지웁니다.
 
+### 9.7 PH0-RN-08 검토·통합 (2026-10-26)
+
+Antigravity(`gemini-3.8-flash/session-f1b89d3a`, 독립 검토자, Spec §19.5.10)가 `ph0/rn-08`에 제출(`dbbdc79`·`332ebab`, [RN-08 증거](../PH0-RN/RN-08/README.md)). 변경: 원본 Python E2E 9개 삭제와 사유(`rn-fork/tests/e2e/README.md`, `TELOSWEAVER.md` #30), RN-08 증거, PH0-RN 요약. 자기 경로만 수정.
+
+**INTEGRATION 재확인**
+
+| 항목 | 방법 | 결과 |
+|---|---|---|
+| 제거 대상 부재 | `rn-fork/src`에서 `reason` CLI 실행(`find_bin("reason")`·`Command::new("reason")`·`reason session`), `auto_update`·`install.sh/ps1`·`Request::Proof`·`verified_people`·`upgrade` 검색 | 0건 |
+| `ring` 사용 범위 | 단어 경계 `ring::` 검색 | `src/signed.rs`만(중계 목록 서명 검증·시험 서명) |
+| HTTP·업데이트 의존성 | `Cargo.toml`의 `reqwest`·`ureq`·`hyper`·`self_update` | 없음 |
+| 삭제한 E2E의 참조 | `rn-fork` 전체 | `README.md` 한 문장이 남아 있어 통합 때 수정 |
+| Windows 격리 시험 | 임시 `USERPROFILE`·`APPDATA`·`LOCALAPPDATA`·`TELOS_RN_HOME`, `cargo test --locked` | 204개 통과, 엄격 Clippy 0건, fmt 통과 |
+| `psyki-nas` 격리 시험 | 임시 `HOME`·`XDG_*`·`TELOS_RN_HOME`(Branch를 서버로 보내 별도 Worktree) | 212개 통과, 엄격 Clippy 0건, fmt 통과 |
+
+**검증 한계(증거의 "완벽히 입증"을 이 범위로 읽음)**
+
+- RN-POC-13은 소스 정적 검색과 Windows 바이너리 문자열 검사에 근거합니다. 간접 호출을 완전히 배제하는 증명은 아니며, Linux 바이너리 문자열은 확인하지 않았습니다.
+- RN-POC-14의 Daemon 관찰은 팀에 가입하지 않은 격리 상태에서 2~3초입니다. 팀 가입·중계 사용 중의 외부 통신은 관찰 범위 밖입니다(유지 대상 네트워크 기능, DEC-07).
+- RN-POC-15는 RN-05~07의 시험과 실환경(메일함 왕복·재시작·정지, RN 장애 중 Claude Run 독립)과 이번 Windows `phase0_rn` 실환경 1개에 근거합니다. Linux 실환경은 §9.4의 `phase0_rn` 2개(`psyki-nas`)입니다.
+- Remote SSH에서 RN을 따로 시험하지 않았습니다. RN은 Core가 같은 Host에서 시작하므로 §9.4·§9.5의 Linux Core 결과에 기댑니다.
+
+판정: RN-08 완료 조건(제거 검증과 기능 시험의 근거 존재, 대상 OS 증거와 남은 조건 인계)을 위 한계와 함께 충족한다고 보고 통합합니다.
+
 ## 10. DEC-08 VS Code 확장 목록 표시 통합 (2026-10-26)
 
 | 항목 | 값 |
