@@ -2,7 +2,7 @@
 
 > **소유:** PH0-INTEGRATION (Spec §19.5.3)  
 > **근거:** Spec §19.1(Windows/Linux Build, VS Code 로컬과 단일 Remote SSH), §19.5.8 G3  
-> **상태:** 절차 수립. 2026-10-24 기준 이 PC에는 WSL 2.6.3(커널 6.6.87.2)만 있고 배포판은 설치되지 않았습니다. 아래 구성은 아직 실행하지 않았습니다.
+> **상태:** 배포판 설치 완료(2026-10-25, §2.0). §2.3 이후 구성은 아직 하지 않았습니다.
 
 ## 1. 목적과 결정 사항
 
@@ -21,6 +21,25 @@ Phase 0 G3에 필요한 Linux 실행 Host와 단일 Remote SSH 실행 Host를 �
 
 ## 2. 최초 구성 (한 번만)
 
+### 2.0 구성 현황 (2026-10-25 확인)
+
+읽기 전용 명령으로 확인했습니다(설치·변경 없음).
+
+| 단계 | 상태 | 관찰 |
+|---|---|---|
+| WSL | 확인 | WSL 2.6.3.0, 커널 6.6.87.2-1, WSLg 1.0.71, Windows 10.0.26300.9711. `%UserProfile%\.wslconfig`는 `[wsl2] processors=8`만 있음(네트워크 모드 기본값) |
+| §2.1 배포판 | 완료 | `Ubuntu-26.04`, WSL 버전 2, 기본 배포판. `Ubuntu 26.04.1 LTS`(resolute). Linux 사용자 `gth1919`. 디스크 `/` 1007G 중 1.4G 사용 |
+| §2.2 systemd | 완료 | `/etc/wsl.conf`에 `[boot] systemd=true`, `[user] default=gth1919`. `systemctl is-system-running` = `running` |
+| §2.3 패키지·Git | **미완료** | `git` 2.53.0·`curl` 8.18.0만 기본 설치. `build-essential`·`pkg-config`·`libssl-dev`·`openssh-server` 없음. Git 전역 `user.name`·`user.email`·`core.autocrlf` 미설정 |
+| §2.4 Rust | **미완료** | `rustc`·`cargo` 없음 |
+| §2.5 Node.js | **미완료** | Linux `node` 없음. `npm`은 Windows 것(`/mnt/c/Program Files/nodejs/npm` 11.9.0)이 잡힘 — 아래 주의 |
+| §2.6 SSH 서버 | **미완료** | `openssh-server` 미설치, 22·2222 대기 없음 |
+| §2.7 SSH 키·접속 | **미완료** | WSL `~/.ssh` 없음 |
+| §2.8·§2.9 VS Code·Provider 확장 | **미완료** | `~/.vscode-server/extensions`·`~/.gemini/bin` 없음 |
+| §3 코드 | **미완료** | `~/src/TelosWeaver` 없음 |
+
+**주의 — Windows 경로 섞임:** WSL의 기본 상호 운용으로 `PATH`에 Windows 경로 33개가 붙어 있습니다. Linux에 없는 명령이 Windows 실행 파일로 실행되므로(`npm` 등), 그 결과를 Linux 증거로 쓰면 안 됩니다. 시험 전에 `command -v node npm cargo rustc`가 Linux 경로(`/home/<user>/…`, `/usr/…`)인지 확인합니다. Windows 경로를 아예 빼려면 `/etc/wsl.conf`에 `[interop] appendWindowsPath=false`를 더하고 `wsl --shutdown`합니다(사용자 결정, 아직 적용하지 않음).
+
 ### 2.1 배포판 설치 (Windows PowerShell)
 
 ```powershell
@@ -28,7 +47,7 @@ wsl --install -d Ubuntu-26.04
 wsl -l -v                      # VERSION 2인지 확인
 ```
 
-설치 중 Linux 사용자 이름과 암호를 만듭니다. 이하 `<user>`로 표기합니다.
+설치 중 Linux 사용자 이름과 암호를 만듭니다. 이하 `<user>`로 표기합니다(이 PC는 `gth1919`).
 
 ### 2.2 systemd 활성화 (WSL)
 
