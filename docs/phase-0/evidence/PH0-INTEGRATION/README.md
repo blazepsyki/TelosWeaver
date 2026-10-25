@@ -299,3 +299,31 @@ PH0-RN-07([기록](../PH0-RN/RN-07/README.md))로 G2의 남은 조건인 RN 연�
 판정: **통과 판정 (각 담당 확인 대기)**. Spec은 G2를 "INTEGRATION, 각 담당 확인"으로 정합니다. CODEX·HOST·EXT(Codex), AGY(Gemini)의 확인을 요청합니다. HOST에는 REQ-019 사후 확인도 함께 요청합니다. Linux·Remote SSH는 G3 조건이며 이 판정에 포함하지 않습니다.
 
 **담당 확인 (2026-10-25):** HOST·CODEX·EXT([HOST](../PH0-HOST/G2_HOST_REVIEW.md)·[CODEX](../PH0-CODEX/G2_REVIEW.md)·[EXT](../PH0-EXT/G2_REVIEW.md), `9f552b8`, 통합 `e8380ae`)와 AGY(배정표 PH0-AGY 행, `2fff559`)가 모두 동의했습니다. HOST는 REQ-019 사후 확인을 마치고 시험 3개를 더했으며, 실제 RN 왕복·재시작을 재현했습니다. INTEGRATION은 병합본에서 Workspace 155개·엄격 Clippy·fmt·Extension 29개를 재확인했습니다. G2 **통과 확정**. 남은 조건(Linux·Remote SSH, RN-08 수용)은 G3에 속합니다.
+
+## 9. G3 준비: Linux Host 공통 검사
+
+### 9.1 REQ-020 통합 (`836fb11`)
+
+Rust 1.99.1(사용자가 Windows·Linux를 맞춤)에서 deprecated된 `AtomicUsize::fetch_update` 때문에 엄격 Clippy가 실패하던 것을 PH0-HOST(Codex)가 `try_update`로 바꿨습니다(`85eadb9`, [HOST 기록](../PH0-HOST/REQ-020.md)). 한 줄이고 인자·반환·동작이 같다는 근거를 현재 Toolchain의 표준 라이브러리 소스로 확인한 기록을 검토했습니다. 병합본에서 Windows 재검사: 엄격 Clippy·fmt 통과, 시험 155개, RN Fork 빌드, Extension 29개.
+
+### 9.2 `psyki-nas` 공통 검사 ([절차](../../LINUX_REMOTE_HOST.md) §4.1·§4.2)
+
+| 항목 | 값 |
+|---|---|
+| Host | `psyki-nas` (Ubuntu 26.04.1 LTS, 커널 7.0.0-38-generic, x86_64) |
+| Toolchain | rustc·cargo 1.99.1, clippy 0.1.99, rustfmt 1.10.0, Node v24.22.1, npm 11.19.1 (Windows와 동일) |
+| 저장소 | `~/TelosWeaver`, GitHub에서 Clone, `836fb11`, `core.autocrlf=false`, Git 이메일은 전역 noreply |
+
+| 명령 | 결과 |
+|---|---|
+| `cargo test --workspace --locked` | 152개 통과, 실환경 32개 기본 제외 |
+| `cargo clippy --workspace --all-targets --locked -- -D warnings` | 통과 |
+| `cargo fmt --all --check` | 통과 |
+| `rn-fork`: `cargo build --locked`, `cargo clippy --locked --all-targets -- -D warnings`, `cargo fmt --check` | 모두 통과. **RN Fork의 첫 Linux 빌드**이며, RN-06에서 고친 Unix 분기(`ipc.rs`)·`private.rs`의 Unix 경로가 컴파일됩니다. `pkg-config` 크레이트는 빌드됐지만 시스템 `pkg-config` 실행 파일은 필요하지 않았습니다 |
+| `rn-fork`: 격리 `cargo test --locked`(`HOME`·`XDG_*`·`TELOS_RN_HOME`을 임시 폴더로) | 212개 통과 |
+| `extension`: `npm ci`, `npm test`(타입 생성·빌드·시험) | 29개 통과 |
+| `git status` | 깨끗함 |
+
+시험 개수 차이(Windows 155 / Linux 152)는 플랫폼 전용 시험입니다. Windows 전용 4개(`token_acl_contains_only_current_user`, `pipe_acl_contains_only_current_user`, `non_utf8_windows_path_is_rejected_before_execution`, `windows_eof_exit_and_job_kill_report_actual_child_termination`), Linux 전용 1개(`external_signal_is_not_reported_as_a_natural_exit`). RN Fork(Windows 204 / Linux 212)도 플랫폼별 시험 구성이 다릅니다.
+
+Provider·모델 호출은 없었습니다. 다음은 작업별 실환경 시험(절차 §4.3: HOST 런타임·확장 탐지·세 Provider·RN Core 연결·Extension Remote-SSH)과 Remote SSH 시나리오(§4.4)입니다.

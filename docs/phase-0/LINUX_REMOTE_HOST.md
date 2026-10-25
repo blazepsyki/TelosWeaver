@@ -2,7 +2,7 @@
 
 > **소유:** PH0-INTEGRATION (Spec §19.5.3)  
 > **근거:** Spec v1.5.2 §19.1(Windows/Linux Build, VS Code 로컬과 단일 Remote SSH)·§19.5.8 G3, 사용자 결정 2026-10-25  
-> **상태:** 서버 조사 완료(2026-10-25, §2). Toolchain(Rust 1.99.1·Node 24.22.1)과 Git 이메일 정렬 완료, 저장소 Clone(§3)은 아직 하지 않았습니다.  
+> **상태:** 서버 조사 완료(2026-10-25, §2). Toolchain(Rust 1.99.1·Node 24.22.1)과 Git 이메일 정렬, `~/TelosWeaver` Clone, 공통 검사 통과(`836fb11`, [INTEGRATION 증거](evidence/PH0-INTEGRATION/README.md) §9.2). 작업별 실환경 시험(§4.3)은 아직 하지 않았습니다.  
 > **예비:** 같은 PC의 WSL2 `Ubuntu-26.04`는 [WSL 절차](WSL_LINUX_HOST.md)대로 예비로 둡니다. WSL 결과는 Linux 증거로만 쓰고 Remote SSH 증거로 쓰지 않습니다.
 
 ## 1. 결정 사항 (2026-10-25)
@@ -40,10 +40,10 @@ CLI 경로 패턴은 2026-10-24 Windows 관찰(Spec §7.5)과 같은 구조이�
 
 | 단계 | 내용 | 수행 |
 |---|---|---|
-| Clone | `git clone https://github.com/blazepsyki/TelosWeaver ~/TelosWeaver`, `git -C ~/TelosWeaver config core.autocrlf false`(이메일은 전역 noreply 값을 씀) | INTEGRATION |
+| Clone | 완료(2026-10-25, `836fb11`): `git clone https://github.com/blazepsyki/TelosWeaver ~/TelosWeaver`, `core.autocrlf=false`(이메일은 전역 noreply 값) | INTEGRATION |
 | Rust | 완료: Windows·서버 모두 `stable` 1.99.1(rustc·cargo 1.99.1, clippy 0.1.99, rustfmt 1.10.0, rustup 1.29.2) | 사용자 |
 | Node | 완료: 서버 기본 v24.22.1에 Windows를 맞춤 | 완료 |
-| `pkg-config` | RN Fork 빌드가 요구하면 `sudo apt install -y pkg-config` | 사용자(필요할 때) |
+| `pkg-config` | 불필요: RN Fork Linux 빌드가 시스템 `pkg-config` 없이 성공 | — |
 
 작업 Branch를 서버로 옮길 때는 Windows 대표 저장소에서 `git push Psyki-NAS:TelosWeaver <Branch>`로 보내고, 서버의 Linux 전용 수정은 해당 작업 Branch에 커밋한 뒤 Windows에서 `git fetch Psyki-NAS:TelosWeaver <Branch>`로 가져옵니다. 서버 Clone에서 `main`에 통합하지 않습니다.
 
