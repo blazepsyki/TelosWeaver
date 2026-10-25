@@ -66,6 +66,32 @@ fn pipe_in(home: &Path) -> PathBuf {
     PathBuf::from(format!(r"\\.\pipe\{AGENT_NAME}-{:016x}", hash(&dir)))
 }
 
+/// The TelosWeaver RPC endpoint (PH0-RN-06), beside the agents' socket: its own pipe, named the same way.
+#[cfg(windows)]
+pub fn rpc_socket() -> PathBuf {
+    let agents = socket();
+    let name = agents.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    PathBuf::from(format!(r"\\.\pipe\{}", name.replacen(AGENT_NAME, &format!("{AGENT_NAME}-rpc"), 1)))
+}
+
+/// The TelosWeaver RPC endpoint (PH0-RN-06), beside the agents' socket.
+#[cfg(unix)]
+pub fn rpc_socket() -> PathBuf {
+    let agents = socket();
+    let name = agents.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    agents.with_file_name(format!("rpc-{name}"))
+}
+
+/// Where the RPC is (`telos_schema::rn::RnRpcInfo`), for Core to read.
+pub fn rpc_info() -> PathBuf {
+    home().join("rpc.json")
+}
+
+/// The RPC token, made new at each start and readable by this user only.
+pub fn rpc_token() -> PathBuf {
+    home().join("rpc-token")
+}
+
 /// FNV-1a: stable across builds, unlike `DefaultHasher`.
 fn hash(path: &Path) -> u64 {
     path.as_os_str()

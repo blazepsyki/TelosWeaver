@@ -85,6 +85,7 @@ impl Daemon {
             if conn.is_some() {
                 l.conn = conn;
                 l.attached = true;
+                l.wired = true;
                 l.mcp_push = reg.tier == Tier::Push;
             }
             l.reg.tier = if l.push_failed { l.reg.tier.max(Tier::Turn) } else { l.reg.tier.min(reg.tier) };
@@ -119,6 +120,7 @@ impl Daemon {
                     attached,
                     mcp_push,
                     mailbox: key == TERMINAL,
+                    wired: conn.is_some(),
                 },
             );
             self.presence_changed();
@@ -371,6 +373,11 @@ impl Daemon {
         let mut g = self.inner.lock().unwrap();
         let g = &mut *g;
         let Some(l) = g.live.get_mut(&key) else { return Ok(HookReply::default()) };
+        // Its own hooks report it: it came in through telos-rn (TelosWeaver, PH0-RN-06), also once it is offline.
+        if !l.wired {
+            l.wired = true;
+            g.store.upsert_session(&remembered(l, now), &self.person)?;
+        }
         if let Some(t) = transcript {
             l.transcript = Some(t.into());
         }
@@ -520,6 +527,7 @@ fn remembered(l: &Live, now: i64) -> Remembered {
         last_seen: now,
         attached: l.attached,
         mailbox: l.mailbox,
+        wired: l.wired,
     }
 }
 
@@ -904,6 +912,7 @@ mod tests {
             last_seen: util::now_ms() - 3_600_000,
             attached: true,
             mailbox: false,
+            wired: false,
         };
         {
             let g = d.inner.lock().unwrap();
@@ -950,6 +959,7 @@ mod tests {
             last_seen: util::now_ms(),
             attached: true,
             mailbox: false,
+            wired: false,
         };
         g.store.upsert_session(&r, &d.person).unwrap();
         assert!(g.store.session_by_name("api-claude").unwrap().is_none());
@@ -1302,6 +1312,7 @@ mod tests {
             last_seen: util::now_ms(),
             attached: true,
             mailbox: false,
+            wired: false,
         };
         d.inner.lock().unwrap().store.upsert_session(&r, &d.person).unwrap();
         assert_eq!(join(&d, claude("old")).name, "api-claude");
@@ -1350,6 +1361,7 @@ mod tests {
                     last_seen: now - 1_000 * (120 - i),
                     attached: true,
                     mailbox: false,
+                    wired: false,
                 };
                 g.store.upsert_session(&r, &d.person).unwrap();
             }

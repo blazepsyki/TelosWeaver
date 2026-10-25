@@ -1029,6 +1029,7 @@ mod tests {
             last_seen: 0,
             attached: true,
             mailbox: agent == "cli",
+            wired: false,
         };
         // A conversation its agent gave an id waits for it, whoever takes the name meanwhile.
         let back = "it reaches that session when it's back";

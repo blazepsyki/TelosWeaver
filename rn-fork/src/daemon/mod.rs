@@ -7,6 +7,7 @@ mod directory;
 mod envelope;
 mod mail;
 mod notify;
+mod rpc;
 mod sessions;
 mod teamops;
 
@@ -64,6 +65,15 @@ pub async fn run(service: bool) -> Result<()> {
         tokio::spawn(tray());
     }
     tokio::spawn(daemon.clone().relays_loop());
+    // TelosWeaver's RPC (PH0-RN-06): only if its token can be made this user's; agents are served either way.
+    match daemon.open_rpc() {
+        Ok(opened) => {
+            log(&format!("TelosWeaver RPC on {}", paths::rpc_socket().display()));
+            tokio::spawn(daemon.clone().serve_rpc(opened));
+            tokio::spawn(daemon.clone().rpc_events());
+        }
+        Err(e) => log(&format!("TelosWeaver RPC not opened: {e:#}")),
+    }
     loop {
         let stream = listener.accept().await?;
         tokio::spawn(daemon.clone().serve(stream));
@@ -119,6 +129,8 @@ pub struct Daemon {
     started: i64,
     /// Whether the log says presence names only some of the names kept here.
     capped: std::sync::atomic::AtomicBool,
+    /// The TelosWeaver RPC's token and event stream (PH0-RN-06).
+    rpc: Mutex<rpc::Hub>,
 }
 
 struct Inner {
@@ -169,6 +181,9 @@ struct Live {
     mcp_push: bool,
     /// One of the person's own mailboxes: `terminal`, or a name they gave with `listen --as`. Kept for good.
     mailbox: bool,
+    /// It came in through telos-rn itself: its MCP server registered it or its own hooks report it, not only Claude
+    /// Code's session registry (TelosWeaver, PH0-RN-06). Core sends only to such sessions in Phase 0.
+    wired: bool,
     /// It could be reached beyond its own hooks: an MCP server connected for it or attached a call to it, a push channel
     /// delivers into it (Claude Code's inbox, `codex queue`, the opencode and pi plugins, Reason), or it is one of the
     /// person's own mailboxes. Only such a session keeps its name while offline: a run only its hooks ever saw (a
@@ -195,12 +210,32 @@ impl Daemon {
     }
 
     fn with(cfg: Config, store: Store, key: SecretKey) -> Result<Self> {
+        let started = util::now_ms();
         let team: Option<TeamState> =
             store.get("team")?.and_then(|s| serde_json::from_str(&s).ok()).map(TeamState::without_odd_names);
         // In a team, who we are is what the signed roster says, whatever the config file says.
         let member = team.as_ref().and_then(|t| t.member(&key.public()).cloned());
+        let person = member.as_ref().map_or_else(|| cfg.person(), |m| m.person.clone());
+        // Core's mailbox (TelosWeaver, PH0-RN-06): one of the person's own, kept for good, where replies land.
+        store.upsert_session(
+            &crate::store::Remembered {
+                name: rpc::CORE_NAME.into(),
+                key: rpc::CORE_KEY.into(),
+                agent: "telosweaver".into(),
+                cwd: "/".into(),
+                repo: None,
+                branch: None,
+                doing: None,
+                tier: Tier::Pull,
+                last_seen: started,
+                attached: true,
+                mailbox: true,
+                wired: true,
+            },
+            &person,
+        )?;
         Ok(Daemon {
-            person: member.as_ref().map_or_else(|| cfg.person(), |m| m.person.clone()),
+            person,
             machine: member.map_or_else(util::hostname, |m| m.machine),
             host_id: crate::telos::host_id(),
             key,
@@ -228,8 +263,9 @@ impl Daemon {
             rate: Mutex::new(HashMap::new()),
             shown: Mutex::new(HashMap::new()),
             asks: Mutex::new(HashMap::new()),
-            started: util::now_ms(),
+            started,
             capped: Default::default(),
+            rpc: Mutex::new(rpc::Hub::new(started)),
         })
     }
 
@@ -334,9 +370,6 @@ impl Daemon {
                 }
                 Value::Null
             }
-            Request::Receipt { message_id } => json!(self.receipt(&message_id)?),
-            Request::Endpoint { address } => json!(self.endpoint_of(&address)?),
-            Request::SendEnvelope { envelope } => json!(self.send_envelope(*envelope)?),
             Request::PushFailed { key, ids } => {
                 self.push_failed(&key, &ids);
                 Value::Null

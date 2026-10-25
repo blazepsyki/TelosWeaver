@@ -17,6 +17,8 @@ What this fork changes, and why, is in [TELOSWEAVER.md](TELOSWEAVER.md). In shor
 - Messages have TelosWeaver receipts: `delivered` means the recipient was shown the message, not that it was handed
   to the agent's inbox; mail for a session never goes to another that takes its address without the person's approval.
 - `codex queue` runs only the Codex CLI given as `TELOS_RN_CODEX_BIN`, never one on `PATH`.
+- TelosWeaver Core talks to it through its own RPC (`rpc.json`, `rpc-token` in the state folder), not the agents'
+  socket; both are this user's only. Core reaches only sessions attached through telos-rn.
 
 ## Use
 

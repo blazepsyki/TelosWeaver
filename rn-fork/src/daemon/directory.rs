@@ -248,6 +248,8 @@ impl Daemon {
         }
         let g = self.inner.lock().unwrap();
         let mut known = self.remembered(&g);
+        // Core's mailbox is this machine's alone (TelosWeaver, PH0-RN-06): teammates don't hear of it.
+        known.retain(|r| r.key != super::rpc::CORE_KEY);
         known.sort_by_key(|r| -r.last_seen);
         // Not the person's own mailboxes: each machine has its own (`terminal`).
         let now = util::now_ms();
@@ -676,6 +678,7 @@ mod tests {
                 last_seen: util::now_ms(),
                 attached: true,
                 mailbox: false,
+                wired: false,
             };
             d.inner.lock().unwrap().store.upsert_session(&r, &d.person).unwrap();
         }
@@ -689,6 +692,7 @@ mod tests {
         // Nor can a message reach the remembered one.
         let g = d.inner.lock().unwrap();
         let names: Vec<String> = d.candidates(&g, &HashMap::new()).into_iter().map(|c| c.name).collect();
-        assert_eq!(names, ["api-claude"]);
+        // (Core's mailbox can be messaged: agents reply to TelosWeaver there.)
+        assert_eq!(names, ["api-claude", super::super::rpc::CORE_NAME]);
     }
 }

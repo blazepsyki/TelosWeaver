@@ -215,39 +215,6 @@ pub enum Request {
         release: bool,
     },
     Shutdown,
-    /// A message's TelosWeaver receipt (`telos_schema::rn::DeliveryReceipt`). Until the versioned local RPC (PH0-RN-06)
-    /// wraps it, the same as `messages.status`.
-    Receipt {
-        message_id: String,
-    },
-    /// The TelosWeaver endpoint (`telos_schema::rn::EndpointRef`) of a session here, by its address. Until PH0-RN-06's
-    /// `sessions.resolve`.
-    Endpoint {
-        address: String,
-    },
-    /// Sends a TelosWeaver envelope (`telos_schema::rn::MessageEnvelope`) and returns its receipt; a refusal carries
-    /// its `telos_schema::rn::RnErrorCode` as the reply's `code`. Until PH0-RN-06, the same as `messages.send`.
-    SendEnvelope {
-        envelope: Box<telos_schema::rn::MessageEnvelope>,
-    },
-}
-
-/// A request refused as the TelosWeaver contract says (`code`), not just failed.
-#[derive(Debug)]
-pub struct RnRefusal(pub telos_schema::rn::RnError);
-
-impl std::fmt::Display for RnRefusal {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.message)
-    }
-}
-
-impl std::error::Error for RnRefusal {}
-
-impl RnRefusal {
-    pub fn error(code: telos_schema::rn::RnErrorCode, message: impl Into<String>) -> anyhow::Error {
-        RnRefusal(telos_schema::rn::RnError { code, message: message.into(), details: None }).into()
-    }
 }
 
 fn day() -> u64 {
@@ -291,16 +258,7 @@ impl Reply {
 
     pub fn err(id: u64, e: anyhow::Error) -> Self {
         let error = format!("{e:#}");
-        let code = match e.downcast_ref::<RnRefusal>() {
-            Some(r) => serde_json::to_value(r.0.code).ok().and_then(|v| v.as_str().map(String::from)),
-            None => error_code(&error).map(String::from),
-        };
-        // The contract's code leads the words too, for clients that show only those.
-        let error = match &code {
-            Some(c) if e.downcast_ref::<RnRefusal>().is_some() => format!("{c}: {error}"),
-            _ => error,
-        };
-        Reply { id, ok: false, result: None, code, error: Some(error) }
+        Reply { id, ok: false, result: None, code: error_code(&error).map(String::from), error: Some(error) }
     }
 }
 

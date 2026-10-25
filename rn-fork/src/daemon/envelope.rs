@@ -11,9 +11,9 @@ use super::{
     mail::{MAX_BODY, offline_note},
 };
 use crate::{
-    proto::{Message, RnRefusal},
+    proto::Message,
     store::{Enveloped, Receipt},
-    telos::{self, Status},
+    telos::{self, RnRefusal, Status},
     util,
 };
 use anyhow::Result;
@@ -28,6 +28,7 @@ use telos_schema::{
 const MAX_ID: usize = 128;
 
 impl Daemon {
+    #[cfg(test)]
     /// The endpoint of the session at `address` here (`person/name`, or its name), live or remembered: what an
     /// envelope names it by. Until PH0-RN-06's `sessions.resolve`.
     pub(super) fn endpoint_of(&self, address: &str) -> Result<EndpointRef> {
@@ -114,19 +115,35 @@ impl Daemon {
         // The session by its id, never by an address: live, or remembered under its name.
         let found = telos::keys(&env.recipient).into_iter().find_map(|k| {
             if let Some(l) = g.live.get(&k) {
-                return Some((k, l.name.clone(), true));
+                return Some((k, l.name.clone(), true, l.wired));
             }
-            g.store.session_by_key(&k).ok().flatten().map(|r| (k, r.name, false))
+            g.store.session_by_key(&k).ok().flatten().map(|r| (k, r.name, false, r.wired))
         });
-        let Some((key, name, live)) = found else {
-            let e = &env.recipient;
+        let e = &env.recipient;
+        let Some((key, name, live, wired)) = found else {
+            // Only in the Provider's own session list (PH0-RN-06 decision ③): seen, but not reachable from here.
+            if seen_unattached(e) {
+                let why = format!(
+                    "{} session {} isn't attached to telos-rn (its MCP server or hooks)",
+                    e.provider, e.native_session_id
+                );
+                return Err(RnRefusal::error(Code::Refused, why));
+            }
             let why = format!("no {} session {} on this host", e.provider, e.native_session_id);
             return Err(RnRefusal::error(Code::NotFound, why));
         };
+        // Phase 0: Core sends only to sessions that came in through telos-rn (§12.4, PH0-RN-06 decision ③).
+        if !wired {
+            let why = format!(
+                "{} session {} isn't attached to telos-rn (its MCP server or hooks)",
+                e.provider, e.native_session_id
+            );
+            return Err(RnRefusal::error(Code::Refused, why));
+        }
         let from = telos::keys(&env.sender)
             .iter()
             .find_map(|k| g.live.get(k))
-            .map_or_else(|| self.addr("telosweaver"), |l| self.addr(&l.name));
+            .map_or_else(|| self.addr(super::rpc::CORE_NAME), |l| self.addr(&l.name));
         let msg = Message {
             id: env.message_id.clone(),
             from,
@@ -160,6 +177,12 @@ impl Daemon {
         self.arrived.notify_waiters();
         Ok(contract(&r))
     }
+}
+
+/// A Claude Code session its own registry lists by this id, that telos-rn doesn't know.
+fn seen_unattached(e: &EndpointRef) -> bool {
+    e.provider == "claude"
+        && crate::claude::scan().iter().any(|c| c.session_id.as_deref() == Some(&e.native_session_id))
 }
 
 pub(super) fn contract(r: &Receipt) -> DeliveryReceipt {

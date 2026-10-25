@@ -47,47 +47,59 @@ pub async fn connect() -> io::Result<Stream> {
     Ok(pipe)
 }
 
-/// Where the daemon takes connections. Only the daemon holding the lock opens it.
-pub struct Listener(#[cfg(unix)] tokio::net::UnixListener, #[cfg(windows)] Accepted);
+/// Where the daemon takes connections. Only the daemon holding the lock opens it. Only this OS user can connect
+/// (TelosWeaver, PH0-RN-06: a user-only DACL on Windows, 0600 on Unix; see `private`).
+pub struct Listener {
+    #[cfg(unix)]
+    inner: tokio::net::UnixListener,
+    #[cfg(windows)]
+    next: Accepted,
+    #[cfg(windows)]
+    path: std::path::PathBuf,
+}
 
 impl Listener {
-    #[cfg(unix)]
+    /// The agents' socket.
     pub fn bind() -> Result<Self> {
-        let sock = paths::socket();
+        Self::bind_at(paths::socket(), true)
+    }
+
+    /// The TelosWeaver RPC socket (PH0-RN-06).
+    pub fn bind_rpc() -> Result<Self> {
+        Self::bind_at(paths::rpc_socket(), false)
+    }
+
+    #[cfg(unix)]
+    pub(crate) fn bind_at(sock: std::path::PathBuf, _agents: bool) -> Result<Self> {
         paths::ensure_socket_dir()?;
         let _ = std::fs::remove_file(&sock);
-        let listener = tokio::net::UnixListener::bind(&sock).with_context(|| format!("binding {}", sock.display()))?;
-        crate::util::chmod(&sock, 0o600)?;
-        paths::link_legacy_socket(&sock);
-        Ok(Listener(listener))
+        let inner = tokio::net::UnixListener::bind(&sock).with_context(|| format!("binding {}", sock.display()))?;
+        crate::private::protect(&sock)?;
+        Ok(Listener { inner })
     }
 
     /// The first instance of the pipe, so nobody else holds its name.
     #[cfg(windows)]
-    pub fn bind() -> Result<Self> {
-        Ok(Listener(pipe(true).with_context(|| format!("creating {}", paths::socket().display()))?))
+    pub(crate) fn bind_at(path: std::path::PathBuf, _agents: bool) -> Result<Self> {
+        let next = crate::private::pipe(&path, true).with_context(|| format!("creating {}", path.display()))?;
+        Ok(Listener { next, path })
     }
 
     #[cfg(unix)]
     pub async fn accept(&mut self) -> io::Result<Accepted> {
-        Ok(self.0.accept().await?.0)
+        Ok(self.inner.accept().await?.0)
     }
 
     /// Each client gets an instance of its own: once one connects, the next waits for whoever comes after.
     #[cfg(windows)]
     pub async fn accept(&mut self) -> io::Result<Accepted> {
         loop {
-            let connected = self.0.connect().await;
-            let this = std::mem::replace(&mut self.0, pipe(false)?);
+            let connected = self.next.connect().await;
+            let this = std::mem::replace(&mut self.next, crate::private::pipe(&self.path, false)?);
             // One that left before we got to it is dropped.
             if connected.is_ok() {
                 return Ok(this);
             }
         }
     }
-}
-
-#[cfg(windows)]
-fn pipe(first: bool) -> io::Result<Accepted> {
-    tokio::net::windows::named_pipe::ServerOptions::new().first_pipe_instance(first).create(paths::socket())
 }
