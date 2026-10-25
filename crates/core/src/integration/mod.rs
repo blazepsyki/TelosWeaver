@@ -6,14 +6,18 @@
 //! - [`ClaudeLauncher`]·[`CodexLauncher`]·[`AgyLauncher`]: 승인 때 기록한 Snapshot으로 Provider별 실행 조건을 만듭니다.
 //! - [`discover`]: §7.5 탐지로 확장의 Provider CLI를 찾습니다.
 //! - [`TrackedAdapter`]: Daemon 종료 시 활성 Run을 취소하고 실제 종료 이벤트를 확인합니다.
+//! - [`RnService`]: 운영자 정책의 RN Fork를 프로젝트별 상태 폴더로 띄우고 연결하며 `core.health`의 `rn`으로 알립니다
+//!   (Spec v1.5.1 §12.3·§12.5, PH0-RN-07).
 
 mod policy;
+mod rn;
 mod tracked;
 
 pub use policy::{
     AgyDataDir, AgyLauncher, AgyPolicy, ClaudeLauncher, ClaudePolicy, CodexLauncher, CodexPolicy,
-    LocalPolicyConfig, LocalRunPolicy, RunSnapshot, WorkspaceGrant,
+    LocalPolicyConfig, LocalRunPolicy, RnPolicy, RunSnapshot, WorkspaceGrant,
 };
+pub use rn::{RnLaunch, RnService};
 pub use tracked::{ShutdownReport, TrackedAdapter};
 
 use std::{
@@ -342,6 +346,36 @@ impl Phase0Execution {
             Arc::new(self.supervisor.clone()),
             policy,
         ))
+    }
+
+    /// RN Fork를 띄우고(정책에 `rn` 절이 있을 때) `core.health`에 `rn`으로 알립니다. 상태 폴더는 Local API 토큰이 있는
+    /// Core 프로젝트별 상태 폴더 아래 `rn`입니다(Spec v1.5.1 §12.5). 사용자 단위 공유 RN으로 바꿀 때 이 함수만 바꿉니다.
+    pub async fn start_rn(&self, api_token: &std::path::Path) -> Arc<RnService> {
+        let runtime: Arc<dyn ProcessRuntime> = Arc::new(telos_adapters::runtime::NativeRuntime);
+        let rn = match self.policy.as_ref().and_then(|p| p.config().rn.clone()) {
+            None => RnService::not_configured(runtime),
+            Some(policy) => {
+                let state = api_token
+                    .parent()
+                    .map(std::path::Path::to_path_buf)
+                    .unwrap_or_default();
+                let codex_bin = self
+                    .discovery(telos_adapters::codex::PROVIDER_ID)
+                    .and_then(CliDiscovery::found)
+                    .map(|cli| PathBuf::from(&cli.executable_path));
+                let launch = RnLaunch {
+                    executable: policy.executable,
+                    home: state.join("rn"),
+                    host_id: self.supervisor.host_id().to_owned(),
+                    codex_bin,
+                };
+                RnService::start(launch, runtime).await
+            }
+        };
+        let component = rn.clone();
+        self.supervisor
+            .add_health_component(Arc::new(move || component.component()));
+        rn
     }
 
     pub fn discovery(&self, provider_id: &str) -> Option<&CliDiscovery> {

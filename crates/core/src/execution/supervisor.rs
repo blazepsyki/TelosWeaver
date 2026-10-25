@@ -85,7 +85,11 @@ pub struct ExecutionSupervisor {
     registry: Mutex<Registry>,
     max_runs: usize,
     event_bytes: Arc<AtomicUsize>,
+    /// Components the integration adds to `core.health`, e.g. `rn` (REQ-019, Spec §12.3).
+    health_components: Mutex<Vec<HealthComponent>>,
 }
+/// Reports one `core.health` component when asked; it must not block.
+pub type HealthComponent = Arc<dyn Fn() -> ComponentHealth + Send + Sync>;
 impl ExecutionSupervisor {
     pub fn new(
         project_id: String,
@@ -101,7 +105,12 @@ impl ExecutionSupervisor {
             registry: Mutex::new(Registry::default()),
             max_runs: 128,
             event_bytes: Arc::new(AtomicUsize::new(0)),
+            health_components: Mutex::new(Vec::new()),
         }
+    }
+    /// Adds a component to `core.health` after the built-in ones (REQ-019). The overall status is unchanged.
+    pub fn add_health_component(&self, component: HealthComponent) {
+        self.health_components.lock().unwrap().push(component);
     }
     pub fn project_id(&self) -> &str {
         &self.project_id
@@ -110,7 +119,14 @@ impl ExecutionSupervisor {
         &self.host_id
     }
     pub fn health(&self) -> HealthResult {
-        HealthResult {
+        let added: Vec<ComponentHealth> = self
+            .health_components
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|c| c())
+            .collect();
+        let mut health = HealthResult {
             status: HealthStatus::Degraded,
             server_version: env!("CARGO_PKG_VERSION").into(),
             components: vec![
@@ -130,7 +146,9 @@ impl ExecutionSupervisor {
                     detail: Some("not implemented".into()),
                 },
             ],
-        }
+        };
+        health.components.extend(added);
+        health
     }
     pub async fn start(
         self: &Arc<Self>,

@@ -84,6 +84,15 @@ async fn run() -> Result<(), String> {
     )
     .await
     .map_err(|_| "Local API startup failed")?;
+    // RN Fork (Spec v1.5.1 §12.5): optional; Core runs either way and reports it as `rn` in core.health.
+    let rn = execution.start_rn(server.token_path()).await;
+    let rn_state = rn.component();
+    println!(
+        "{}: rn {:?} ({})",
+        telos_core::SERVICE_ID,
+        rn_state.status,
+        rn_state.detail.unwrap_or_default()
+    );
     match &execution.policy_revision {
         Some(revision) => println!(
             "{}: Local API ready (policy {revision})",
@@ -108,6 +117,7 @@ async fn run() -> Result<(), String> {
     // 연결부터 닫아 새 Run을 받지 않은 뒤, 활성 Run의 취소와 실제 종료를 확인합니다.
     let closed = server.shutdown().await;
     let report = execution.shutdown(Duration::from_secs(15)).await;
+    rn.shutdown().await;
     if !report.unconfirmed.is_empty() {
         return Err(format!(
             "{} run(s) did not confirm termination",

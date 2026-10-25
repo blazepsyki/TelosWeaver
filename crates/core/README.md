@@ -14,7 +14,7 @@ Extension Host와 분리된 독립 프로세스로 실행되는 TelosWeaver Core
 | `execution` | Execution Supervisor: Run ID 발급, 멱등 시작, 이벤트 수집·검사·보존(메모리), 취소 접수와 실제 종료 구분, 신뢰된 `RunAuthorizer`로만 실행 | §7.2, §7.3, §9.1 | HOST | Phase 0 최소 범위 |
 | `policy` | Decision Validator: 마스터 결정의 호출자·Plan·Epoch·Revision·Payload·kind·권한·한도·Task 트리·의존성 검사, 신뢰된 조회 `TrustedLookup` | §4.2, §13 | MASTER | Phase 0 최소 범위 |
 | `master` | Master Controller: 마스터를 제어용 Task로 실행, JSON 결정 회수, 멱등 재생·충돌, `create_tasks`·`request_run`·`request_cancel` 집행, Resume 결과 왕복, `controller_epoch`, 결정 기록 | §4 | MASTER | Phase 0 최소 범위 |
-| `integration` | Phase 0 통합 구성: 운영자 정책 파일 기반 Run 승인(`LocalRunPolicy`)과 Provider별 실행 조건, 확장 CLI 탐지·Adapter 등록, Daemon 종료 시 활성 Run 정리 | §19.5.8 | INTEGRATION | 정식 정책·Snapshot 서비스가 대체할 임시 구성 |
+| `integration` | Phase 0 통합 구성: 운영자 정책 파일 기반 Run 승인(`LocalRunPolicy`)과 Provider별 실행 조건, 확장 CLI 탐지·Adapter 등록, Daemon 종료 시 활성 Run 정리, RN Fork 시작·감시·재시작·정지(`RnService`, `core.health`의 `rn`) | §19.5.8, §12.3·§12.5 | INTEGRATION | 정식 정책·Snapshot 서비스가 대체할 임시 구성 |
 
 OS 프로세스의 시작·입출력·종료·자식 회수(Windows Job Object, Unix Process Group)는 Core가 아니라 `telos-adapters::runtime`에 있습니다. Provider Adapter와 Core가 같은 런타임을 씁니다.
 
