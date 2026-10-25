@@ -45,7 +45,7 @@
 | 실환경 `env_vscode_listing` | 통과. Fresh → Resume(같은 세션 ID 유지, 문맥 이어짐) → NativeFork(새 ID) 모두 `claude-vscode`, 위치 `projects/C--Users-Psyki-HOME-AppData-Local-Temp-telos-claude-env-listing/`. `Hidden` Run은 모든 줄 `sdk-cli` | windows-local |
 | 실환경 전체(`claude_environment`) | 7개 통과(66초). 기존 6개(완료·도구 거부·잘못된 모델·취소·Resume/Fork·탐지)가 환경 변경 뒤에도 그대로 통과 | windows-local |
 | Workspace | `cargo test --workspace --locked` 157개 통과(실환경 34개 기본 제외), `cargo clippy --workspace --all-targets --locked -- -D warnings` 통과, `cargo fmt --all --check` 통과 | windows-local |
-| 확장 화면 확인 (L4) | **미검증.** 사용자 VS Code 조작 필요(아래 §6) | — |
+| 확장 화면 확인 (L4) | **통과 (사용자 확인, 2026-10-25).** Adapter로 사용자 VS Code 창의 첫 Workspace 폴더 `D:\Downloads\Vibe_dev`에서 Run 2개 실행(임시 시험 파일, 커밋 안 함). `Listed` 세션 `46ad660e…`은 Claude Code 확장의 과거 대화 목록에 나타났고, 열어서 대화가 보였으며, 사용자가 확장에서 후속 입력("ok")을 보내 정상 응답을 받음(파일 12 → 23줄, 추가된 줄도 모두 `claude-vscode`). `Hidden` 세션 `d1e69e03…`(모든 줄 `sdk-cli`)은 목록에 나타나지 않음 | windows-local |
 | Linux (`psyki-nas`) | 미실행 (이번 필수 범위 아님) | — |
 
 **상속 환경에서의 확인:** 시험은 VS Code의 Claude Code 세션 안에서 실행해 셸에 `CLAUDE_CODE_ENTRYPOINT=claude-vscode`, `CLAUDECODE=1`, `CLAUDE_CODE_SESSION_ID` 등 부모 세션 변수가 있는 상태였습니다. 그런데도 `Hidden` Run이 `sdk-cli`로 기록되어 명시 값이 상속 값을 이긴다는 것을 확인했고, 부모 변수를 제거한 상태로 기존 7개 시험이 모두 정상 동작했습니다.
@@ -62,8 +62,10 @@
 
 해당 폴더: `C--Users-Psyki-HOME-AppData-Local-Temp-telos-claude-env-{listing,listing-hidden,completed,denied,invalid-model,cancel,resume}`.
 
+화면 확인 세션은 사용자 Workspace 폴더(`~/.claude/projects/d--Downloads-Vibe-dev/`)에 있으므로 **폴더째 지우지 않고 두 파일만** 지웁니다: `46ad660e-c20d-457a-983c-c32ad60f6ef9.jsonl`(표시, 사용자 후속 입력 포함), `d1e69e03-f84e-41ea-b575-d247b965409a.jsonl`(숨김). 같은 이름의 하위 폴더가 생겼다면 함께 지웁니다. 그 폴더의 다른 세션은 사용자 대화이므로 건드리지 않습니다.
+
 ## 6. 남은 일과 인계
 
-1. **확장 화면 확인 (사용자):** 시험 세션은 Workspace 밖 임시 폴더에 있어 사용자의 VS Code 창(첫 Workspace 폴더 `D:\Downloads\Vibe_dev`) 목록에는 나오지 않습니다. 화면 확인은 ① 그 임시 폴더(`%TEMP%\telos-claude-env\listing`)를 VS Code 창으로 열어 Claude Code 확장의 과거 대화 목록에서 `efea2951…`·`904fef97…`이 보이고 `76c97035…`(listing-hidden 폴더)는 안 보이는지 확인하거나, ② 사용자 Workspace에서 `listed` Run을 1개 실행해 확인하는 방법이 있습니다.
+1. **확장 화면 확인:** 완료(§4). 실행 후 확장에서 이어 쓴 세션도 `claude-vscode`로 유지됨을 확인했습니다. 이어 쓴 세션을 Core가 다시 `resume`할 때의 소유권 확인(§7.6, §8.1)은 Core 범위입니다.
 2. **INTEGRATION 연결:** 운영자 정책의 `vscodeListing`을 `ClaudeCodeAdapter::with_vscode_listing`으로 전달하고, 적용 값(`claude-vscode`/`sdk-cli`)을 Run 승인 Snapshot에 기록 (지시서 §5 I1·I2).
 3. **확장 버전 변경 시 재판정:** 판정 규칙은 확장의 비공개 코드입니다. `VSCODE_LISTING_VERIFIED_VERSIONS`에 없는 버전은 `unverified`로 보고되므로, 새 버전에서 `env_vscode_listing`을 다시 실행하고 확장 코드의 판정 규칙을 확인한 뒤 목록에 추가합니다.
