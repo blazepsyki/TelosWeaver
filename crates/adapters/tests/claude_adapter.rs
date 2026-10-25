@@ -13,7 +13,7 @@ use async_trait::async_trait;
 use futures::{StreamExt, stream::BoxStream};
 use telos_adapters::{
     AdapterError, AgentAdapter, ClaudeCodeAdapter,
-    claude::{ClaudeCodeConfig, ClaudeLaunch, ClaudeLaunchResolver, cli_rule},
+    claude::{ClaudeCodeConfig, ClaudeLaunch, ClaudeLaunchResolver, VsCodeListing, cli_rule},
     runtime::*,
 };
 use telos_schema::{
@@ -514,6 +514,78 @@ async fn native_fork_passes_resume_and_fork_flags() {
     ));
 }
 
+fn spawned_env(runtime: &FakeRuntime) -> Vec<(String, Option<String>)> {
+    runtime.spawned.lock().unwrap()[0]
+        .env
+        .iter()
+        .map(|(k, v)| {
+            (
+                k.to_string_lossy().into_owned(),
+                v.as_ref().map(|v| v.to_string_lossy().into_owned()),
+            )
+        })
+        .collect()
+}
+
+/// §7.6·DEC-08: 기본은 확장 목록에 표시하고, 부모 Claude 세션 변수는 상속하지 않습니다.
+#[tokio::test]
+async fn runs_are_listed_in_the_extension_by_default() {
+    let runtime = FakeRuntime::new(Script::fixture("success.jsonl", 0));
+    let adapter = adapter(runtime.clone());
+    assert_eq!(adapter.vscode_listing(), VsCodeListing::Listed);
+    run_to_end(&adapter).await;
+    let env = spawned_env(&runtime);
+    assert!(env.contains(&(
+        "CLAUDE_CODE_ENTRYPOINT".into(),
+        Some("claude-vscode".into())
+    )));
+    for parent in [
+        "CLAUDECODE",
+        "CLAUDE_CODE_SESSION_ID",
+        "CLAUDE_CODE_CHILD_SESSION",
+        "CLAUDE_CODE_SESSION_ATTENDED",
+        "CLAUDE_CODE_MESSAGING_SOCKET",
+        "CLAUDE_CODE_MESSAGING_TOKEN",
+        "CLAUDE_PID",
+    ] {
+        assert!(
+            env.contains(&(parent.into(), None)),
+            "{parent} must be removed"
+        );
+    }
+}
+
+/// §7.6: 숨김 설정은 상속된 값과 관계없이 자동화 출처(`sdk-cli`)로 기록합니다. Resume·Fork에도 같은 값입니다.
+#[tokio::test]
+async fn hidden_runs_are_recorded_as_automation_for_every_session_mode() {
+    for mode in [
+        SessionMode::Fresh,
+        SessionMode::Resume,
+        SessionMode::NativeFork,
+    ] {
+        let runtime = FakeRuntime::new(Script::fixture("success.jsonl", 0));
+        let adapter = adapter(runtime.clone()).with_vscode_listing(VsCodeListing::Hidden);
+        let task = fixtures::task_spec();
+        let mut context = fixtures::run_context(&task);
+        context.session.mode = mode;
+        context.session.source_session_id = Some("parent-session".into());
+        adapter.start_run(&task, &context).await.unwrap();
+        let env = spawned_env(&runtime);
+        let entrypoints: Vec<_> = env
+            .iter()
+            .filter(|(k, _)| k == "CLAUDE_CODE_ENTRYPOINT")
+            .collect();
+        assert_eq!(
+            entrypoints,
+            [&(
+                "CLAUDE_CODE_ENTRYPOINT".to_owned(),
+                Some("sdk-cli".to_owned())
+            )],
+            "{mode:?}"
+        );
+    }
+}
+
 #[tokio::test]
 async fn detect_reports_only_verified_versions_as_supported() {
     let host = fixtures::run_context(&fixtures::task_spec()).host_id;
@@ -523,14 +595,25 @@ async fn detect_reports_only_verified_versions_as_supported() {
     assert_eq!(caps["answer_approval"].state, CapabilityState::Unsupported);
     assert_eq!(caps["native_fork"].state, CapabilityState::Unverified);
 
+    assert_eq!(caps["vscode_listing"].state, CapabilityState::Supported);
+
     let newer = adapter_with(
         FakeRuntime::new(Script::default()),
         launch(),
         "9.9.9 (Claude Code)",
     );
+    let newer_caps = newer.detect(&host).await.unwrap();
+    assert_eq!(newer_caps["managed_run"].state, CapabilityState::Unverified);
     assert_eq!(
-        newer.detect(&host).await.unwrap()["managed_run"].state,
+        newer_caps["vscode_listing"].state,
         CapabilityState::Unverified
+    );
+    // 숨김 설정이어도 Capability는 수단의 지원 여부입니다 (§7.6).
+    let hidden =
+        adapter(FakeRuntime::new(Script::default())).with_vscode_listing(VsCodeListing::Hidden);
+    assert_eq!(
+        hidden.detect(&host).await.unwrap()["vscode_listing"].state,
+        CapabilityState::Supported
     );
     assert_eq!(
         verified.detect("other-host").await.unwrap()["managed_run"].state,
