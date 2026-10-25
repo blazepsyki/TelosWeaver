@@ -58,12 +58,15 @@ checks so removed paths are not reintroduced. Full upstream merges and the upstr
 | 17 | PH0-RN-04 | `init` / `join` (and the guided flow) no longer wire agents in: `--no-setup`, `setup::quietly` and `set_up_for` in `--json` are gone; they print how to run `setup` | `src/main.rs`, `src/wizard.rs`, `src/setup.rs` |
 | 18 | PH0-RN-04 | The relay list is fetched only by a machine in a team that uses Reason's relays (never in no team) | `src/daemon/mod.rs`, `src/relays.rs` |
 | 19 | PH0-RN-04 | New `README.md` for the fork; fork banners on upstream `DESIGN.md`, `CONTRIBUTING.md`, `SECURITY.md`; `tests/e2e/README.md` marks the upstream scripts unmaintained; removed the upstream banner image | `README.md`, `DESIGN.md`, `CONTRIBUTING.md`, `SECURITY.md`, `tests/e2e/README.md`, `assets/reason-network-banner.png` (deleted) |
+| 20 | PH0-RN-05 | Every stored message has a TelosWeaver receipt (`receipts`, schema 1 via `PRAGMA user_version`): `delivered` only once the recipient was shown it (inbox, hook, `Delivered`) or its transcript shows it; handed to an agent's own inbox or queue it stays `queued` (`Delivered.handed_off`, transcript watch); expiry (at most 7 days, default 7 days from storage), final receipts and their messages deleted 7 days on, failed when the session is forgotten, refused / queued when the person drops / approves | `src/store.rs`, `src/daemon/mail.rs`, `src/daemon/mod.rs`, `src/daemon/sessions.rs`, `src/proto.rs`, `src/mcp.rs`, `src/hook.rs`, `src/main.rs` |
+| 21 | PH0-RN-05 | Mail for a session by key isn't given to another session that takes its address: it is held for the person (`identity_mismatch`); approving it gives it to whoever has the address. Mail queued for an offline non-kept session is no longer handed to the next session in its place automatically | `src/daemon/mail.rs`, `src/store.rs` |
+| 22 | PH0-RN-05 | TelosWeaver endpoints (host id from `TELOS_RN_HOST_ID`, provider, the agent's session id; fingerprint without the folder) and envelopes: `send_envelope`, `receipt`, `endpoint` local requests with idempotency keys per sender, contract error codes in replies (`code`), hidden `telos-rn call` for testing. The contract types come from `telos-schema` (path dependency; `Cargo.lock` gains it only) | `src/telos.rs` (new), `src/daemon/envelope.rs` (new), `src/proto.rs`, `src/main.rs`, `Cargo.toml`, `Cargo.lock` |
+| 23 | PH0-RN-05 | Before a schema migration the database is copied to `backups/` (last 3 kept); a database from a newer schema is refused | `src/store.rs` |
+| 24 | PH0-RN-05 | `codex queue` uses only the Codex CLI Core passes as `TELOS_RN_CODEX_BIN` (DEC-06), never one on `PATH`; without it Codex sessions get mail through hooks only | `src/agent.rs`, `src/daemon/mail.rs`, `src/daemon/sessions.rs` |
 
 Upstream `tests/e2e/*.py` still use upstream names and removed features; whether to port or drop each is decided in
 PH0-RN-08.
 
 Planned (see `docs/phase-0/evidence/PH0-RN/RN-00/README.md` in the TelosWeaver repository):
 
-- PH0-RN-05: compare message, identity and store semantics with Spec §12.2; decide whether `codex queue` uses the
-  extension's bundled Codex CLI (DEC-06) instead of the one on `PATH`.
 - PH0-RN-06: versioned local RPC (Spec §12.1), Windows pipe DACL.

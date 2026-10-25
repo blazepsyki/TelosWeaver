@@ -1,10 +1,16 @@
 //! SQLite: messages, and the sessions this machine has seen: live ones, ones gone for less than a day, and the
 //! person's own mailboxes (`terminal`, `listen --as` names). Files that came with messages are saved in the inbox folder, one
 //! folder per message, and go with their message.
+//!
+//! TelosWeaver (Spec v1.5 §12.2, PH0-RN-05): every message stored here has a receipt (`receipts`), and one sent as a
+//! TelosWeaver envelope also its idempotency key (`envelopes`). A message is shown only while its receipt is open; it
+//! expires `telos::MAX_TTL_MS` after it was stored here at the latest, and is deleted with its receipt `telos::RETAIN_MS` after
+//! the receipt became final. Before a schema migration the database is copied into `backups/`.
 
 use crate::{
     files,
     proto::{Attachment, DayCount, Message, Tier},
+    telos::{self, Status},
 };
 use anyhow::Result;
 use rusqlite::{Connection, OptionalExtension, Row, params};
@@ -120,7 +126,55 @@ CREATE TABLE IF NOT EXISTS counts (
     sent INTEGER NOT NULL DEFAULT 0,
     received INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS receipts (
+    message_id TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    reason TEXT,
+    updated_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    recipient_key TEXT,
+    handed_off INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS receipts_open ON receipts (status, expires_at);
+CREATE TABLE IF NOT EXISTS envelopes (
+    message_id TEXT PRIMARY KEY,
+    sender_fp TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL,
+    digest TEXT NOT NULL,
+    envelope TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE (sender_fp, idempotency_key)
+);
 ";
+
+/// The schema this build writes (`PRAGMA user_version`). 1: receipts and envelopes (TelosWeaver, PH0-RN-05).
+const SCHEMA_VERSION: i64 = 1;
+/// A message is shown while no final receipt says otherwise.
+const OPEN: &str = "NOT EXISTS (SELECT 1 FROM receipts WHERE message_id = messages.id
+     AND status IN ('delivered', 'refused', 'expired', 'failed'))";
+const FINAL: &str = "('delivered', 'refused', 'expired', 'failed')";
+
+/// What is known of a message's delivery (Spec v1.5 §12.2).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Receipt {
+    pub message_id: String,
+    pub status: Status,
+    pub reason: Option<String>,
+    pub updated_at: i64,
+    pub expires_at: i64,
+    /// The session the message is for, by key, once known: another session that takes its address doesn't get it.
+    pub recipient_key: Option<String>,
+    /// It was handed to the agent's own inbox or queue, which doesn't say when the agent reads it.
+    pub handed_off: bool,
+}
+
+/// A message sent as a TelosWeaver envelope, as kept for its idempotency key.
+pub struct Enveloped<'a> {
+    pub sender_fp: &'a str,
+    pub key: &'a str,
+    pub digest: &'a str,
+    pub envelope: &'a str,
+}
 
 const MESSAGE_COLS: &str =
     "id, sender, sender_agent, sender_repo, recipient, via, reply_to, body, wake, sent_at, approval, files";
@@ -130,6 +184,22 @@ impl Store {
     /// The database at `path`, and the folder `inbox` that messages' files are saved in.
     pub fn open(path: &Path, inbox: PathBuf) -> Result<Self> {
         let db = Connection::open(path)?;
+        let version: i64 = db.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+        if version > SCHEMA_VERSION {
+            anyhow::bail!(
+                "{} is from a newer telos-rn (schema {version}; this one writes {SCHEMA_VERSION})",
+                path.display()
+            );
+        }
+        let existing: bool = db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'messages')",
+            [],
+            |r| r.get(0),
+        )?;
+        // A copy from before the migration, which stops if it can't be made.
+        if existing && version < SCHEMA_VERSION {
+            backup(&db, path, version)?;
+        }
         db.execute_batch(SCHEMA)?;
         // Deleted rows are overwritten, not just let go (see `scrub`).
         db.execute_batch("PRAGMA secure_delete = ON;")?;
@@ -171,7 +241,34 @@ impl Store {
             )?;
             tx.commit()?;
         }
-        Ok(Store { db, inbox })
+        // Schema 1 (TelosWeaver): a receipt for each message from before. Whether one marked read was shown to its
+        // agent or only handed to its inbox wasn't kept, so it isn't said to be delivered.
+        if version < 1 {
+            db.execute(
+                "INSERT OR IGNORE INTO receipts (message_id, status, reason, updated_at, expires_at, handed_off)
+                 SELECT id, CASE WHEN read_at IS NULL AND held != 0 THEN 'held' ELSE 'queued' END,
+                 CASE WHEN read_at IS NULL THEN NULL
+                      ELSE 'stored before receipts were kept: whether its recipient read it is not known' END,
+                 COALESCE(read_at, sent_at), ?2 + ?1, read_at IS NOT NULL FROM messages",
+                params![telos::MAX_TTL_MS, crate::util::now_ms()],
+            )?;
+        }
+        db.execute_batch(&format!("PRAGMA user_version = {SCHEMA_VERSION};"))?;
+        let store = Store { db, inbox };
+        store.reopened(crate::util::now_ms())?;
+        Ok(store)
+    }
+
+    /// Mail handed off before this engine (re)started: what became of it is lost with the engine that handed it (and
+    /// whatever watched its transcript).
+    fn reopened(&self, now: i64) -> Result<()> {
+        const WHY: &str = "handed off before the engine restarted: whether its recipient read it is not confirmed";
+        self.db.execute(
+            "UPDATE receipts SET reason = ?1, updated_at = ?2
+             WHERE status = 'queued' AND handed_off != 0 AND reason LIKE 'handed off to %'",
+            params![WHY, now],
+        )?;
+        Ok(())
     }
 
     /// A folder named in the `files` column: only one of the ids made here (a ULID), so always just inside the inbox.
@@ -191,9 +288,22 @@ impl Store {
     /// Stores a message; false if one with this id is already here (a retried delivery). Unless it is held, its files
     /// are saved in a new folder of their own first, and `m` then lists them by path.
     pub fn insert(&self, m: &mut Message, held: bool) -> Result<bool> {
+        self.insert_for(m, held, None, None)
+    }
+
+    /// [`Store::insert`], for the session `recipient_key` when known, expiring at `expires_at` (by default
+    /// `telos::MAX_TTL_MS` after now: the sender's clock isn't this one). Its receipt starts `accepted`, or `held`.
+    pub fn insert_for(
+        &self,
+        m: &mut Message,
+        held: bool,
+        recipient_key: Option<&str>,
+        expires_at: Option<i64>,
+    ) -> Result<bool> {
         if self.has(&m.id)? {
             return Ok(false);
         }
+        let expires_at = expires_at.unwrap_or(crate::util::now_ms().saturating_add(telos::MAX_TTL_MS));
         let mut kept = (!m.files.is_empty()).then(|| Kept {
             dir: ulid::Ulid::generate().to_string(),
             bytes: files::size(&m.files),
@@ -225,6 +335,17 @@ impl Store {
                 held
             ],
         );
+        let n = n.and_then(|n| {
+            if n == 1 {
+                let status = if held { Status::Held } else { Status::Accepted };
+                self.db.execute(
+                    "INSERT OR REPLACE INTO receipts (message_id, status, updated_at, expires_at, recipient_key)
+                     VALUES (?1, ?2, ?3, ?4, ?5)",
+                    params![m.id, telos::status_str(status), crate::util::now_ms(), expires_at, recipient_key],
+                )?;
+            }
+            Ok(n)
+        });
         match (n, saved, kept) {
             (Ok(n), Some(dir), Some(k)) => {
                 m.files = files::located(&dir, &k.files);
@@ -253,32 +374,40 @@ impl Store {
     /// (their ids, random within a millisecond, say nothing of it).
     pub fn unread(&self, recipient: &str) -> Result<Vec<Message>> {
         let mut st = self.db.prepare_cached(&format!(
-            "SELECT {MESSAGE_COLS}, held FROM messages WHERE recipient = ?1 AND read_at IS NULL AND held = 0 ORDER BY sent_at, rowid"
+            "SELECT {MESSAGE_COLS}, held FROM messages WHERE recipient = ?1 AND read_at IS NULL AND held = 0 AND {OPEN}
+             ORDER BY sent_at, rowid"
         ))?;
+        self.expire(crate::util::now_ms())?;
         let rows = st.query_map([recipient], |r| self.row(r))?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
     /// Whether a mailbox has unread mail that wakes its session.
     pub fn unread_wakes(&self, recipient: &str) -> Result<bool> {
+        self.expire(crate::util::now_ms())?;
         Ok(self.db.query_row(
-            "SELECT EXISTS(SELECT 1 FROM messages WHERE recipient = ?1 AND read_at IS NULL AND held = 0 AND wake != 0)",
+            &format!(
+                "SELECT EXISTS(SELECT 1 FROM messages WHERE recipient = ?1 AND read_at IS NULL AND held = 0 AND wake != 0
+                 AND {OPEN})"
+            ),
             [recipient],
             |r| r.get(0),
         )?)
     }
 
     pub fn unread_count(&self, recipient: &str) -> Result<u32> {
+        self.expire(crate::util::now_ms())?;
         Ok(self.db.query_row(
-            "SELECT COUNT(*) FROM messages WHERE recipient = ?1 AND read_at IS NULL AND held = 0",
+            &format!("SELECT COUNT(*) FROM messages WHERE recipient = ?1 AND read_at IS NULL AND held = 0 AND {OPEN}"),
             [recipient],
             |r| r.get(0),
         )?)
     }
 
     pub fn held(&self) -> Result<Vec<Message>> {
+        self.expire(crate::util::now_ms())?;
         let mut st = self.db.prepare_cached(&format!(
-            "SELECT {MESSAGE_COLS}, held FROM messages WHERE held = 1 ORDER BY sent_at, rowid"
+            "SELECT {MESSAGE_COLS}, held FROM messages WHERE held = 1 AND {OPEN} ORDER BY sent_at, rowid"
         ))?;
         let rows = st.query_map([], |r| self.row(r))?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
@@ -338,9 +467,12 @@ impl Store {
         let held = self.held()?;
         let picked: Vec<Message> = held.into_iter().filter(|m| ids.is_empty() || ids.contains(&m.id)).collect();
         let (mut done, mut unsaved) = (Vec::new(), Vec::new());
+        let now = crate::util::now_ms();
         for mut m in picked {
+            let id = &[m.id.clone()];
             if !release {
                 self.db.execute("DELETE FROM messages WHERE id = ?1", [&m.id])?;
+                self.set_status(id, Status::Refused, Some("dropped by the person"), now)?;
                 done.push(m);
                 continue;
             }
@@ -351,6 +483,15 @@ impl Store {
                     unsaved.push((m.id.clone(), "its files' record is damaged".into()));
                     continue;
                 };
+                // Held after its files were saved (another session took its recipient's address): they are there.
+                if dir.exists() {
+                    m.files = files::located(&dir, &k.files);
+                    self.db.execute("UPDATE messages SET held = 0 WHERE id = ?1", [&m.id])?;
+                    self.set_status(id, Status::Queued, Some("approved by the person"), now)?;
+                    let _ = self.count(now, Counted::Received);
+                    done.push(m);
+                    continue;
+                }
                 match files::save(&dir, &k.files) {
                     Ok(names) => k.files = names,
                     Err(e) => {
@@ -370,7 +511,8 @@ impl Store {
                 }
                 return Err(e.into());
             }
-            let _ = self.count(crate::util::now_ms(), Counted::Received);
+            self.set_status(id, Status::Queued, Some("approved by the person"), now)?;
+            let _ = self.count(now, Counted::Received);
             done.push(m);
         }
         Ok((done, unsaved))
@@ -462,12 +604,172 @@ impl Store {
         Ok(())
     }
 
+    /// The recipient was shown these messages (its inbox gave them to it, or its hook printed them): delivered.
     pub fn mark_read(&self, ids: &[String], now: i64) -> Result<()> {
         let mut st = self.db.prepare_cached("UPDATE messages SET read_at = ?2 WHERE id = ?1 AND read_at IS NULL")?;
         for id in ids {
             st.execute(params![id, now])?;
         }
+        self.set_status(ids, Status::Delivered, Some("shown to the recipient"), now)
+    }
+
+    /// These messages went into the agent's own inbox or queue (`how`): not shown again here, but not known to be read.
+    pub fn mark_handed_off(&self, ids: &[String], now: i64, how: &str) -> Result<()> {
+        let mut st = self.db.prepare_cached("UPDATE messages SET read_at = ?2 WHERE id = ?1 AND read_at IS NULL")?;
+        let mut flag = self.db.prepare_cached(&format!(
+            "UPDATE receipts SET handed_off = 1 WHERE message_id = ?1 AND status NOT IN {FINAL}"
+        ))?;
+        for id in ids {
+            st.execute(params![id, now])?;
+            flag.execute([id])?;
+        }
+        self.set_status(ids, Status::Queued, Some(&format!("handed off to {how}; not yet confirmed read")), now)
+    }
+
+    /// Handed-off messages the recipient was since seen to have (`why`): delivered.
+    pub fn confirm(&self, ids: &[String], now: i64, why: &str) -> Result<()> {
+        self.set_status(ids, Status::Delivered, Some(why), now)
+    }
+
+    /// Moves receipts that aren't final yet to `status`. A final one stays as it is.
+    pub fn set_status(&self, ids: &[String], status: Status, reason: Option<&str>, now: i64) -> Result<()> {
+        let mut st = self.db.prepare_cached(&format!(
+            "UPDATE receipts SET status = ?2, reason = ?3, updated_at = ?4 WHERE message_id = ?1 AND status NOT IN {FINAL}"
+        ))?;
+        for id in ids {
+            st.execute(params![id, telos::status_str(status), reason, now])?;
+        }
         Ok(())
+    }
+
+    pub fn receipt(&self, id: &str) -> Result<Option<Receipt>> {
+        self.expire(crate::util::now_ms())?;
+        let row = self
+            .db
+            .query_row(
+                "SELECT message_id, status, reason, updated_at, expires_at, recipient_key, handed_off
+                 FROM receipts WHERE message_id = ?1",
+                [id],
+                |r| {
+                    Ok(Receipt {
+                        message_id: r.get(0)?,
+                        // Only this build writes it: one it can't read would be a damaged row.
+                        status: telos::parse_status(&r.get::<_, String>(1)?).unwrap_or(Status::Failed),
+                        reason: r.get(2)?,
+                        updated_at: r.get(3)?,
+                        expires_at: r.get(4)?,
+                        recipient_key: r.get(5)?,
+                        handed_off: r.get(6)?,
+                    })
+                },
+            )
+            .optional()?;
+        Ok(row)
+    }
+
+    /// The receipt of a message that isn't stored in a mailbox here (refused before it was, or sent to a teammate's
+    /// machine), so its sender can look it up.
+    pub fn record(&self, id: &str, status: Status, reason: Option<&str>, now: i64, expires_at: i64) -> Result<()> {
+        self.db.execute(
+            "INSERT OR IGNORE INTO receipts (message_id, status, reason, updated_at, expires_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![id, telos::status_str(status), reason, now, expires_at],
+        )?;
+        self.set_status(&[id.to_string()], status, reason, now)
+    }
+
+    /// A message for an address whose receipt names no session yet is now that session's (`key`).
+    pub fn bind_recipient(&self, id: &str, key: &str) -> Result<()> {
+        self.db.execute(
+            "UPDATE receipts SET recipient_key = ?2 WHERE message_id = ?1 AND recipient_key IS NULL",
+            params![id, key],
+        )?;
+        Ok(())
+    }
+
+    /// The person approved a held message for whoever has its address: the session `key`, or (none) the next to take it.
+    pub fn rebind_recipient(&self, id: &str, key: Option<&str>) -> Result<()> {
+        self.db.execute("UPDATE receipts SET recipient_key = ?2 WHERE message_id = ?1", params![id, key])?;
+        Ok(())
+    }
+
+    /// Holds a message for the person to approve or drop (`telos-rn held`): it isn't sent on by itself.
+    pub fn hold(&self, id: &str, why: &str, now: i64) -> Result<()> {
+        self.db.execute("UPDATE messages SET held = 1 WHERE id = ?1", [id])?;
+        self.set_status(&[id.to_string()], Status::Held, Some(why), now)
+    }
+
+    /// Receipts past their expiry that aren't final: expired, and their messages are no longer shown.
+    pub fn expire(&self, now: i64) -> Result<()> {
+        self.db.execute(
+            "UPDATE receipts SET status = 'expired', updated_at = ?1,
+             reason = CASE WHEN handed_off != 0 THEN 'expired before its reading was confirmed'
+                           ELSE 'expired before its recipient read it' END
+             WHERE status IN ('accepted', 'queued', 'held') AND expires_at <= ?1",
+            [now],
+        )?;
+        Ok(())
+    }
+
+    /// Deletes messages, receipts and idempotency keys whose receipt has been final for `telos::RETAIN_MS` (their
+    /// files go at the next `sweep_files`).
+    pub fn sweep_receipts(&self, now: i64) -> Result<()> {
+        self.expire(now)?;
+        let cut = now - telos::RETAIN_MS;
+        let done = format!("SELECT message_id FROM receipts WHERE status IN {FINAL} AND updated_at < ?1");
+        let tx = self.db.unchecked_transaction()?;
+        tx.execute(&format!("DELETE FROM messages WHERE id IN ({done})"), [cut])?;
+        tx.execute(&format!("DELETE FROM envelopes WHERE message_id IN ({done})"), [cut])?;
+        tx.execute(&format!("DELETE FROM receipts WHERE status IN {FINAL} AND updated_at < ?1"), [cut])?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// The message an envelope's sender sent under `key`, and the digest of that envelope.
+    pub fn envelope_by_key(&self, sender_fp: &str, key: &str) -> Result<Option<(String, String)>> {
+        Ok(self
+            .db
+            .query_row(
+                "SELECT message_id, digest FROM envelopes WHERE sender_fp = ?1 AND idempotency_key = ?2",
+                params![sender_fp, key],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()?)
+    }
+
+    /// Stores a message that came as an envelope, its receipt and its idempotency key, all or none. False if a
+    /// message with its id is here already.
+    pub fn insert_envelope(
+        &self,
+        m: &Message,
+        recipient_key: &str,
+        expires_at: i64,
+        e: &Enveloped<'_>,
+        now: i64,
+    ) -> Result<bool> {
+        anyhow::ensure!(m.files.is_empty(), "an envelope carries no files");
+        let tx = self.db.unchecked_transaction()?;
+        let n = tx.execute(
+            &format!(
+                "INSERT OR IGNORE INTO messages ({MESSAGE_COLS}, held)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, 0)"
+            ),
+            params![m.id, m.from, m.from_agent, m.from_repo, m.to, m.via, m.reply_to, m.body, m.wake, m.sent_at],
+        )?;
+        if n == 0 {
+            return Ok(false);
+        }
+        tx.execute(
+            "INSERT OR REPLACE INTO receipts (message_id, status, updated_at, expires_at, recipient_key)
+             VALUES (?1, 'accepted', ?2, ?3, ?4)",
+            params![m.id, now, expires_at, recipient_key],
+        )?;
+        tx.execute(
+            "INSERT INTO envelopes (message_id, sender_fp, idempotency_key, digest, envelope, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![m.id, e.sender_fp, e.key, e.digest, e.envelope, now],
+        )?;
+        tx.commit()?;
+        Ok(true)
     }
 
     /// A renamed session keeps its unread mail.
@@ -548,6 +850,14 @@ impl Store {
         let to = format!("{person}/{name}");
         let mut cols = self.db.prepare_cached(&format!("SELECT files {unread} AND files IS NOT NULL"))?;
         let cols: Vec<String> = cols.query_map([&to], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?;
+        // Their receipts stay, for their senders: it never got them.
+        self.db.execute(
+            &format!(
+                "UPDATE receipts SET status = 'failed', reason = 'its recipient session was forgotten before reading it',
+                 updated_at = ?2 WHERE status NOT IN {FINAL} AND message_id IN (SELECT id {unread})"
+            ),
+            params![&to, crate::util::now_ms()],
+        )?;
         self.db.execute(&format!("DELETE {unread}"), [&to])?;
         for kept in cols.iter().filter_map(|c| serde_json::from_str::<Kept>(c).ok()) {
             if let Some(dir) = self.dir(&kept) {
@@ -604,6 +914,35 @@ fn message(r: &Row) -> rusqlite::Result<Message> {
         approval: r.get::<_, Option<String>>(10)?.and_then(|a| serde_json::from_str(&a).ok()),
         files: Vec::new(),
     })
+}
+
+/// Copies the database at `path` (schema `version`) into `backups/` beside it, and keeps the last
+/// `telos::BACKUPS_KEPT` copies. Nothing for a database in memory.
+fn backup(db: &Connection, path: &Path, version: i64) -> Result<()> {
+    let Some(dir) = path.parent().filter(|_| path.is_file()) else { return Ok(()) };
+    let dir = dir.join("backups");
+    std::fs::create_dir_all(&dir)?;
+    let stem = path.file_stem().map_or("network".into(), |s| s.to_string_lossy().into_owned());
+    let to = dir.join(format!("{stem}-v{version}-{:013}.db", crate::util::now_ms()));
+    db.execute("VACUUM INTO ?1", [to.to_string_lossy()])
+        .map_err(|e| anyhow::anyhow!("backing up {} before migrating it: {e}", path.display()))?;
+    #[cfg(unix)]
+    crate::util::chmod(&to, 0o600)?;
+    // By when they were made (the name ends with it), oldest first.
+    let prefix = format!("{stem}-v");
+    let mut copies: Vec<(String, PathBuf)> = std::fs::read_dir(&dir)?
+        .flatten()
+        .filter_map(|e| {
+            let name = e.file_name().into_string().ok()?;
+            let when = name.strip_prefix(&prefix)?.strip_suffix(".db")?.rsplit_once('-')?.1.to_string();
+            Some((when, e.path()))
+        })
+        .collect();
+    copies.sort();
+    for (_, old) in copies.iter().take(copies.len().saturating_sub(telos::BACKUPS_KEPT)) {
+        std::fs::remove_file(old)?;
+    }
+    Ok(())
 }
 
 fn remembered(r: &Row) -> rusqlite::Result<Remembered> {
@@ -1120,5 +1459,254 @@ mod tests {
         assert!(store.held().unwrap().is_empty());
         assert_eq!(store.files_kept().unwrap(), 0);
         std::fs::remove_dir_all(&inbox).unwrap();
+    }
+}
+
+/// Receipts, expiry, retention, restart and backups (TelosWeaver, Spec v1.5 §12.2, PH0-RN-05).
+#[cfg(test)]
+mod receipt_tests {
+    use super::*;
+    use crate::util;
+
+    fn store() -> Store {
+        Store::open(Path::new(":memory:"), temp_dir("inbox")).unwrap()
+    }
+
+    fn temp_dir(what: &str) -> PathBuf {
+        std::env::temp_dir().join(format!("telos-rn-{what}-{}", ulid::Ulid::generate()))
+    }
+
+    fn msg(id: &str) -> Message {
+        Message {
+            id: id.into(),
+            from: "sven/claude".into(),
+            from_agent: None,
+            from_repo: None,
+            to: "lars/api".into(),
+            via: None,
+            reply_to: None,
+            body: format!("body of {id}"),
+            wake: true,
+            notify: false,
+            sent_at: util::now_ms(),
+            approval: None,
+            files: Vec::new(),
+        }
+    }
+
+    fn status(store: &Store, id: &str) -> (Status, Option<String>) {
+        let r = store.receipt(id).unwrap().unwrap();
+        (r.status, r.reason)
+    }
+
+    fn unread(store: &Store) -> Vec<String> {
+        store.unread("lars/api").unwrap().into_iter().map(|m| m.id).collect()
+    }
+
+    #[test]
+    fn a_message_is_delivered_only_once_its_recipient_was_shown_it() {
+        let store = store();
+        let now = util::now_ms();
+        for id in ["SHOWN", "HANDED"] {
+            assert!(store.insert_for(&mut msg(id), false, Some("claude-code:a"), None).unwrap());
+            assert_eq!(status(&store, id), (Status::Accepted, None));
+        }
+        // Into the agent's own inbox: not shown here again, and not said to be read.
+        store.mark_handed_off(&["HANDED".into()], now, "the Claude Code session's inbox").unwrap();
+        assert_eq!(unread(&store), ["SHOWN"]);
+        let r = store.receipt("HANDED").unwrap().unwrap();
+        assert_eq!((r.status, r.handed_off), (Status::Queued, true));
+        assert!(r.reason.unwrap().contains("not yet confirmed read"));
+        // Its hook printed it, or its inbox gave it: delivered.
+        store.mark_read(&["SHOWN".into()], now).unwrap();
+        assert_eq!(status(&store, "SHOWN"), (Status::Delivered, Some("shown to the recipient".into())));
+        // Its transcript shows the handed-off one: delivered too.
+        store.confirm(&["HANDED".into()], now, "seen in the recipient session's transcript").unwrap();
+        assert_eq!(status(&store, "HANDED").0, Status::Delivered);
+        // A final receipt never changes.
+        store.set_status(&["SHOWN".into()], Status::Queued, Some("again"), now).unwrap();
+        store.mark_handed_off(&["SHOWN".into()], now, "anywhere").unwrap();
+        assert_eq!(status(&store, "SHOWN"), (Status::Delivered, Some("shown to the recipient".into())));
+        // The same message again is no second one (a retried delivery).
+        assert!(!store.insert_for(&mut msg("SHOWN"), false, None, None).unwrap());
+        assert_eq!(store.receipt("SHOWN").unwrap().unwrap().recipient_key.as_deref(), Some("claude-code:a"));
+    }
+
+    #[test]
+    fn mail_past_its_expiry_is_expired_and_no_longer_shown() {
+        let store = store();
+        let now = util::now_ms();
+        store.insert_for(&mut msg("LATE"), false, None, Some(now - 1)).unwrap();
+        store.insert_for(&mut msg("HANDED"), false, None, Some(now + 60_000)).unwrap();
+        store.insert_for(&mut msg("HELD"), true, None, Some(now - 1)).unwrap();
+        store.insert_for(&mut msg("FRESH"), false, None, None).unwrap();
+        store.mark_handed_off(&["HANDED".into()], now, "the Codex session's queue").unwrap();
+        assert_eq!(unread(&store), ["FRESH"]);
+        assert_eq!(status(&store, "LATE"), (Status::Expired, Some("expired before its recipient read it".into())));
+        assert_eq!(status(&store, "HELD").0, Status::Expired);
+        // Not offered for approval once expired.
+        assert!(store.held().unwrap().is_empty());
+        // One handed off whose reading was never seen expires as such.
+        store.expire(now + 60_000).unwrap();
+        let expired = (Status::Expired, Some("expired before its reading was confirmed".into()));
+        assert_eq!(status(&store, "HANDED"), expired);
+        // An expired one isn't delivered after all.
+        store.mark_read(&["LATE".into()], now).unwrap();
+        assert_eq!(status(&store, "LATE").0, Status::Expired);
+        // Without an expiry it lasts a week from when it was stored, whatever the sender's clock says.
+        let r = store.receipt("FRESH").unwrap().unwrap();
+        assert!((r.expires_at - now - telos::MAX_TTL_MS).abs() < 60_000);
+    }
+
+    #[test]
+    fn a_final_receipt_goes_with_its_message_and_key_a_week_on() {
+        let store = store();
+        let now = util::now_ms();
+        let e = Enveloped { sender_fp: "core", key: "k1", digest: "d1", envelope: "{}" };
+        store.insert_envelope(&msg("ENV"), "cli:review", now + 60_000, &e, now).unwrap();
+        store.insert_for(&mut msg("OPEN"), false, None, None).unwrap();
+        store.mark_read(&["ENV".into()], now).unwrap();
+        store.sweep_receipts(now + telos::RETAIN_MS - 60_000).unwrap();
+        assert!(store.has("ENV").unwrap() && store.envelope_by_key("core", "k1").unwrap().is_some());
+        // A week after it became final: message, receipt and idempotency key all go. An open one stays (until it
+        // expires, then a week on from that).
+        store.sweep_receipts(now + telos::RETAIN_MS + 60_000).unwrap();
+        assert!(!store.has("ENV").unwrap());
+        assert!(store.receipt("ENV").unwrap().is_none());
+        assert!(store.envelope_by_key("core", "k1").unwrap().is_none());
+        assert!(store.has("OPEN").unwrap());
+    }
+
+    #[test]
+    fn an_envelope_is_stored_whole_or_not_at_all() {
+        let store = store();
+        let now = util::now_ms();
+        let e = Enveloped { sender_fp: "core", key: "k1", digest: "d1", envelope: "{}" };
+        assert!(store.insert_envelope(&msg("ENV1"), "cli:review", now + 60_000, &e, now).unwrap());
+        // Its key is taken: nothing of the second is kept.
+        assert!(store.insert_envelope(&msg("ENV2"), "cli:review", now + 60_000, &e, now).is_err());
+        assert!(!store.has("ENV2").unwrap() && store.receipt("ENV2").unwrap().is_none());
+        assert_eq!(store.envelope_by_key("core", "k1").unwrap(), Some(("ENV1".into(), "d1".into())));
+        // Its id is taken: not stored again.
+        let e2 = Enveloped { key: "k2", ..e };
+        assert!(!store.insert_envelope(&msg("ENV1"), "cli:review", now + 60_000, &e2, now).unwrap());
+        assert!(store.envelope_by_key("core", "k2").unwrap().is_none());
+    }
+
+    #[test]
+    fn after_a_restart_mail_handed_off_is_unconfirmed_and_the_rest_waits_as_it_was() {
+        let dir = temp_dir("db");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("network.db");
+        let now = util::now_ms();
+        {
+            let store = Store::open(&path, dir.join("inbox")).unwrap();
+            for id in ["HANDED", "WAITING", "READ"] {
+                store.insert_for(&mut msg(id), false, Some("claude-code:a"), None).unwrap();
+            }
+            store.mark_handed_off(&["HANDED".into()], now, "the Claude Code session's inbox").unwrap();
+            store.mark_read(&["READ".into()], now).unwrap();
+        }
+        let store = Store::open(&path, dir.join("inbox")).unwrap();
+        let r = store.receipt("HANDED").unwrap().unwrap();
+        assert_eq!(r.status, Status::Queued);
+        let why = r.reason.unwrap();
+        assert!(why.contains("before the engine restarted: whether its recipient read it is not confirmed"), "{why}");
+        // Never said to be delivered, and not shown twice either.
+        assert_eq!(unread(&store), ["WAITING"]);
+        assert_eq!(status(&store, "WAITING").0, Status::Accepted);
+        assert_eq!(status(&store, "READ").0, Status::Delivered);
+        // A fresh database is no migration: nothing was backed up.
+        assert!(!dir.join("backups").exists());
+        drop(store);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_migration_backs_the_database_up_first_and_keeps_the_last_three_copies() {
+        let dir = temp_dir("db");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("network.db");
+        // A database as the engine wrote it before receipts: one message read, one unread, one held.
+        let old = |n: usize| {
+            let db = Connection::open(&path).unwrap();
+            db.execute_batch("DROP TABLE IF EXISTS receipts; DROP TABLE IF EXISTS envelopes; PRAGMA user_version = 0;")
+                .unwrap();
+            db.execute("DELETE FROM messages", []).unwrap();
+            for (id, read, held) in [("R", Some(5), 0), ("U", None, 0), ("H", None, 1)] {
+                db.execute(
+                    &format!(
+                        "INSERT INTO messages ({MESSAGE_COLS}, held, read_at) VALUES
+                         (?1, 'sven/claude', NULL, NULL, 'lars/api', NULL, NULL, 'hi {n}', 1, 1, NULL, NULL, ?2, ?3)"
+                    ),
+                    params![id, held, read],
+                )
+                .unwrap();
+            }
+        };
+        drop(Store::open(&path, dir.join("inbox")).unwrap());
+        for n in 0..4 {
+            old(n);
+            std::thread::sleep(std::time::Duration::from_millis(2));
+            let store = Store::open(&path, dir.join("inbox")).unwrap();
+            // Read before receipts: whether it was shown wasn't kept, so it isn't said to be delivered.
+            let r = store.receipt("R").unwrap().unwrap();
+            assert_eq!((r.status, r.handed_off), (Status::Queued, true));
+            assert!(r.reason.unwrap().contains("whether its recipient read it is not known"));
+            assert_eq!(status(&store, "U"), (Status::Queued, None));
+            assert_eq!(status(&store, "H"), (Status::Held, None));
+            assert_eq!(unread(&store), ["U"]);
+        }
+        let mut copies: Vec<String> = std::fs::read_dir(dir.join("backups"))
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().into_string().unwrap())
+            .collect();
+        copies.sort();
+        assert_eq!(copies.len(), telos::BACKUPS_KEPT);
+        assert!(copies.iter().all(|c| c.starts_with("network-v0-") && c.ends_with(".db")));
+        // A copy is the database as it was: the last one's message, no receipts yet.
+        let copy = Connection::open(dir.join("backups").join(&copies[2])).unwrap();
+        let body: String = copy.query_row("SELECT body FROM messages WHERE id = 'U'", [], |r| r.get(0)).unwrap();
+        assert_eq!(body, "hi 3");
+        assert_eq!(copy.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0)).unwrap(), 0);
+        drop(copy);
+        // A database from a newer engine isn't opened (nor migrated down).
+        Connection::open(&path).unwrap().execute_batch("PRAGMA user_version = 99;").unwrap();
+        let e = Store::open(&path, dir.join("inbox")).err().unwrap().to_string();
+        assert!(e.contains("from a newer telos-rn"), "{e}");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn mail_a_session_never_read_fails_when_it_is_forgotten_and_settled_mail_says_how() {
+        let store = store();
+        let r = Remembered {
+            name: "api".into(),
+            key: "codex:1".into(),
+            agent: "codex".into(),
+            cwd: "/work/api".into(),
+            repo: None,
+            branch: None,
+            doing: None,
+            tier: Tier::Pull,
+            last_seen: 0,
+            attached: true,
+            mailbox: false,
+        };
+        store.upsert_session(&r, "lars").unwrap();
+        store.insert_for(&mut msg("GONE"), false, Some("codex:1"), None).unwrap();
+        store.forget_sessions(1, &HashSet::new(), "lars").unwrap();
+        assert!(!store.has("GONE").unwrap());
+        let failed = (Status::Failed, Some("its recipient session was forgotten before reading it".into()));
+        assert_eq!(status(&store, "GONE"), failed);
+        // Held for the person: dropped is refused, approved waits for its session again.
+        store.insert_for(&mut msg("DROP"), true, None, None).unwrap();
+        store.insert_for(&mut msg("KEEP"), true, None, None).unwrap();
+        store.settle_held(&["DROP".into()], false).unwrap();
+        store.settle_held(&["KEEP".into()], true).unwrap();
+        assert_eq!(status(&store, "DROP"), (Status::Refused, Some("dropped by the person".into())));
+        assert_eq!(status(&store, "KEEP"), (Status::Queued, Some("approved by the person".into())));
+        assert_eq!(unread(&store), ["KEEP"]);
     }
 }

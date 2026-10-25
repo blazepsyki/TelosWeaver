@@ -3,6 +3,11 @@
 //! Delivery is at least once: a message stays unread until whoever showed it to the agent confirms
 //! with `Delivered`. Messages handed to a push channel or a hook are "in flight" meanwhile, so the inbox and hooks
 //! don't show them a second time.
+//!
+//! TelosWeaver (Spec v1.5 §12.2, PH0-RN-05): each message's receipt follows it. It is `delivered` once the recipient
+//! was shown it (its inbox gave it, its hook printed it) or its transcript shows it; handed to the agent's own inbox or
+//! queue it stays `queued`. Mail for a session by key goes to no other session that takes its address: it is held
+//! for the person instead.
 
 use super::{Daemon, Inner, directory::Target, log};
 use crate::{
@@ -13,17 +18,19 @@ use crate::{
     render,
     store::{Counted, Remembered},
     team::Signed,
+    telos::{self, Status},
     util,
 };
 use anyhow::{Result, anyhow, bail};
 use iroh::EndpointId;
 use std::{
+    path::PathBuf,
     sync::Arc,
     time::{Duration, Instant},
 };
 use ulid::Ulid;
 
-const MAX_BODY: usize = 64 * 1024;
+pub(super) const MAX_BODY: usize = 64 * 1024;
 /// Messages per minute accepted from one teammate's machine; more are deferred, not dropped.
 const RATE_LIMIT: usize = 60;
 /// Agent-to-agent messages allowed between one pair in `LOOP_WINDOW`; past that it is probably a loop.
@@ -33,13 +40,18 @@ const LOOP_WINDOW: Duration = Duration::from_secs(600);
 const IN_FLIGHT_TTL: Duration = Duration::from_secs(90);
 /// How often a Codex session's rollout is checked while mail waits for a hook of its turn.
 const CODEX_TURN_POLL: Duration = Duration::from_secs(2);
+/// How often, and for how long, a session's transcript is read for mail handed to its agent's own inbox or queue.
+const CONFIRM_POLL: Duration = Duration::from_secs(2);
+const CONFIRM_FOR: Duration = Duration::from_secs(15 * 60);
+/// A transcript is read from this far before where the last read ended, so an id split across two reads is found.
+const CONFIRM_OVERLAP: u64 = 128;
 
 /// How a session on this machine gets a message into its conversation.
 enum Channel {
     /// Its `telos-rn mcp` posts into Claude Code's session socket.
     ClaudeSocket(u64),
     /// The agent's own CLI: `codex queue --thread <id> --message`.
-    Command(&'static str, Vec<String>),
+    Command(PathBuf, Vec<String>),
     /// Straight into a Claude Code session's messaging socket (one without Reason Network's tools: it replies with the CLI).
     ClaudeDirect(agent::ClaudeSocket),
     /// Hooks inject it at the next tool call or turn end.
@@ -49,11 +61,30 @@ enum Channel {
 }
 
 impl Inner {
-    /// Unread mail for an address that isn't already on its way through a push or a hook.
-    pub(super) fn pending(&mut self, address: &str) -> Result<Vec<Message>> {
+    /// Unread mail for the session `key` at `address` that isn't already on its way through a push or a hook. Mail at
+    /// the address for another session (one that had the address before) is held for the person instead (§12.2: a
+    /// rebound address sends nothing on by itself); mail for the address with no session named yet becomes this one's.
+    pub(super) fn pending(&mut self, key: &str, address: &str) -> Result<Vec<Message>> {
         self.in_flight.retain(|_, at| at.elapsed() < IN_FLIGHT_TTL);
-        let msgs = self.store.unread(address)?;
-        Ok(msgs.into_iter().filter(|m| !self.in_flight.contains_key(&m.id)).collect())
+        let now = util::now_ms();
+        let mut mine = Vec::new();
+        for m in self.store.unread(address)? {
+            match self.store.receipt(&m.id)?.and_then(|r| r.recipient_key) {
+                Some(k) if k != key => {
+                    let why = format!(
+                        "identity_mismatch: {address} is another session's now; held until the person approves it"
+                    );
+                    log(&format!("mail for {address} held: the session it was for has gone and another took its name"));
+                    self.store.hold(&m.id, &why, now)?;
+                }
+                Some(_) => mine.push(m),
+                None => {
+                    self.store.bind_recipient(&m.id, key)?;
+                    mine.push(m);
+                }
+            }
+        }
+        Ok(mine.into_iter().filter(|m| !self.in_flight.contains_key(&m.id)).collect())
     }
 
     /// Records an agent-to-agent message; false if this pair has been talking suspiciously much.
@@ -86,12 +117,15 @@ const LOOP_NOTE: &str = "refused: these two agents have exchanged a lot of messa
 
 /// The note for mail queued for a session that is offline. Its unread mail is deleted at the first cleanup a day after
 /// it was last seen, unless it is one of the person's own mailboxes (`terminal`, `listen --as`), which are kept. Until then it waits for
-/// that session, when the session can come back to its name (see [`Remembered::kept`]); else a new session that takes
-/// the name gets it.
-fn offline_note(r: Option<&Remembered>, now: i64) -> String {
-    const NAME: &str = "a new session that takes this name gets the mail";
+/// that session, when the session can come back to its name (see [`Remembered::kept`]); a new session that takes the
+/// name gets it only once its person approves (TelosWeaver, §12.2). Mail for a name no session had gets the first to
+/// take it.
+pub(super) fn offline_note(r: Option<&Remembered>, now: i64) -> String {
+    const NAME: &str = "if a new session takes this name, the mail is held for its person to approve";
     const BACK: &str = "it reaches that session when it's back";
-    let Some(r) = r else { return format!("queued: the session is offline; {NAME}") };
+    let Some(r) = r else {
+        return "queued: the session is offline; the first session to take this name gets it".into();
+    };
     let who = if r.kept() { BACK } else { NAME };
     let seen = util::ago(r.last_seen, now);
     let forgotten = r.last_seen.saturating_add(super::sessions::FORGET_MS);
@@ -221,18 +255,23 @@ impl Daemon {
                 // The receipt names it as its answer will show here: a teammate's terminal with its machine.
                 let shown = t.shown_address();
                 let here = !matches!(t, Target::Remote { .. });
+                let expires = now.saturating_add(telos::MAX_TTL_MS);
                 let (state, mut note): (String, String) = match t {
                     _ if !matches!(t, Target::Remote { .. }) && !g.loop_ok(&msg.from, &msg.to) => {
+                        g.store.record(&msg.id, Status::Refused, Some(LOOP_NOTE), now, expires)?;
                         ("refused".into(), LOOP_NOTE.into())
                     }
                     Target::Session { key: Some(key), .. } => {
-                        g.store.insert(&mut msg, false)?;
+                        g.store.insert_for(&mut msg, false, Some(&key), None)?;
                         self.deliver(&mut g, &key, vec![msg.clone()], wake)
                     }
                     Target::Session { key: None, address } => {
                         let name = address.split_once('/').map_or("", |(_, n)| n);
-                        let note = offline_note(g.store.session_by_name(name)?.as_ref(), now);
-                        g.store.insert(&mut msg, false)?;
+                        let remembered = g.store.session_by_name(name)?;
+                        let note = offline_note(remembered.as_ref(), now);
+                        // For the session that had the name when it was sent.
+                        g.store.insert_for(&mut msg, false, remembered.as_ref().map(|r| r.key.as_str()), None)?;
+                        g.store.set_status(std::slice::from_ref(&msg.id), Status::Queued, Some(&note), now)?;
                         ("queued".into(), note)
                     }
                     Target::Remote { machine, .. } => {
@@ -240,9 +279,15 @@ impl Daemon {
                         match for_machine(msg.clone(), takes_files) {
                             Ok(m) => {
                                 msg = m;
-                                self.queue_remote(&mut g, t, &msg, &mut remote_jobs, res.recipients.len())?
+                                let (state, note) =
+                                    self.queue_remote(&mut g, t, &msg, &mut remote_jobs, res.recipients.len())?;
+                                g.store.record(&msg.id, Status::Queued, Some(&note), now, expires)?;
+                                (state, note)
                             }
-                            Err(note) => ("refused".into(), note),
+                            Err(note) => {
+                                g.store.record(&msg.id, Status::Refused, Some(&note), now, expires)?;
+                                ("refused".into(), note)
+                            }
                         }
                     }
                 };
@@ -264,10 +309,10 @@ impl Daemon {
                 let net = net.clone();
                 async move {
                     let verdict = net.send_msg(&machine, &msg).await;
-                    (i, name, verdict)
+                    (i, msg.id, name, verdict)
                 }
             });
-            for (i, name, verdict) in futures_join(sends).await {
+            for (i, id, name, verdict) in futures_join(sends).await {
                 let r = &mut res.recipients[i];
                 match verdict {
                     // A pop-up only (see above): nothing kept to retry.
@@ -275,6 +320,18 @@ impl Daemon {
                         r.note = format!("{name} is busy")
                     }
                     Some((state, note)) => {
+                        // The other machine says how far it got; whether its session read it isn't sent back.
+                        let status = match state.as_str() {
+                            "refused" => Some(Status::Refused),
+                            "held" => Some(Status::Held),
+                            "notified" | "not notified" => None,
+                            _ => Some(Status::Queued),
+                        };
+                        if let Some(status) = status {
+                            let why = format!("{name} said: {note}");
+                            let g = self.inner.lock().unwrap();
+                            let _ = g.store.set_status(&[id], status, Some(&why), util::now_ms());
+                        }
                         r.state = state;
                         r.note = note;
                     }
@@ -302,7 +359,8 @@ impl Daemon {
         Ok(("queued".into(), note))
     }
 
-    /// Hands messages to a session here by the fastest way it has. Returns the state and a note for the sender.
+    /// Hands messages to a session here by the fastest way it has. Returns the state and a note for the sender. Their
+    /// receipts say the same (`queued` until the session was shown them, whatever the state).
     pub(super) fn deliver(
         self: &Arc<Self>,
         g: &mut Inner,
@@ -310,6 +368,21 @@ impl Daemon {
         msgs: Vec<Message>,
         wake: bool,
     ) -> (String, String) {
+        let ids: Vec<String> = msgs.iter().map(|m| m.id.clone()).collect();
+        let (state, note) = self.deliver_by(g, key, msgs, wake);
+        // The sender's note says where it went; the receipt only what is known.
+        let why = match state.as_str() {
+            "pushed" => "being handed to the session's own inbox or queue",
+            "delivered" => "the session is waiting for messages: it gets it when that wait returns",
+            _ => note.as_str(),
+        };
+        if let Err(e) = g.store.set_status(&ids, Status::Queued, Some(why), util::now_ms()) {
+            log(&format!("keeping receipts: {e:#}"));
+        }
+        (state, note)
+    }
+
+    fn deliver_by(self: &Arc<Self>, g: &mut Inner, key: &str, msgs: Vec<Message>, wake: bool) -> (String, String) {
         if !g.live.contains_key(key) {
             let note = offline_note(g.store.session_by_key(key).ok().flatten().as_ref(), util::now_ms());
             return ("queued".into(), note);
@@ -323,10 +396,11 @@ impl Daemon {
         if g.polling.get(key).is_some_and(|n| *n > 0) {
             return ("delivered".into(), "delivered: the session was waiting for messages".into());
         }
-        let has = |bin: &str| !l.push_failed && agent::find_bin(bin).is_some();
+        // Only the Codex CLI Core passed (DEC-06), never one on `PATH`.
+        let codex_bin = agent::codex_bin().filter(|_| !l.push_failed);
         // A Codex turn is running (and `codex queue` is there for when it ends).
         let codex_turn = l.reg.agent == "codex"
-            && has("codex")
+            && codex_bin.is_some()
             && l.transcript.as_deref().and_then(codex::turn_running) == Some(true);
         let channel = match (l.reg.tier, l.conn, &l.reg.agent_session_id) {
             // Its MCP server knows its inbox; else (it may not yet) the daemon posts into the one Claude Code lists.
@@ -335,9 +409,10 @@ impl Daemon {
             }
             // In a turn, its next PostToolUse (or Stop) shows it; `codex queue` would hold it until the turn ends.
             (Tier::Push, _, Some(_)) if codex_turn => Channel::Hook,
-            (Tier::Push, _, Some(id)) if l.reg.agent == "codex" && has("codex") => {
-                Channel::Command("codex", vec!["queue".into(), "--thread".into(), id.clone(), "--message".into()])
-            }
+            (Tier::Push, _, Some(id)) if l.reg.agent == "codex" && codex_bin.is_some() => Channel::Command(
+                codex_bin.expect("checked"),
+                vec!["queue".into(), "--thread".into(), id.clone(), "--message".into()],
+            ),
             (Tier::Push, _, id) if l.reg.agent == agent::CLAUDE_CODE && !l.push_failed => {
                 match claude::socket_for(id.as_deref(), l.reg.pid) {
                     Some(sock) => Channel::ClaudeDirect(sock),
@@ -382,7 +457,7 @@ impl Daemon {
                     "pushed".into(),
                     format!(
                         "queued into the {} session: it runs after the current turn, or now if idle",
-                        agent::label(bin)
+                        agent::label("codex")
                     ),
                 )
             }
@@ -432,7 +507,7 @@ impl Daemon {
                 }
                 // What a hook showed and hasn't confirmed yet is left to it until its confirmation is overdue.
                 let waiting: Vec<Message> =
-                    g.pending(&address).unwrap_or_default().into_iter().filter(|m| m.wake).collect();
+                    g.pending(&key, &address).unwrap_or_default().into_iter().filter(|m| m.wake).collect();
                 if waiting.is_empty() {
                     continue;
                 }
@@ -454,9 +529,63 @@ impl Daemon {
             l.mcp_push = false;
             l.reg.tier = l.reg.tier.max(Tier::Pull);
         }
+        let note = "its MCP server knew no inbox to push into: waiting for the session to check its inbox";
+        let _ = g.store.set_status(ids, Status::Queued, Some(note), util::now_ms());
         log(&format!("pushing to {}: its MCP server knows no inbox; left unread", self.logged(&g, key)));
         drop(g);
         self.arrived.notify_waiters();
+    }
+
+    /// The session's MCP server put these messages into its agent's own inbox (Claude Code's): not shown again, and
+    /// delivered once its transcript shows them.
+    pub(super) fn handed_off(self: &Arc<Self>, key: &str, ids: &[String]) -> Result<()> {
+        let mut g = self.inner.lock().unwrap();
+        g.store.mark_handed_off(ids, util::now_ms(), "the Claude Code session's inbox")?;
+        for id in ids {
+            g.in_flight.remove(id);
+        }
+        self.await_reading(&mut g, key, ids);
+        Ok(())
+    }
+
+    /// Reads `key`'s transcript (which its hooks name) for `ids`, handed to its agent's own inbox or queue, for up to
+    /// `CONFIRM_FOR`: each it shows is delivered. One watch per session; without a transcript they stay `queued`.
+    fn await_reading(self: &Arc<Self>, g: &mut Inner, key: &str, ids: &[String]) {
+        g.unconfirmed.entry(key.to_string()).or_default().extend(ids.iter().cloned());
+        if !g.confirming.insert(key.to_string()) {
+            return;
+        }
+        let (this, key) = (self.clone(), key.to_string());
+        tokio::spawn(async move {
+            let until = Instant::now() + CONFIRM_FOR;
+            let mut read_to = 0u64;
+            loop {
+                tokio::time::sleep(CONFIRM_POLL).await;
+                let transcript = {
+                    let mut g = this.inner.lock().unwrap();
+                    let left = g.unconfirmed.get(&key).is_some_and(|ids| !ids.is_empty());
+                    if !left || !g.live.contains_key(&key) || Instant::now() > until {
+                        g.unconfirmed.remove(&key);
+                        g.confirming.remove(&key);
+                        return;
+                    }
+                    g.live.get(&key).and_then(|l| l.transcript.clone())
+                };
+                let Some(path) = transcript else { continue };
+                let from = read_to.saturating_sub(CONFIRM_OVERLAP);
+                let Ok(Ok((end, text))) = tokio::task::spawn_blocking(move || read_from(&path, from)).await else {
+                    continue;
+                };
+                read_to = end;
+                let mut g = this.inner.lock().unwrap();
+                let Some(waiting) = g.unconfirmed.get_mut(&key) else { continue };
+                let seen: Vec<String> = waiting.iter().filter(|id| text.contains(id.as_str())).cloned().collect();
+                waiting.retain(|id| !seen.contains(id));
+                if !seen.is_empty() {
+                    let _ = g.store.confirm(&seen, util::now_ms(), "seen in the recipient session's transcript");
+                }
+            }
+        });
     }
 
     /// Posts into a Claude Code session's messaging socket; read once it took it.
@@ -470,7 +599,8 @@ impl Daemon {
             }
             match res {
                 Ok(Ok(())) => {
-                    let _ = g.store.mark_read(&ids, util::now_ms());
+                    let _ = g.store.mark_handed_off(&ids, util::now_ms(), "the Claude Code session's inbox");
+                    this.await_reading(&mut g, &key, &ids);
                 }
                 Ok(Err(e)) => log(&format!("delivering to Claude session {}: {e}", this.logged(&g, &key))),
                 Err(e) => log(&format!("delivering to Claude session {}: {e}", this.logged(&g, &key))),
@@ -493,19 +623,19 @@ impl Daemon {
         }
         let mut g = self.inner.lock().unwrap();
         let Some(address) = g.live.get(key).map(|l| self.addr(&l.name)) else { return };
-        let waiting: Vec<Message> = g.pending(&address).unwrap_or_default().into_iter().filter(|m| m.wake).collect();
+        let waiting: Vec<Message> =
+            g.pending(key, &address).unwrap_or_default().into_iter().filter(|m| m.wake).collect();
         if !waiting.is_empty() {
             self.deliver(&mut g, key, waiting, true);
         }
     }
 
-    /// Hands `text` to the agent's own CLI (`args` end with its message flag).
-    fn send_with(self: &Arc<Self>, bin: &'static str, args: Vec<String>, key: String, ids: Vec<String>, text: String) {
+    /// Hands `text` to the agent's own CLI `bin` (`args` end with its message flag).
+    fn send_with(self: &Arc<Self>, bin: PathBuf, args: Vec<String>, key: String, ids: Vec<String>, text: String) {
         let this = self.clone();
         tokio::spawn(async move {
             let run = async {
-                let path = agent::find_bin(bin).ok_or_else(|| format!("{bin} not found"))?;
-                let out = tokio::process::Command::new(path)
+                let out = tokio::process::Command::new(&bin)
                     .args(&args)
                     .arg(&text)
                     .stdin(std::process::Stdio::null())
@@ -525,10 +655,13 @@ impl Daemon {
             }
             match res {
                 Ok(()) => {
-                    let _ = g.store.mark_read(&ids, util::now_ms());
+                    let _ = g.store.mark_handed_off(&ids, util::now_ms(), "the Codex session's queue (codex queue)");
+                    this.await_reading(&mut g, &key, &ids);
                 }
                 Err(why) => {
-                    log(&format!("{bin} delivery to {} failed ({why}); falling back to hooks", this.logged(&g, &key)));
+                    log(&format!("codex delivery to {} failed ({why}); falling back to hooks", this.logged(&g, &key)));
+                    let note = "codex queue failed: waiting for the session's next hook";
+                    let _ = g.store.set_status(&ids, Status::Queued, Some(note), util::now_ms());
                     // Hooks (or check_inbox) show it instead; tell senders the truth from now on.
                     if let Some(l) = g.live.get_mut(&key) {
                         l.push_failed = true;
@@ -621,8 +754,10 @@ impl Daemon {
             let held = policy == Policy::Hold;
             // Held for a session whose name is kept, it is that session's: it goes when the session does.
             let kept = held && g.store.session_by_name(name)?.is_some_and(|r| r.kept());
-            // Counted once, when it is new here; a held one once approved.
-            if g.store.insert(&mut msg, held)? && !held {
+            // Counted once, when it is new here; a held one once approved. For the session that has the name now (a
+            // live one), or had it when the sender saw it.
+            let for_key = key.clone().or_else(|| remembered.as_ref().map(|r| r.key.clone()));
+            if g.store.insert_for(&mut msg, held, for_key.as_deref(), None)? && !held {
                 let _ = g.store.count(util::now_ms(), Counted::Received);
             }
             let (state, note) = match key {
@@ -678,7 +813,7 @@ impl Daemon {
                 if g.live.get(&key).is_none_or(|l| l.stop_gen != stop) {
                     return Ok(Inbox { messages: Vec::new(), text: String::new() });
                 }
-                let messages = g.pending(&address)?;
+                let messages = g.pending(&key, &address)?;
                 if !messages.is_empty() && !peek {
                     let ids: Vec<String> = messages.iter().map(|m| m.id.clone()).collect();
                     g.store.mark_read(&ids, util::now_ms())?;
@@ -704,7 +839,10 @@ impl Daemon {
         if release {
             for m in &msgs {
                 let name = m.to.split_once('/').map_or("", |(_, n)| n);
-                if let Some(key) = g.live.iter().find(|(_, l)| l.name == name).map(|(k, _)| k.clone()) {
+                let key = g.live.iter().find(|(_, l)| l.name == name).map(|(k, _)| k.clone());
+                // Approved for whoever has the name: the session that has it now, else the next to take it.
+                g.store.rebind_recipient(&m.id, key.as_deref())?;
+                if let Some(key) = key {
                     self.deliver(&mut g, &key, vec![m.clone()], m.wake);
                 }
             }
@@ -792,6 +930,23 @@ fn for_machine(mut msg: Message, takes_files: bool) -> Result<Message, String> {
         }
         None => Err(format!("{} needs to update Reason Network to receive files", msg.to)),
     }
+}
+
+/// What a transcript holds from byte `from` on (lossily as text), and where it ends. Only a regular file: opening a
+/// pipe a hook named would wait for a writer.
+fn read_from(path: &std::path::Path, from: u64) -> std::io::Result<(u64, String)> {
+    use std::io::{Read, Seek, SeekFrom};
+    if !std::fs::metadata(path)?.is_file() {
+        return Err(std::io::Error::other("not a file"));
+    }
+    let mut f = std::fs::File::open(path)?;
+    let len = f.metadata()?.len();
+    // A transcript only grows: a shorter one was rewritten, and is read again.
+    let from = if from > len { 0 } else { from };
+    f.seek(SeekFrom::Start(from))?;
+    let mut buf = Vec::with_capacity((len - from) as usize);
+    f.take(len - from).read_to_end(&mut buf)?;
+    Ok((from + buf.len() as u64, String::from_utf8_lossy(&buf).into_owned()))
 }
 
 /// Runs futures concurrently and collects their outputs in order.
@@ -887,13 +1042,17 @@ mod tests {
         );
         // The person's own mailboxes are never forgotten.
         assert_eq!(offline_note(Some(&seen("cli:t", "cli")), 30 * HOUR), format!("queued: last seen 1d ago; {back}"));
-        // A session known only by its process can't come back: a new one in its place gets the mail.
-        let name = "a new session that takes this name gets the mail";
+        // A session known only by its process can't come back: a new one in its place gets the mail only once its
+        // person approves (TelosWeaver: a rebound address sends nothing on by itself, §12.2).
+        let name = "if a new session takes this name, the mail is held for its person to approve";
         assert_eq!(
             offline_note(Some(&seen("proc:7", "zed")), 3 * HOUR),
             format!("queued: last seen 3h ago; unread mail is dropped after about 21h if it stays offline; {name}")
         );
-        assert_eq!(offline_note(None, 0), format!("queued: the session is offline; {name}"));
+        assert_eq!(
+            offline_note(None, 0),
+            "queued: the session is offline; the first session to take this name gets it"
+        );
     }
 
     #[tokio::test]
@@ -1039,7 +1198,8 @@ mod tests {
             assert!(g.in_flight.is_empty());
             assert!(!g.live[&key].mcp_push);
         }
-        let unread: Vec<String> = d.inner.lock().unwrap().pending(&to).unwrap().into_iter().map(|m| m.body).collect();
+        let unread: Vec<String> =
+            d.inner.lock().unwrap().pending(&key, &to).unwrap().into_iter().map(|m| m.body).collect();
         assert_eq!(unread, ["one", "two"]);
         let r = send("three").await.unwrap();
         assert_eq!((r.recipients[0].state.as_str(), rx.try_recv().is_err()), ("queued", true));

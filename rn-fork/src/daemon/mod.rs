@@ -4,6 +4,7 @@
 
 mod ask;
 mod directory;
+mod envelope;
 mod mail;
 mod notify;
 mod sessions;
@@ -96,6 +97,8 @@ fn log(msg: &str) {
 pub struct Daemon {
     person: String,
     machine: String,
+    /// This host as TelosWeaver names it, in endpoints (`telos::host_id`).
+    host_id: String,
     cfg: Config,
     key: SecretKey,
     inner: Mutex<Inner>,
@@ -138,6 +141,10 @@ struct Inner {
     off: HashMap<String, (bool, i64)>,
     /// Codex sessions whose wake mail waits for a hook of the turn they are in, watched for that turn ending first.
     codex_watch: HashSet<String>,
+    /// Per session, mail handed to its agent's own inbox or queue whose reading its transcript hasn't shown yet.
+    unconfirmed: HashMap<String, Vec<String>>,
+    /// Sessions whose transcript is being read for that.
+    confirming: HashSet<String>,
 }
 
 /// A session running on this machine.
@@ -195,6 +202,7 @@ impl Daemon {
         Ok(Daemon {
             person: member.as_ref().map_or_else(|| cfg.person(), |m| m.person.clone()),
             machine: member.map_or_else(util::hostname, |m| m.machine),
+            host_id: crate::telos::host_id(),
             key,
             cfg,
             inner: Mutex::new(Inner {
@@ -210,6 +218,8 @@ impl Daemon {
                 quota: Default::default(),
                 off: HashMap::new(),
                 codex_watch: HashSet::new(),
+                unconfirmed: HashMap::new(),
+                confirming: HashSet::new(),
             }),
             arrived: Notify::new(),
             git_cache: Mutex::new(HashMap::new()),
@@ -312,6 +322,10 @@ impl Daemon {
                 self.stop_waiting(&key).await;
                 Value::Null
             }
+            Request::Delivered { key, ids, handed_off: true } => {
+                self.handed_off(&key, &ids)?;
+                Value::Null
+            }
             Request::Delivered { ids, .. } => {
                 let mut g = self.inner.lock().unwrap();
                 g.store.mark_read(&ids, util::now_ms())?;
@@ -320,6 +334,9 @@ impl Daemon {
                 }
                 Value::Null
             }
+            Request::Receipt { message_id } => json!(self.receipt(&message_id)?),
+            Request::Endpoint { address } => json!(self.endpoint_of(&address)?),
+            Request::SendEnvelope { envelope } => json!(self.send_envelope(*envelope)?),
             Request::PushFailed { key, ids } => {
                 self.push_failed(&key, &ids);
                 Value::Null

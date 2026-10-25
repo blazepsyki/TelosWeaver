@@ -153,6 +153,18 @@ fn executable(p: &Path) -> bool {
     p.is_file()
 }
 
+/// The Codex CLI messages are queued into Codex sessions with (`codex queue`): only the one TelosWeaver's Core found in
+/// the Codex VS Code extension and passed as `TELOS_RN_CODEX_BIN` (DEC-06), never one on `PATH`. Without it, Codex
+/// sessions get messages through their hooks only.
+pub fn codex_bin() -> Option<PathBuf> {
+    codex_bin_from(crate::paths::env_var_os("CODEX_BIN"))
+}
+
+fn codex_bin_from(given: Option<std::ffi::OsString>) -> Option<PathBuf> {
+    let p = PathBuf::from(given?);
+    executable(&p).then_some(p)
+}
+
 /// The agent process behind a hook: our parent, skipping the shell some agents run hooks through.
 pub fn hook_agent_pid() -> Option<u32> {
     let mut pid = util::parent_pid();
@@ -362,6 +374,23 @@ fn open_inbox(path: &Path) -> std::io::Result<std::fs::File> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_codex_cli_is_only_the_one_core_passed_never_one_on_the_path() {
+        // Nothing passed: none, whatever `PATH` holds (`find_bin` isn't asked).
+        assert_eq!(codex_bin_from(None), None);
+        let dir = std::env::temp_dir().join(format!("telos-rn-codex-{}", ulid::Ulid::generate()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let bin = dir.join(if cfg!(windows) { "codex.exe" } else { "codex" });
+        assert_eq!(codex_bin_from(Some(bin.clone().into())), None);
+        std::fs::write(&bin, "").unwrap();
+        #[cfg(unix)]
+        crate::util::chmod(&bin, 0o755).unwrap();
+        assert_eq!(codex_bin_from(Some(bin.clone().into())), Some(bin));
+        // A folder isn't one.
+        assert_eq!(codex_bin_from(Some(dir.clone().into())), None);
+        let _ = std::fs::remove_dir_all(dir);
+    }
 
     #[test]
     fn client_names() {

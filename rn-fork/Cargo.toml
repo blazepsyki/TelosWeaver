@@ -28,6 +28,8 @@ rusqlite = { version = "0.40", default-features = false, features = ["bundled", 
 schemars = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
+# TelosWeaver contract types (Spec §12, PH0-RN-05): the receipt and endpoint semantics come from here, not a copy.
+telos-schema = { path = "../crates/schema" }
 tokio = { version = "1", features = ["full"] }
 toml = "1.1"
 toml_edit = "0.25"

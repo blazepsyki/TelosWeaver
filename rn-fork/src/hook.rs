@@ -21,7 +21,11 @@ pub async fn run(agent_name: &str, event: &str, session: Option<String>, state: 
     let mut stdout = std::io::stdout();
     if writeln!(stdout, "{out}").and_then(|_| stdout.flush()).is_ok() && !ids.is_empty() {
         // Printed, so the agent has it: now it counts as read.
-        let _ = tokio::time::timeout(Duration::from_secs(3), link.call::<Value>(Request::Delivered { key, ids })).await;
+        let _ = tokio::time::timeout(
+            Duration::from_secs(3),
+            link.call::<Value>(Request::Delivered { key, ids, handed_off: false }),
+        )
+        .await;
     }
 }
 

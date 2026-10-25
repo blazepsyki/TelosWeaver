@@ -235,7 +235,10 @@ impl ReasonNetworkMcp {
             // Marked read only now, right before the agent gets them.
             Ok(i) => {
                 let ids = i.messages.iter().map(|m| m.id.clone()).collect();
-                self.link.call::<Value>(Request::Delivered { key: key.clone(), ids }).await.map(|_| i.text)
+                self.link
+                    .call::<Value>(Request::Delivered { key: key.clone(), ids, handed_off: false })
+                    .await
+                    .map(|_| i.text)
             }
             Err(e) => Err(e),
         };
@@ -383,8 +386,9 @@ impl ReasonNetworkMcp {
             return;
         };
         match tokio::task::spawn_blocking(move || agent::post_to_claude(&sock, &text)).await {
+            // In Claude Code's inbox, not yet shown to the model: the daemon confirms it from the transcript.
             Ok(Ok(())) => {
-                let _ = self.link.call::<Value>(Request::Delivered { key, ids }).await;
+                let _ = self.link.call::<Value>(Request::Delivered { key, ids, handed_off: true }).await;
             }
             Ok(Err(e)) => eprintln!("telos-rn: delivering to Claude Code: {e}"),
             Err(e) => eprintln!("telos-rn: delivering to Claude Code: {e}"),

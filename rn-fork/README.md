@@ -14,6 +14,9 @@ What this fork changes, and why, is in [TELOSWEAVER.md](TELOSWEAVER.md). In shor
 - `init` and `join` don't wire agents in; only `telos-rn setup` does (`--dry-run` shows what it would change,
   `--remove` undoes it).
 - A machine in no team starts no network and fetches nothing.
+- Messages have TelosWeaver receipts: `delivered` means the recipient was shown the message, not that it was handed
+  to the agent's inbox; mail for a session never goes to another that takes its address without the person's approval.
+- `codex queue` runs only the Codex CLI given as `TELOS_RN_CODEX_BIN`, never one on `PATH`.
 
 ## Use
 
