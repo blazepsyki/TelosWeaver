@@ -30,6 +30,24 @@ pub fn host_id() -> String {
         .unwrap_or_else(util::hostname)
 }
 
+/// A request refused as the TelosWeaver contract says (`code`), not just failed: the RPC answers with it.
+#[derive(Debug)]
+pub struct RnRefusal(pub telos_schema::rn::RnError);
+
+impl std::fmt::Display for RnRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.message)
+    }
+}
+
+impl std::error::Error for RnRefusal {}
+
+impl RnRefusal {
+    pub fn error(code: telos_schema::rn::RnErrorCode, message: impl Into<String>) -> anyhow::Error {
+        RnRefusal(telos_schema::rn::RnError { code, message: message.into(), details: None }).into()
+    }
+}
+
 /// The provider id TelosWeaver uses for one of this engine's agents (Core's ids where it has one).
 pub fn provider(agent: &str) -> &str {
     match agent {

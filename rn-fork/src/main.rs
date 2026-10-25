@@ -13,9 +13,11 @@ mod ipc;
 mod mcp;
 mod net;
 mod paths;
+mod private;
 mod proto;
 mod relays;
 mod render;
+mod rpccli;
 mod setup;
 mod signed;
 mod store;
@@ -225,10 +227,15 @@ enum Cmd {
     /// The menu bar icon (macOS; `daemon --service` starts it)
     #[command(hide = true)]
     Tray,
-    /// Sends one local API request (`{"op": ...}`, as JSON) and prints the reply: for testing TelosWeaver requests
-    /// (`send_envelope`, `receipt`, `endpoint`) until the versioned local RPC (PH0-RN-06)
+    /// One TelosWeaver RPC request (`health.get`, `sessions.discover`, `messages.send`, …) with JSON params, printing
+    /// the reply; `--listen <secs>` then prints its notifications (PH0-RN-06, for testing)
     #[command(hide = true)]
-    Call { request: String },
+    Rpc {
+        method: String,
+        params: Option<String>,
+        #[arg(long, default_value_t = 0)]
+        listen: u64,
+    },
 }
 
 #[tokio::main]
@@ -568,11 +575,7 @@ async fn cli(cmd: Cmd) -> Result<()> {
                 println!("The daemon is not running.");
             }
         }
-        Cmd::Call { request } => {
-            let req: Request = serde_json::from_str(&request)?;
-            let v: serde_json::Value = link.call(req).await?;
-            println!("{}", serde_json::to_string_pretty(&v)?);
-        }
+        Cmd::Rpc { method, params, listen } => rpccli::run(&method, params.as_deref(), listen).await?,
         Cmd::Daemon { .. } | Cmd::Mcp | Cmd::Hook { .. } | Cmd::Tray => {
             unreachable!("handled in main")
         }

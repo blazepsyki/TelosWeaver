@@ -68,6 +68,8 @@ pub struct Remembered {
     pub attached: bool,
     /// One of the person's own mailboxes (`terminal`, a `listen --as` name): kept for good, never forgotten.
     pub mailbox: bool,
+    /// It came in through telos-rn's MCP server or its own hooks (see `Live::wired`). Once, for as long as remembered.
+    pub wired: bool,
 }
 
 impl Remembered {
@@ -118,7 +120,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     tier TEXT NOT NULL,
     last_seen INTEGER NOT NULL,
     attached INTEGER NOT NULL DEFAULT 1,
-    mailbox INTEGER NOT NULL DEFAULT 0
+    mailbox INTEGER NOT NULL DEFAULT 0,
+    wired INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS sessions_key ON sessions (key);
 CREATE TABLE IF NOT EXISTS counts (
@@ -148,7 +151,8 @@ CREATE TABLE IF NOT EXISTS envelopes (
 ";
 
 /// The schema this build writes (`PRAGMA user_version`). 1: receipts and envelopes (TelosWeaver, PH0-RN-05).
-const SCHEMA_VERSION: i64 = 1;
+/// 2: whether a remembered session came in through telos-rn (`sessions.wired`, PH0-RN-06).
+const SCHEMA_VERSION: i64 = 2;
 /// A message is shown while no final receipt says otherwise.
 const OPEN: &str = "NOT EXISTS (SELECT 1 FROM receipts WHERE message_id = messages.id
      AND status IN ('delivered', 'refused', 'expired', 'failed'))";
@@ -178,7 +182,7 @@ pub struct Enveloped<'a> {
 
 const MESSAGE_COLS: &str =
     "id, sender, sender_agent, sender_repo, recipient, via, reply_to, body, wake, sent_at, approval, files";
-const SESSION_COLS: &str = "name, key, agent, cwd, repo, branch, doing, tier, last_seen, attached, mailbox";
+const SESSION_COLS: &str = "name, key, agent, cwd, repo, branch, doing, tier, last_seen, attached, mailbox, wired";
 
 impl Store {
     /// The database at `path`, and the folder `inbox` that messages' files are saved in.
@@ -240,6 +244,10 @@ impl Store {
                 [],
             )?;
             tx.commit()?;
+        }
+        // Schema 2 (TelosWeaver): sessions remembered from before aren't known to have come in through telos-rn.
+        if !db.prepare("SELECT 1 FROM pragma_table_info('sessions') WHERE name = 'wired'")?.exists([])? {
+            db.execute("ALTER TABLE sessions ADD COLUMN wired INTEGER NOT NULL DEFAULT 0", [])?;
         }
         // Schema 1 (TelosWeaver): a receipt for each message from before. Whether one marked read was shown to its
         // agent or only handed to its inbox wasn't kept, so it isn't said to be delivered.
@@ -724,6 +732,28 @@ impl Store {
         Ok(())
     }
 
+    /// Receipts of messages `sender_fp` sent as envelopes that changed at or after `since` (ms), oldest change first.
+    pub fn receipts_by_sender(&self, sender_fp: &str, since: i64) -> Result<Vec<Receipt>> {
+        self.expire(crate::util::now_ms())?;
+        let mut st = self.db.prepare_cached(
+            "SELECT r.message_id, r.status, r.reason, r.updated_at, r.expires_at, r.recipient_key, r.handed_off
+             FROM receipts r JOIN envelopes e ON e.message_id = r.message_id
+             WHERE e.sender_fp = ?1 AND r.updated_at >= ?2 ORDER BY r.updated_at, r.message_id",
+        )?;
+        let rows = st.query_map(params![sender_fp, since], |r| {
+            Ok(Receipt {
+                message_id: r.get(0)?,
+                status: telos::parse_status(&r.get::<_, String>(1)?).unwrap_or(Status::Failed),
+                reason: r.get(2)?,
+                updated_at: r.get(3)?,
+                expires_at: r.get(4)?,
+                recipient_key: r.get(5)?,
+                handed_off: r.get(6)?,
+            })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
     /// The message an envelope's sender sent under `key`, and the digest of that envelope.
     pub fn envelope_by_key(&self, sender_fp: &str, key: &str) -> Result<Option<(String, String)>> {
         Ok(self
@@ -796,11 +826,12 @@ impl Store {
         // Once reachable, a session stays so for as long as it is remembered.
         self.db.execute(
             &format!(
-                "INSERT INTO sessions ({SESSION_COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                "INSERT INTO sessions ({SESSION_COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
                  ON CONFLICT (name) DO UPDATE SET key = ?2, agent = ?3, cwd = ?4, repo = ?5, branch = ?6,
                  doing = ?7, tier = ?8, last_seen = ?9,
                  attached = CASE WHEN key = ?2 THEN max(attached, ?10) ELSE ?10 END,
-                 mailbox = CASE WHEN key = ?2 THEN max(mailbox, ?11) ELSE ?11 END"
+                 mailbox = CASE WHEN key = ?2 THEN max(mailbox, ?11) ELSE ?11 END,
+                 wired = CASE WHEN key = ?2 THEN max(wired, ?12) ELSE ?12 END"
             ),
             params![
                 s.name,
@@ -813,7 +844,8 @@ impl Store {
                 s.tier.as_str(),
                 s.last_seen,
                 s.attached,
-                s.mailbox
+                s.mailbox,
+                s.wired
             ],
         )?;
         Ok(())
@@ -958,6 +990,7 @@ fn remembered(r: &Row) -> rusqlite::Result<Remembered> {
         last_seen: r.get(8)?,
         attached: r.get(9)?,
         mailbox: r.get(10)?,
+        wired: r.get(11)?,
     })
 }
 
@@ -1093,6 +1126,7 @@ mod tests {
         let day = 86_400_000;
         let session = |name: &str, agent: &str, last_seen: i64| Remembered {
             mailbox: agent == "cli",
+            wired: false,
             name: name.into(),
             key: name.into(),
             agent: agent.into(),
@@ -1158,6 +1192,7 @@ mod tests {
             last_seen,
             attached: true,
             mailbox: false,
+            wired: false,
         };
         // As older engines could: the same session under two names, mail waiting under each.
         for (name, seen) in [("api-claude", 1), ("api-claude-2", 2)] {
@@ -1166,7 +1201,7 @@ mod tests {
                 .db
                 .execute(
                     &format!(
-                        "INSERT INTO sessions ({SESSION_COLS}) VALUES (?1, ?2, ?3, ?4, NULL, NULL, NULL, ?5, ?6, 1, 0)"
+                        "INSERT INTO sessions ({SESSION_COLS}) VALUES (?1, ?2, ?3, ?4, NULL, NULL, NULL, ?5, ?6, 1, 0, 0)"
                     ),
                     params![s.name, s.key, s.agent, s.cwd, s.tier.as_str(), s.last_seen],
                 )
@@ -1423,6 +1458,7 @@ mod tests {
             last_seen: 0,
             attached: true,
             mailbox: false,
+            wired: false,
         };
         store.upsert_session(&session("gone"), "lars").unwrap();
         store.upsert_session(&session("api"), "lars").unwrap();
@@ -1679,6 +1715,46 @@ mod receipt_tests {
     }
 
     #[test]
+    fn schema_1_gains_whether_a_session_came_in_through_telos_rn_after_a_backup() {
+        let dir = temp_dir("db");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("network.db");
+        let row = |wired: bool| Remembered {
+            name: "api".into(),
+            key: "codex:1".into(),
+            agent: "codex".into(),
+            cwd: "/work/api".into(),
+            repo: None,
+            branch: None,
+            doing: None,
+            tier: Tier::Pull,
+            last_seen: 1,
+            attached: true,
+            mailbox: false,
+            wired,
+        };
+        Store::open(&path, dir.join("inbox")).unwrap().upsert_session(&row(true), "lars").unwrap();
+        // As schema 1 left it: no `wired`.
+        let db = Connection::open(&path).unwrap();
+        db.execute_batch("ALTER TABLE sessions DROP COLUMN wired; PRAGMA user_version = 1;").unwrap();
+        drop(db);
+        let store = Store::open(&path, dir.join("inbox")).unwrap();
+        // Not known to have come in through telos-rn; once it does, for as long as remembered.
+        assert!(!store.session_by_key("codex:1").unwrap().unwrap().wired);
+        store.upsert_session(&row(true), "lars").unwrap();
+        store.upsert_session(&row(false), "lars").unwrap();
+        assert!(store.session_by_key("codex:1").unwrap().unwrap().wired);
+        let copies: Vec<String> = std::fs::read_dir(dir.join("backups"))
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().into_string().unwrap())
+            .collect();
+        assert!(copies.len() == 1 && copies[0].starts_with("network-v1-"), "{copies:?}");
+        drop(store);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
     fn mail_a_session_never_read_fails_when_it_is_forgotten_and_settled_mail_says_how() {
         let store = store();
         let r = Remembered {
@@ -1693,6 +1769,7 @@ mod receipt_tests {
             last_seen: 0,
             attached: true,
             mailbox: false,
+            wired: false,
         };
         store.upsert_session(&r, "lars").unwrap();
         store.insert_for(&mut msg("GONE"), false, Some("codex:1"), None).unwrap();

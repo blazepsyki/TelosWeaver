@@ -63,10 +63,15 @@ checks so removed paths are not reintroduced. Full upstream merges and the upstr
 | 22 | PH0-RN-05 | TelosWeaver endpoints (host id from `TELOS_RN_HOST_ID`, provider, the agent's session id; fingerprint without the folder) and envelopes: `send_envelope`, `receipt`, `endpoint` local requests with idempotency keys per sender, contract error codes in replies (`code`), hidden `telos-rn call` for testing. The contract types come from `telos-schema` (path dependency; `Cargo.lock` gains it only) | `src/telos.rs` (new), `src/daemon/envelope.rs` (new), `src/proto.rs`, `src/main.rs`, `Cargo.toml`, `Cargo.lock` |
 | 23 | PH0-RN-05 | Before a schema migration the database is copied to `backups/` (last 3 kept); a database from a newer schema is refused | `src/store.rs` |
 | 24 | PH0-RN-05 | `codex queue` uses only the Codex CLI Core passes as `TELOS_RN_CODEX_BIN` (DEC-06), never one on `PATH`; without it Codex sessions get mail through hooks only | `src/agent.rs`, `src/daemon/mail.rs`, `src/daemon/sessions.rs` |
+| 25 | PH0-RN-06 | TelosWeaver RPC (`telos_schema::rn`, contract `7497877`) on its own pipe / socket beside the agents' one: `rpc.json` (where), `rpc-token` (new at each start, this user's only), `rn.hello` first; `health.get` (fork commit from `build.rs`), `providers.list`, `sessions.discover` / `resolve` / `capabilities`, `messages.send` / `status` / `subscribe` (events: receipts of Core's messages, messages to Core's mailbox, presence; last 1,024 in memory, `resync_required` for a cursor they don't reach or from before a restart), `providers.agy.probe` refused; 1 MiB frames. Hidden `telos-rn rpc` for testing replaces RN-05's `call` and its interim local-API requests | `src/daemon/rpc.rs` (new), `src/rpccli.rs` (new), `build.rs` (new), `src/daemon/mod.rs`, `src/daemon/envelope.rs`, `src/proto.rs`, `src/main.rs`, `src/paths.rs`, `src/telos.rs`, `src/store.rs` |
+| 26 | PH0-RN-06 | Both pipes and the RPC token are this OS user's only: a protected DACL with the current user's SID (as TelosWeaver Core's Local API), remote clients rejected; Unix sockets and the token 0600. Without it the RPC doesn't open | `src/private.rs` (new), `src/ipc.rs`, `Cargo.toml` (`windows-sys` features) |
+| 27 | PH0-RN-06 | Sessions remember whether they came in through telos-rn (its MCP server or their own hooks), not only Claude Code's registry (`sessions.wired`, schema 2). Core sends only to those; others are listed unattached and refused | `src/daemon/mod.rs`, `src/daemon/sessions.rs`, `src/daemon/envelope.rs`, `src/store.rs` |
+| 28 | PH0-RN-06 | Core's mailbox `telosweaver` (provider `telosweaver`), kept for good: the sender of Core's envelopes, where agents' replies land; not announced to teammates | `src/daemon/mod.rs`, `src/daemon/rpc.rs`, `src/daemon/directory.rs` |
+| 29 | PH0-RN-06 | Fixed a Unix-only build break from PH0-RN-04: `ipc.rs` still called the removed `paths::link_legacy_socket` | `src/ipc.rs` |
 
 Upstream `tests/e2e/*.py` still use upstream names and removed features; whether to port or drop each is decided in
 PH0-RN-08.
 
 Planned (see `docs/phase-0/evidence/PH0-RN/RN-00/README.md` in the TelosWeaver repository):
 
-- PH0-RN-06: versioned local RPC (Spec §12.1), Windows pipe DACL.
+- PH0-RN-07: `telos-rn-client` and Core starting the engine (`TELOS_RN_HOME`, `TELOS_RN_HOST_ID`, `TELOS_RN_CODEX_BIN`).
