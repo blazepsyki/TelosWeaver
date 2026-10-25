@@ -446,7 +446,7 @@ async fn env_discovery_finds_extension_cli() {
     };
     let rule = telos_adapters::claude::cli_rule(platform).unwrap();
     let request = DiscoveryRequest {
-        host_id: "windows-local".into(),
+        host_id: std::env::var("TELOS_HOST_ID").unwrap_or_else(|_| "windows-local".into()),
         target_platform: platform.into(),
         explicit_path: None,
         extension_roots: roots,
