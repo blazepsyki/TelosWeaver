@@ -435,6 +435,28 @@ Windows 병합 전 확인: Workspace 166개 통과·36개 제외, fmt 통과(엄
 
 **시험 세션 정리:** 서버 Claude 시험 폴더 `-home-gth1919-TelosWeaver-wt-g3-remote--telos-weaver-remote-e2-workspace`(세션 `041d7056-a6f6-4a3b-b2a0-af4ac5166fa6`, `64afc33c-471b-4c17-98ca-a05c6cd73b7f`, `a2cd2986-655d-4146-b179-172bfc40c566`) 삭제, 시험 Core 정지, Worktree 삭제. Codex·Antigravity 세션은 만들지 않았습니다.
 
+### 9.6 발견 2 처리: Claude가 이어간 Turn으로 Run이 `Interrupted` (2026-10-26, CLAUDE)
+
+**원인(재현).** Windows에서 확장 동봉 CLI 2.1.310을 Adapter와 같은 인자(`-p`, Stream JSON, `haiku`, `acceptEdits`, `Bash(sleep:*)`·`Write`)로 직접 실행하고 "Bash `run_in_background`로 `sleep 20` → 'started' → 끝나면 `done.txt` 작성"을 요청했습니다. CLI는 첫 `result`(`started`)를 낸 뒤 끝나지 않고 `task_updated`·`task_notification`·`background_tasks_changed`를 거쳐 **같은 프로세스에서 두 번째 `system/init`·도구 호출·`result`(`done`)**를 출력했습니다. Adapter가 이 출력을 `turn_finished` 뒤의 이벤트로 넘기자 Core가 Run 이벤트 규칙 위반으로 Run을 끊었습니다(§9.5 첫 시도: 이벤트 9개, `Interrupted`, 결과 파일·프로세스 없음).
+
+**처리(`ph0/claude-bg`).**
+
+| 변경 | 내용 |
+|---|---|
+| `crates/adapters/src/claude.rs` | 자식 환경에 `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`. 같은 요청을 이 값으로 직접 실행하면 CLI가 `run_in_background`를 입력 검증 오류로 거부하고, 모델이 포그라운드로 처리해 `result` 하나로 끝남(재현 확인) |
+| `crates/adapters/src/claude/run.rs` | 방어: `turn_finished` 뒤 새 Turn 출력(이벤트로 바뀌는 줄 또는 해석 실패)이 오면 기록하지 않고 프로세스를 끝냄. 요청 종료(종료 코드 없음)로 보고되어 Core는 성공으로 판정하지 않음 |
+| `crates/adapters/tests/claude_adapter.rs` | 기본 환경에 이 변수가 있는지 검사. 새 Mock 시험 `continuation_after_result_is_not_recorded_and_stops_the_process`(fixture `background-continuation.jsonl`: 첫 `result` 뒤 작업 알림·두 번째 `init`·응답·`result`). 방어 코드를 빼면 이 시험이 시간 초과로 실패함을 확인 |
+| `crates/adapters/tests/claude_environment.rs` | 실환경 `env_background_tasks_do_not_continue_the_run`: 같은 요청에서 Turn 1개, 종료 코드 0·자연 종료(이어 갔다면 요청 종료로 실패) |
+| Spec v1.5.6 §7.3 | Provider가 스스로 이어가는 Turn의 처리 규칙 |
+
+| 검사 | Windows | `psyki-nas` |
+|---|---|---|
+| `claude_adapter`(Mock) | 16개 통과 | — |
+| `env_background_tasks_do_not_continue_the_run`(실환경) | 통과, 17.7초(세션 `294704fe-fc8d-4835-b051-b940baea29a2`) | 통과, 21.6초(세션 `8fb8d993-4512-4f96-a0da-069c562619be`) |
+| Workspace·엄격 Clippy·fmt | 167개 통과·37개 제외, 통과 | — |
+
+**시험 세션 정리:** 직접 재현 세션 `87ec58ea-5124-43d1-ac6a-6bc1ea8b09fb`·`e63a155f-3751-4df2-8917-e883e506aef5`(Windows 임시 폴더 `/tmp/telos-bg-*`), 실환경 시험 세션 2개(각 Host의 `telos-claude-env/background`). 병합 시 Claude 시험 폴더를 지웁니다.
+
 ## 10. DEC-08 VS Code 확장 목록 표시 통합 (2026-10-26)
 
 | 항목 | 값 |

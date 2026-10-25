@@ -10,6 +10,8 @@
 //! - Resume(`--resume`)·Fork(`--resume` + `--fork-session`) 인자는 구성하지만 Capability는 실험 전까지 `unverified`입니다.
 //! - 세션을 VS Code 확장 대화 목록에 표시할지는 [`VsCodeListing`]으로 정하고 `CLAUDE_CODE_ENTRYPOINT`로
 //!   지정합니다 (§7.6, DEC-08). 기본은 표시입니다.
+//! - 백그라운드 작업(`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`)을 끕니다. 켜져 있으면 CLI가 첫 `result` 뒤에도
+//!   끝나지 않고 작업 완료를 받아 같은 프로세스에서 Turn을 이어가므로 Run당 Turn 하나 규칙과 맞지 않습니다.
 
 use std::{
     collections::HashMap,
@@ -47,6 +49,9 @@ const VSCODE_LISTING_VERIFIED_VERSIONS: &[&str] = &["2.1.310"];
 
 /// 세션 출처를 정하는 환경 변수. 확장은 `sdk-cli`·`sdk-ts`·`sdk-py` 세션을 기본 목록에서 뺍니다 (§7.6).
 const ENTRYPOINT_ENV: &str = "CLAUDE_CODE_ENTRYPOINT";
+
+/// Managed Run에서 백그라운드 작업(Bash `run_in_background`, 자동 백그라운드 전환)을 끕니다.
+const DISABLE_BACKGROUND_ENV: &str = "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS";
 
 /// Core가 Claude 세션 안에서 시작되었을 때 상속될 수 있는 부모 세션 변수입니다.
 /// Managed Run은 별도 세션이므로 자식 환경에서 제거합니다 (§7.6).
@@ -285,8 +290,12 @@ fn command_args(
 }
 
 /// 자식 환경: 세션 출처를 명시하고 부모 세션 변수를 제거합니다. 상속된 값에 기대지 않습니다 (§7.6).
+/// 백그라운드 작업도 끕니다. 첫 Turn 뒤에 CLI가 스스로 Turn을 이어가지 않게 합니다.
 fn command_env(listing: VsCodeListing) -> Vec<(OsString, Option<OsString>)> {
-    let mut env = vec![(ENTRYPOINT_ENV.into(), Some(listing.entrypoint().into()))];
+    let mut env = vec![
+        (ENTRYPOINT_ENV.into(), Some(listing.entrypoint().into())),
+        (DISABLE_BACKGROUND_ENV.into(), Some("1".into())),
+    ];
     env.extend(PARENT_SESSION_ENV.iter().map(|key| ((*key).into(), None)));
     env
 }

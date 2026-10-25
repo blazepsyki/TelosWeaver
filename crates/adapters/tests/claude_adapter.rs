@@ -17,9 +17,9 @@ use telos_adapters::{
     runtime::*,
 };
 use telos_schema::{
-    ApprovalAnswer, CapabilityState, FailureKind, ProviderEvent, ProviderEventKind,
-    ProviderEventPayload, RunContext, RunInspection, RunTermination, SessionMode, TaskSpec,
-    ToolOutcome, TurnStatus, check_run_events, fixtures,
+    ApprovalAnswer, CapabilityState, FailureKind, ProcessTermination, ProviderEvent,
+    ProviderEventKind, ProviderEventPayload, RunContext, RunInspection, RunTermination,
+    SessionMode, TaskSpec, ToolOutcome, TurnStatus, check_run_events, fixtures,
 };
 use tokio::sync::watch;
 
@@ -539,6 +539,10 @@ async fn runs_are_listed_in_the_extension_by_default() {
         "CLAUDE_CODE_ENTRYPOINT".into(),
         Some("claude-vscode".into())
     )));
+    assert!(env.contains(&(
+        "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS".into(),
+        Some("1".into())
+    )));
     for parent in [
         "CLAUDECODE",
         "CLAUDE_CODE_SESSION_ID",
@@ -553,6 +557,33 @@ async fn runs_are_listed_in_the_extension_by_default() {
             "{parent} must be removed"
         );
     }
+}
+
+/// §7.2: `result` 뒤에 CLI가 스스로 Turn을 이어가면(백그라운드 작업 완료) 그 출력은 Run에 넣지 않고
+/// 프로세스를 끝냅니다. 요청 종료로 보고되어 성공으로 판정되지 않습니다.
+#[tokio::test]
+async fn continuation_after_result_is_not_recorded_and_stops_the_process() {
+    let mut script = Script::fixture("background-continuation.jsonl", 0);
+    script.hang = true;
+    let adapter = adapter(FakeRuntime::new(script));
+    let events = run_to_end(&adapter).await;
+
+    assert_eq!(check_run_events(&events), Ok(RunTermination::ProcessExited));
+    let p = payloads(&events);
+    let turns = p
+        .iter()
+        .filter(|item| matches!(item, ProviderEventPayload::TurnFinished(_)))
+        .count();
+    assert_eq!(turns, 1, "only the first turn belongs to the run");
+    assert!(matches!(
+        &p[p.len() - 2],
+        ProviderEventPayload::TurnFinished(t) if t.status == TurnStatus::Completed
+    ));
+    let ProviderEventPayload::ProcessExited(exit) = p.last().unwrap() else {
+        panic!()
+    };
+    assert_eq!(exit.termination, ProcessTermination::TerminatedOnRequest);
+    assert_eq!(exit.exit_code, None);
 }
 
 /// §7.6: 숨김 설정은 상속된 값과 관계없이 자동화 출처(`sdk-cli`)로 기록합니다. Resume·Fork에도 같은 값입니다.
