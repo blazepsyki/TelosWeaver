@@ -245,5 +245,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-25 23:25 | `claude-opus-5.5/session-be1c1774` | PH0-CLAUDE DEC-08 확장 화면 확인 통과(사용자 확인) 기록(`21da117`). 화면 확인 세션 2개(`46ad660e…`·`d1e69e03…`)는 사용자 Workspace 폴더에 있어 병합 시 파일 단위로 정리 | `21da117` |
 | 2026-10-26 00:04 | `claude-opus-5.5/session-be1c1774` | 사용자 지시: PH0-INTEGRATION DEC-08 마무리. CLAUDE·CODEX·AGY Branch 검토·병합(`c63b150`→`f1f9285`), I1~I4·REQ-021(Spec v1.5.4) 완료, 세 작업 `integrated`, Worktree·Branch 4개 정리, 시험 세션 정리(Agy 요약 인덱스 행은 미수정). [통합 기록](evidence/PH0-INTEGRATION/README.md) §10 | `f1f9285` |
 | 2026-10-26 00:57 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시: CLI 위임 세션을 VS Code에서 보이게 하는 문서 절차(`--thread-source cli`)를 시험했으나 화면에 표시되지 않아 Codex에 보완 요청(REQ-022, `9d3d63c`). 시험 Thread 2개(`01a1733d…`, `01a173c5…`) Archive. REQ-022 행·PH0-CODEX 행 추가 | `9d3d63c` |
+| 2026-10-26 01:03 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시: Antigravity CLI 세션의 VS Code 표시 확인. 문서 C3 방식(`--app_data_dir=antigravity --project TelosWeaver --add-dir`)으로 시험 → 확장 목록에 `Developer: Reload Window` 뒤 표시(사용자 확인). `--disable-slash-commands`와 함께 쓴 `--mode plan`이 무시된다는 경고 발견. 세션 표시 문서 C1·C3에 기록(`d51762c`). 시험 대화 `dae9515c…` 정리 | `d51762c` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
