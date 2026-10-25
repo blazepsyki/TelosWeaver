@@ -1,4 +1,4 @@
-//! Google Antigravity (`agy`) Managed 실행 (Spec §7.1, §7.2, §7.3, §7.4, §7.5, PH0-AGY).
+//! Google Antigravity (`agy`) Managed 실행 (Spec §7.1, §7.2, §7.3, §7.4, §7.5, §7.6, DEC-08, AGENT-05, PH0-AGY).
 //!
 //! - 실행 파일은 `google.google-antigravity` 확장이 `~/.gemini/bin/agy[.exe]`에 내려받아 관리하는 CLI입니다 ([`cli_rule`], DEC-06, §7.5).
 //! - Run 하나는 `agy [--app_data_dir=antigravity] --input-format stream-json --output-format stream-json`
@@ -11,7 +11,9 @@
 //!   권한 확인이 필요한 동작은 소프트 거부되고 `result.denied_actions` 및 `step_update` 오류로 보고됩니다.
 //!   따라서 `answer_approval`은 `UnsupportedCapability`를 반환하고, 시작 전 모드·권한 설정을 사용합니다.
 //! - Headless Print 모드에서 `/fork`는 거부되고 `--fork` 플래그도 없으므로 `SessionMode::NativeFork`는 `UnsupportedCapability`로 거부합니다 (`FORK-POC-01`).
-//! - 데이터 디렉터리는 `AGY-DATA-01~05` 검증에 따라 기본값으로 확장 공유 디렉터리(`--app_data_dir=antigravity`)를 쓰며,
+//! - 데이터 디렉터리와 VS Code 확장 대화 목록 표시(`vscode_listing`, §7.5·§7.6·`DEC-08`·`AGENT-05`)는 `AGY-DATA-01~05` 검증에 따라
+//!   기본값 `listed`(`AgyVsCodeListing::Listed` ↔ `AgyDataDirMode::ExtensionShared`, `--app_data_dir=antigravity`)를 쓰며,
+//!   `hidden`(`AgyVsCodeListing::Hidden` ↔ `AgyDataDirMode::DefaultCli`)은 플래그를 생략해 `~/.gemini/antigravity-cli`에 분리 기록합니다.
 //!   옵션 수용 여부를 확인해 거부되면 조용히 다른 디렉터리로 바꾸지 않고 `unsupported`로 보고합니다 (§7.5).
 
 use std::{
@@ -75,19 +77,65 @@ pub fn cli_rule(target_platform: &str) -> Option<ProviderCliRule> {
     })
 }
 
-/// Antigravity Managed 실행의 데이터 디렉터리 선택 규칙입니다 (§7.5, AGY-DATA-01~05).
+/// VS Code 확장(`google.google-antigravity`)의 대화 목록 표시 모드입니다 (Spec §7.6, DEC-08, AGENT-05).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AgyVsCodeListing {
+    /// `--app_data_dir=antigravity`(`AgyDataDirMode::ExtensionShared`)를 전달해
+    /// 확장과 같은 `~/.gemini/antigravity/conversation_summaries.db` 및 `conversations/<id>.db`에 기록합니다 (기본값).
+    #[default]
+    Listed,
+    /// `--app_data_dir` 옵션을 생략(`AgyDataDirMode::DefaultCli`)해
+    /// CLI 기본 디렉터리(`~/.gemini/antigravity-cli`)에 분리 기록합니다.
+    /// 다만 확장 허브가 실행 중이면 확장 인덱스에 `source = CORTEX_TRAJECTORY_SOURCE_CLI`로 나타나는 것이 관찰되었고
+    /// 확장 UI에서 실제로 숨겨지는지는 미검증입니다(`docs/phase-0/evidence/PH0-AGY/VSCODE_LISTING.md` §3.3).
+    /// 디렉터리별로 로그인 상태가 분리되므로(`AGY-DATA-02`) 별도 CLI 로그인이 없으면 인증 실패로 보고합니다.
+    Hidden,
+}
+
+impl AgyVsCodeListing {
+    /// 표시 모드에 대응하는 데이터 디렉터리 모드를 돌려줍니다 (§7.5, §7.6).
+    pub const fn data_dir_mode(self) -> AgyDataDirMode {
+        match self {
+            Self::Listed => AgyDataDirMode::ExtensionShared,
+            Self::Hidden => AgyDataDirMode::DefaultCli,
+        }
+    }
+}
+
+impl From<AgyVsCodeListing> for AgyDataDirMode {
+    fn from(listing: AgyVsCodeListing) -> Self {
+        listing.data_dir_mode()
+    }
+}
+
+/// Antigravity Managed 실행의 데이터 디렉터리 선택 규칙입니다 (§7.5, §7.6, AGY-DATA-01~05, DEC-08).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum AgyDataDirMode {
-    /// `--app_data_dir=antigravity`를 전달해 VS Code 확장의 로그인 상태(`~/.gemini/antigravity`)를 공유합니다.
+    /// `--app_data_dir=antigravity`를 전달해 VS Code 확장의 로그인 상태와 대화 목록(`~/.gemini/antigravity`)을 공유합니다 ([`AgyVsCodeListing::Listed`]).
     #[default]
     ExtensionShared,
-    /// `--app_data_dir` 옵션을 생략해 CLI 기본 디렉터리(`~/.gemini/antigravity-cli`)를 씁니다.
+    /// `--app_data_dir` 옵션을 생략해 CLI 기본 디렉터리(`~/.gemini/antigravity-cli`)를 씁니다 ([`AgyVsCodeListing::Hidden`]).
     DefaultCli,
     /// 지정한 이름 또는 경로를 `--app_data_dir=<value>`로 전달합니다.
     Custom(OsString),
 }
 
 impl AgyDataDirMode {
+    /// VS Code 대화 목록 표시 모드로 데이터 디렉터리 모드를 만듭니다 (§7.6, DEC-08).
+    pub const fn from_vscode_listing(listing: AgyVsCodeListing) -> Self {
+        listing.data_dir_mode()
+    }
+
+    /// 현재 데이터 디렉터리 모드가 대응하는 VS Code 대화 목록 표시 모드를 돌려줍니다 (§7.6).
+    /// `Custom` 디렉터리는 표준 `listed`·`hidden` 모드에 해당하지 않으므로 `None`입니다.
+    pub const fn vscode_listing(&self) -> Option<AgyVsCodeListing> {
+        match self {
+            Self::ExtensionShared => Some(AgyVsCodeListing::Listed),
+            Self::DefaultCli => Some(AgyVsCodeListing::Hidden),
+            Self::Custom(_) => None,
+        }
+    }
+
     pub fn cli_arg(&self) -> Option<OsString> {
         match self {
             Self::ExtensionShared => {
@@ -145,11 +193,24 @@ pub struct AgyConfig {
     pub launcher: Arc<dyn AgyLaunchResolver>,
     /// 취소 시 정상 종료를 기다리는 시간. 지나면 강제 종료합니다.
     pub cancel_grace: Duration,
-    /// 데이터 디렉터리 모드 (§7.5).
+    /// 데이터 디렉터리 모드 (§7.5, §7.6). 기본값 [`AgyDataDirMode::ExtensionShared`]는 [`AgyVsCodeListing::Listed`]와 같습니다.
     pub data_dir_mode: AgyDataDirMode,
     /// `--app_data_dir` 옵션을 쓰는 모드일 때 실행 전 버전 확인(§7.5 규칙 5)에서 옵션 수용이 확인되었는지 여부.
     /// `false`이면 다른 디렉터리로 조용히 바꾸지 않고 Capability를 `unsupported`로 둡니다.
     pub data_dir_option_supported: bool,
+}
+
+impl AgyConfig {
+    /// VS Code 확장 대화 목록 표시 모드(`listed` 기본 / `hidden`)를 데이터 디렉터리 모드에 반영합니다 (§7.6, DEC-08).
+    pub fn with_vscode_listing(mut self, listing: AgyVsCodeListing) -> Self {
+        self.data_dir_mode = listing.data_dir_mode();
+        self
+    }
+
+    /// 현재 데이터 디렉터리 모드가 대응하는 VS Code 대화 목록 표시 모드를 돌려줍니다 (§7.6).
+    pub const fn vscode_listing(&self) -> Option<AgyVsCodeListing> {
+        self.data_dir_mode.vscode_listing()
+    }
 }
 
 pub struct AgyAdapter {
@@ -208,17 +269,30 @@ impl AgyAdapter {
             runtime,
             launcher: Arc::new(launch),
             cancel_grace,
-            data_dir_mode: AgyDataDirMode::ExtensionShared,
+            data_dir_mode: AgyVsCodeListing::default().data_dir_mode(),
             data_dir_option_supported: true,
         })
     }
 
-    /// `--app_data_dir` 옵션을 생략하고 CLI 기본 디렉터리(`~/.gemini/antigravity-cli`)를 쓰도록 설정합니다.
-    pub fn with_default_cli_data_dir(mut self) -> Self {
+    /// VS Code 확장 대화 목록 표시 모드(`listed` 기본 / `hidden`)를 설정합니다 (Spec §7.6, DEC-08, AGENT-05).
+    ///
+    /// - [`AgyVsCodeListing::Listed`] (기본값): `--app_data_dir=antigravity`(`ExtensionShared`)
+    /// - [`AgyVsCodeListing::Hidden`]: 옵션 생략(`DefaultCli`, `~/.gemini/antigravity-cli`)
+    pub fn with_vscode_listing(mut self, listing: AgyVsCodeListing) -> Self {
         if let Some(config) = &mut self.config {
-            config.data_dir_mode = AgyDataDirMode::DefaultCli;
+            config.data_dir_mode = listing.data_dir_mode();
         }
         self
+    }
+
+    /// 현재 Adapter에 설정된 VS Code 대화 목록 표시 모드를 돌려줍니다 (§7.6).
+    pub fn vscode_listing(&self) -> Option<AgyVsCodeListing> {
+        self.config.as_ref().and_then(AgyConfig::vscode_listing)
+    }
+
+    /// `--app_data_dir` 옵션을 생략하고 CLI 기본 디렉터리(`~/.gemini/antigravity-cli`, [`AgyVsCodeListing::Hidden`])를 쓰도록 설정합니다.
+    pub fn with_default_cli_data_dir(self) -> Self {
+        self.with_vscode_listing(AgyVsCodeListing::Hidden)
     }
 
     /// 지정한 `--app_data_dir=<value>` 값을 쓰도록 설정합니다.
@@ -573,14 +647,20 @@ impl AgentAdapter for AgyAdapter {
         }
 
         if config.data_dir_mode.cli_arg().is_some() && !config.data_dir_option_supported {
-            for name in ["managed_run", "event_stream", "cancel", "native_resume"] {
+            for name in [
+                "managed_run",
+                "event_stream",
+                "cancel",
+                "native_resume",
+                "vscode_listing",
+            ] {
                 caps.insert(
                     name.into(),
                     capability(
                         CapabilityState::Unsupported,
                         EvidenceLevel::EnvironmentTested,
                         Some(
-                            "--app_data_dir option is not accepted by this CLI version; refusing to fall back to another data directory (§7.5)",
+                            "--app_data_dir option is not accepted by this CLI version; refusing to fall back to another data directory (§7.5, §7.6)",
                         ),
                     ),
                 );
@@ -628,6 +708,34 @@ impl AgentAdapter for AgyAdapter {
         for name in ["managed_run", "event_stream", "cancel"] {
             caps.insert(name.into(), capability(state, evidence, reason));
         }
+        // Spec §7.6 (DEC-08, AGENT-05): 운영자 설정이 `hidden`(`DefaultCli`)이어도 Capability는
+        // 표시 수단(`--app_data_dir=antigravity`)의 지원 여부를 나타냅니다.
+        let vscode_listing = if !config.data_dir_option_supported {
+            capability(
+                CapabilityState::Unsupported,
+                EvidenceLevel::EnvironmentTested,
+                Some(
+                    "--app_data_dir option is not accepted by this CLI version; VS Code conversation listing requires --app_data_dir=antigravity (§7.5, §7.6)",
+                ),
+            )
+        } else if self.verified() {
+            capability(
+                CapabilityState::Supported,
+                EvidenceLevel::EnvironmentTested,
+                Some(
+                    "listed uses --app_data_dir=antigravity to record in ~/.gemini/antigravity/conversation_summaries.db (google.google-antigravity 1.9.0 / agy 1.4.7); hidden omits --app_data_dir (~/.gemini/antigravity-cli) where login state is isolated per directory and Linux Remote SSH uses <app_data_dir>/antigravity-oauth-token (AGY-DATA-02, §7.6)",
+                ),
+            )
+        } else {
+            capability(
+                CapabilityState::Unverified,
+                EvidenceLevel::ContractTested,
+                Some(
+                    "this CLI version has not been environment-tested for VS Code conversation listing (§7.6); hidden omits --app_data_dir (~/.gemini/antigravity-cli) where login state is isolated per directory (AGY-DATA-02)",
+                ),
+            )
+        };
+        caps.insert("vscode_listing".into(), vscode_listing);
         caps.insert(
             "native_resume".into(),
             capability(

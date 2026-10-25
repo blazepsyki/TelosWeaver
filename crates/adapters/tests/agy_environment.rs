@@ -1,4 +1,4 @@
-//! Antigravity (`agy`) 실환경 시험 (PH0-AGY, PROV-01~09·FORK-POC-01·AGY-DATA-01~05).
+//! Antigravity (`agy`) 실환경 시험 (PH0-AGY, PROV-01~09·FORK-POC-01·AGY-DATA-01~05·DEC-08·AGENT-05).
 //!
 //! 실제 CLI를 실행하고 사용자 계정의 사용량을 쓰므로 기본 실행에서 제외합니다(`#[ignore]`).
 //! 실행 조건(배정표 §6): 모델 `gemini-3.8-flash-low`, `--effort low`, 저장소 밖 일회용 폴더,
@@ -15,7 +15,9 @@ use std::{
 };
 
 use futures::StreamExt;
-use telos_adapters::{AdapterError, AgentAdapter, AgyAdapter, runtime::NativeRuntime};
+use telos_adapters::{
+    AdapterError, AgentAdapter, AgyAdapter, agy::AgyVsCodeListing, runtime::NativeRuntime,
+};
 use telos_schema::{
     FailureKind, ProcessTermination, ProviderEvent, ProviderEventKind, ProviderEventPayload,
     RunContext, RunTermination, SessionMode, ToolOutcome, TurnStatus, check_run_events, fixtures,
@@ -558,4 +560,267 @@ async fn env_resume_and_fork_rejection() {
             ..
         }) if capability == "native_fork"
     ));
+}
+
+fn normalized_workdir(name: &str) -> PathBuf {
+    let raw = workdir(name);
+    let canonical = raw.canonicalize().unwrap_or(raw);
+    match canonical.to_str().and_then(|s| s.strip_prefix(r"\\?\")) {
+        Some(rest) if rest.as_bytes().get(1) == Some(&b':') => PathBuf::from(rest),
+        _ => canonical,
+    }
+}
+
+/// `<home>/.gemini/<dir_name>/conversation_summaries.db`에서指定한 `conversation_id` 행을 읽기 전용으로 조회합니다.
+/// Provider 내부 DB는 절대 수정하지 않습니다 (배정표 공통 규칙 §1.4).
+fn query_conversation_summary(dir_name: &str, conversation_id: &str) -> Option<serde_json::Value> {
+    let db_path = home_dir()
+        .join(".gemini")
+        .join(dir_name)
+        .join("conversation_summaries.db");
+    if !db_path.exists() {
+        return None;
+    }
+    let script = r#"
+import json, pathlib, sqlite3, sys
+db_path = pathlib.Path(sys.argv[1])
+conv_id = sys.argv[2]
+con = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True)
+con.row_factory = sqlite3.Row
+row = con.execute(
+    "SELECT conversation_id, title, step_count, workspace_uris, status, source, project_id, app_data_dir "
+    "FROM conversation_summaries WHERE conversation_id = ?",
+    (conv_id,),
+).fetchone()
+print(json.dumps(dict(row) if row else None))
+"#;
+    let python_bins = if cfg!(windows) {
+        ["python", "python3"]
+    } else {
+        ["python3", "python"]
+    };
+    for bin in python_bins {
+        if let Ok(output) = std::process::Command::new(bin)
+            .args([
+                "-c",
+                script,
+                db_path.to_str().expect("utf-8 db path"),
+                conversation_id,
+            ])
+            .output()
+            && output.status.success()
+            && let Ok(val) = serde_json::from_slice::<serde_json::Value>(&output.stdout)
+        {
+            return if val.is_null() { None } else { Some(val) };
+        }
+    }
+    panic!("python/python3 with sqlite3 is required to inspect conversation_summaries.db");
+}
+
+/// DEC-08·AGENT-05 (Spec §7.6, 배정표 §4 A3):
+/// 1. `AgyVsCodeListing::Listed`(`--app_data_dir=antigravity`) 실행은 확장 대화 목록 인덱스
+///    (`~/.gemini/antigravity/conversation_summaries.db`)에 기록되고 `antigravity-cli` 인덱스에는 기록되지 않음을 확인합니다.
+/// 2. `--add-dir <cwd>`를 전달했을 때 `workspace_uris`에 작업 폴더 URI가 기록되고,
+///    `--project`를 생략하면 `project_id`가 `"default-cli-project"`로 기록됨을 확인합니다.
+/// 3. Resume(`--conversation <id>`) 실행 시 같은 대화 행이 유지되고 `step_count`가 증가함을 확인합니다.
+/// 4. `AgyVsCodeListing::Hidden`(`DefaultCli`) 실행은 확장 인덱스(`~/.gemini/antigravity/conversation_summaries.db`)에서
+///    제외되고 `~/.gemini/antigravity-cli/conversation_summaries.db`에만 기록됨을 확인합니다.
+#[tokio::test]
+#[ignore = "runs the real Antigravity CLI and inspects conversation_summaries.db"]
+async fn env_vscode_listing_summaries_and_workspace_filter() {
+    let host_id = fixtures::run_context(&fixtures::task_spec()).host_id;
+    let listed_cwd = normalized_workdir("listing-listed");
+    let expected_uri_fragment = listed_cwd.to_string_lossy().replace('\\', "/");
+
+    // 1. Listed (--app_data_dir=antigravity) + --add-dir <listed_cwd>
+    let listed_adapter = AgyAdapter::with_disable_slash_commands(
+        executable(),
+        "1.4.7".into(),
+        host_id.clone(),
+        Arc::new(NativeRuntime),
+        Duration::from_secs(2),
+        listed_cwd.clone(),
+        "Reply with only the token LISTED_OK and do not call tools.".into(),
+        Some("gemini-3.8-flash-low".into()),
+        Some("low".into()),
+        Some("plan".into()),
+        true,
+        vec![listed_cwd.clone()],
+        vec![],
+    )
+    .with_vscode_listing(AgyVsCodeListing::Listed);
+
+    let listed_events = run(&listed_adapter, &context("env-listing-listed")).await;
+    assert_eq!(
+        check_run_events(&listed_events),
+        Ok(RunTermination::ProcessExited)
+    );
+
+    if extension_dir_has_cli_auth() {
+        let listed_id = session_id(&listed_events).expect("listed session id");
+        let ext_summary = query_conversation_summary("antigravity", &listed_id);
+        let cli_summary_for_listed = query_conversation_summary("antigravity-cli", &listed_id);
+        println!("listed summary in antigravity: {ext_summary:?}");
+        println!("listed summary in antigravity-cli: {cli_summary_for_listed:?}");
+
+        let row = ext_summary.as_ref().expect(
+            "listed run must be recorded in ~/.gemini/antigravity/conversation_summaries.db",
+        );
+        let initial_steps = row["step_count"].as_i64().unwrap_or(0);
+        let workspace_uris = row["workspace_uris"].as_str().unwrap_or_default();
+        assert_eq!(row["app_data_dir"].as_str(), Some("antigravity"));
+        assert_eq!(
+            row["source"].as_str(),
+            Some(""),
+            "listed run (--app_data_dir=antigravity) must be recorded as extension-native (source == \"\")"
+        );
+        assert_eq!(row["project_id"].as_str(), Some("default-cli-project"));
+        assert!(
+            initial_steps > 0,
+            "listed summary must have positive step_count: {row:?}"
+        );
+        assert!(
+            workspace_uris.contains(&expected_uri_fragment),
+            "workspace_uris ({workspace_uris}) must contain {expected_uri_fragment}"
+        );
+        assert!(
+            cli_summary_for_listed.is_none(),
+            "listed run must not be recorded in antigravity-cli/conversation_summaries.db"
+        );
+
+        // Resume (--conversation <listed_id>) preserves the entry and advances step_count
+        let mut resume_ctx = context("env-listing-listed-resume");
+        resume_ctx.session.mode = SessionMode::Resume;
+        resume_ctx.session.source_session_id = Some(listed_id.clone());
+        let resumed_adapter = AgyAdapter::with_disable_slash_commands(
+            executable(),
+            "1.4.7".into(),
+            host_id.clone(),
+            Arc::new(NativeRuntime),
+            Duration::from_secs(2),
+            listed_cwd.clone(),
+            "Reply with only the token RESUMED_OK and do not call tools.".into(),
+            Some("gemini-3.8-flash-low".into()),
+            Some("low".into()),
+            Some("plan".into()),
+            true,
+            vec![listed_cwd.clone()],
+            vec![],
+        )
+        .with_vscode_listing(AgyVsCodeListing::Listed);
+        let resumed_events = run(&resumed_adapter, &resume_ctx).await;
+        let resumed_row = query_conversation_summary("antigravity", &listed_id)
+            .expect("resumed listed run remains in antigravity/conversation_summaries.db");
+        let resumed_steps = resumed_row["step_count"].as_i64().unwrap_or(0);
+        println!("resumed summary in antigravity: {resumed_row:?}");
+
+        cleanup_session(&listed_id);
+        let residual_after_cleanup = query_conversation_summary("antigravity", &listed_id);
+        println!(
+            "listed summary in antigravity after brain/conversations file cleanup: {}",
+            residual_after_cleanup.is_some()
+        );
+
+        assert_eq!(
+            check_run_events(&resumed_events),
+            Ok(RunTermination::ProcessExited)
+        );
+        assert_eq!(
+            session_id(&resumed_events).as_deref(),
+            Some(listed_id.as_str())
+        );
+        assert!(
+            resumed_steps > initial_steps,
+            "resumed step_count ({resumed_steps}) must be greater than initial ({initial_steps})"
+        );
+    } else {
+        assert!(payloads(&listed_events).iter().any(
+            |p| matches!(p, ProviderEventPayload::Error(e) if e.kind == FailureKind::Authentication)
+        ));
+    }
+
+    // 2. Hidden (DefaultCli, --app_data_dir 생략) + --add-dir <hidden_cwd>
+    let hidden_cwd = normalized_workdir("listing-hidden");
+    let hidden_uri_fragment = hidden_cwd.to_string_lossy().replace('\\', "/");
+    let hidden_adapter = AgyAdapter::with_disable_slash_commands(
+        executable(),
+        "1.4.7".into(),
+        host_id,
+        Arc::new(NativeRuntime),
+        Duration::from_secs(2),
+        hidden_cwd.clone(),
+        "Reply with only the token HIDDEN_OK and do not call tools.".into(),
+        Some("gemini-3.8-flash-low".into()),
+        Some("low".into()),
+        Some("plan".into()),
+        true,
+        vec![hidden_cwd.clone()],
+        vec![],
+    )
+    .with_vscode_listing(AgyVsCodeListing::Hidden);
+
+    let hidden_events = run(&hidden_adapter, &context("env-listing-hidden")).await;
+    let hidden_id = session_id(&hidden_events).expect("hidden session id");
+    let home = home_dir();
+    let hidden_in_ext_brain = home
+        .join(".gemini/antigravity/brain")
+        .join(&hidden_id)
+        .exists();
+    let hidden_in_ext_conv = home
+        .join(".gemini/antigravity/conversations")
+        .join(format!("{hidden_id}.db"))
+        .exists();
+    let hidden_in_cli_brain = home
+        .join(".gemini/antigravity-cli/brain")
+        .join(&hidden_id)
+        .exists();
+    let hidden_in_cli_conv = home
+        .join(".gemini/antigravity-cli/conversations")
+        .join(format!("{hidden_id}.db"))
+        .exists();
+    let ext_summary_for_hidden = query_conversation_summary("antigravity", &hidden_id);
+    let cli_summary_for_hidden = query_conversation_summary("antigravity-cli", &hidden_id);
+    println!("hidden summary in antigravity: {ext_summary_for_hidden:?}");
+    println!("hidden summary in antigravity-cli: {cli_summary_for_hidden:?}");
+
+    cleanup_session(&hidden_id);
+    let hidden_residual_after_cleanup = query_conversation_summary("antigravity-cli", &hidden_id);
+    println!(
+        "hidden summary in antigravity-cli after brain/conversations file cleanup: {}",
+        hidden_residual_after_cleanup.is_some()
+    );
+
+    assert_eq!(
+        check_run_events(&hidden_events),
+        Ok(RunTermination::ProcessExited)
+    );
+    assert!(text(&hidden_events).contains("HIDDEN_OK"));
+    assert!(
+        !hidden_in_ext_brain && !hidden_in_ext_conv && hidden_in_cli_brain && hidden_in_cli_conv,
+        "hidden run must only create brain/conversations files under ~/.gemini/antigravity-cli"
+    );
+    // 2026-10-25 관찰(VSCODE_LISTING.md §3.3): 확장 허브(`agy --hub --app_data_dir=antigravity`)가 실행 중이면
+    // DefaultCli 대화가 확장 인덱스(~/.gemini/antigravity/conversation_summaries.db)에도
+    // source="CORTEX_TRAJECTORY_SOURCE_CLI"(제목 없음)로 나타났고, 대화 DB를 지운 뒤에는 사라졌습니다.
+    // 원인(허브의 추가 대화 폴더 감시로 추정)과 확장 UI 표시 여부는 미검증이므로 여기서는 관찰만 고정합니다.
+    // 즉 이 시험은 "hidden이 확장 인덱스에서 제외된다"를 보장하지 않습니다.
+    if let Some(mirrored) = &ext_summary_for_hidden {
+        assert_eq!(
+            mirrored["source"].as_str(),
+            Some("CORTEX_TRAJECTORY_SOURCE_CLI"),
+            "if hub AdditionalConvoDir watcher mirrors a DefaultCli session, it must be tagged CORTEX_TRAJECTORY_SOURCE_CLI: {mirrored:?}"
+        );
+    }
+    let hidden_row = cli_summary_for_hidden.expect(
+        "hidden run must be recorded in ~/.gemini/antigravity-cli/conversation_summaries.db",
+    );
+    assert_eq!(hidden_row["app_data_dir"].as_str(), Some("antigravity-cli"));
+    assert_eq!(hidden_row["source"].as_str(), Some(""));
+    assert!(hidden_row["step_count"].as_i64().unwrap_or(0) > 0);
+    assert!(
+        hidden_row["workspace_uris"]
+            .as_str()
+            .unwrap_or_default()
+            .contains(&hidden_uri_fragment)
+    );
 }
