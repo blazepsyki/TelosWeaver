@@ -20,6 +20,11 @@ async fn remote_ssh_active_extensions_and_managed_agy() {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => serde_json::json!({}),
         Err(error) => panic!("obsolete metadata: {error}"),
     };
+    let timestamp = std::process::Command::new("date")
+        .args(["-u", "+%Y-%m-%dT%H:%M:%SZ"])
+        .output()
+        .unwrap();
+    assert!(timestamp.status.success());
     let request = DiscoveryRequest {
         host_id: "psyki-nas".into(),
         target_platform: "linux-x64".into(),
@@ -27,7 +32,7 @@ async fn remote_ssh_active_extensions_and_managed_agy() {
         extension_roots: vec![root.clone()],
         home_dir: home.clone(),
         path_env: std::env::var_os("PATH"),
-        checked_at: "2026-10-25T00:00:00Z".into(),
+        checked_at: String::from_utf8(timestamp.stdout).unwrap().trim().into(),
     };
     let discoverer = NativeCliDiscoverer::new(Arc::new(NativeRuntime));
     for (provider, rule, expected_version, expected_cli) in [

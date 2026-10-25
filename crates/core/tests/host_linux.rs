@@ -64,7 +64,7 @@ fn real_daemon_xdg_permissions_auth_health_deny_runs_and_cleanup() {
         Command::new(env!("CARGO_BIN_EXE_telos-weaver"))
             .args(["serve", "--project-root"])
             .arg(&project)
-            .args(["--project-id", PROJECT_ID, "--host-id", HOST_ID])
+            .args(["--project-id", PROJECT_ID, "--host-id", "psyki-nas"])
             // Scope state isolation to this child; retain the real host runtime directory.
             .env("XDG_STATE_HOME", root.join("state"))
             .stdout(Stdio::null())
@@ -114,15 +114,13 @@ fn real_daemon_xdg_permissions_auth_health_deny_runs_and_cleanup() {
         )["error"]["code"],
         "unauthenticated"
     );
-    assert!(
-        call(
-            &mut stream,
-            "core.hello",
-            json!({"clientName":"ph0-host-linux","clientVersion":"0","token":token})
-        )
-        .get("result")
-        .is_some()
+    let hello = call(
+        &mut stream,
+        "core.hello",
+        json!({"clientName":"ph0-host-linux","clientVersion":"0","token":token}),
     );
+    assert_eq!(hello["result"]["hostId"], "psyki-nas");
+    assert_eq!(hello["result"]["projectId"], PROJECT_ID);
     let health = call(&mut stream, "core.health", json!({}));
     assert_eq!(health["result"]["status"], "degraded");
     let components = health["result"]["components"].as_array().unwrap();
@@ -138,7 +136,8 @@ fn real_daemon_xdg_permissions_auth_health_deny_runs_and_cleanup() {
         rn["detail"],
         "not configured (the operator policy has no rn section)"
     );
-    let task = task_spec();
+    let mut task = task_spec();
+    task.workspace.host_id = "psyki-nas".into();
     let session = run_context(&task).session;
     let denied = call(
         &mut stream,
