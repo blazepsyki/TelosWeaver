@@ -124,11 +124,15 @@ export function activate(context: vscode.ExtensionContext) {
       log(safeMessage(error));
     }
   };
+  let lastStatus: string | undefined;
   connection.on("state", (state) => {
     if (state.phase !== "connected") disposeFeeds();
     else void resumeObserved();
     update();
-    log(phaseName(state));
+    // Refresh the view on every Health response, but log transitions only (§17, REQ-016).
+    const label = phaseName(state);
+    if (label !== lastStatus) log(label);
+    lastStatus = label;
   });
   async function selectedFolder(): Promise<vscode.WorkspaceFolder | undefined> {
     if (!vscode.workspace.isTrusted) {

@@ -134,3 +134,37 @@ test("multi-root selection displays real identity and Degraded without auto-star
     CoreConnection.prototype.connect = original;
   }
 });
+
+test("repeated Health refreshes update the view and log only status transitions", async () => {
+  const fixture = ui();
+  const original = CoreConnection.prototype.connect;
+  let connection;
+  CoreConnection.prototype.connect = async function (root) {
+    connection = this;
+    this.state = { phase: "connected", root, hello, health };
+    this.emit("state", this.state);
+  };
+  const publish = (state) => {
+    connection.state = state;
+    connection.emit("state", state);
+  };
+  try {
+    fixture.vscode.workspace.isTrusted = true;
+    await fixture.commands.get("telosWeaver.connect")();
+    for (let count = 0; count < 4; count++) publish({ ...connection.state });
+    publish({ ...connection.state, health: {
+      ...health, components: [{ name: "execution", status: "ok" }],
+    } });
+    assert.deepEqual(fixture.output, ["연결됨 (degraded)"]);
+    assert.ok(fixture.provider().getChildren().some(
+      (row) => row.label === "execution" && row.description === "ok",
+    ));
+    publish({ ...connection.state, health: { ...health, status: "ok" } });
+    publish({ ...connection.state, phase: "error", message: "fixture" });
+    publish({ ...connection.state, phase: "connected", message: undefined });
+    assert.deepEqual(fixture.output, ["연결됨 (degraded)", "연결됨", "연결 오류", "연결됨"]);
+  } finally {
+    fixture.close();
+    CoreConnection.prototype.connect = original;
+  }
+});

@@ -10,8 +10,6 @@ export class RunFeed {
   private id: string | undefined;
   private cursor: number;
   private disposed = false;
-  private opening = true;
-  private queued: ApiNotification[] = [];
   private retries = 0;
   private started = false;
   constructor(
@@ -43,43 +41,32 @@ export class RunFeed {
     }
   }
   private async subscribe(): Promise<void> {
-    this.opening = true;
-    const result = await this.client.request("runs.subscribe", {
-      runId: this.runId,
-      afterSequence: this.cursor,
-    });
-    if (
-      !record(result) ||
-      typeof result.subscriptionId !== "string" ||
-      !result.subscriptionId
-    )
-      throw new ConnectionError("protocol", "Run 구독 응답이 잘못됐습니다.");
-    if (this.disposed) {
-      void this.client
-        .request("runs.unsubscribe", { subscriptionId: result.subscriptionId })
-        .catch(() => {});
-      return;
-    }
-    this.id = result.subscriptionId;
-    this.opening = false;
-    const queued = this.queued;
-    this.queued = [];
-    for (const notification of queued) this.receive(notification);
+    // Core acknowledges before replay; bind synchronously without speculative queues (§17, REQ-016).
+    this.id = undefined;
+    await this.client.request(
+      "runs.subscribe",
+      { runId: this.runId, afterSequence: this.cursor },
+      (result) => {
+        if (
+          !record(result) ||
+          typeof result.subscriptionId !== "string" ||
+          !result.subscriptionId
+        )
+          throw new ConnectionError("protocol", "Run 구독 응답이 잘못됐습니다.");
+        if (this.disposed) {
+          void this.client
+            .request("runs.unsubscribe", { subscriptionId: result.subscriptionId })
+            .catch(() => {});
+          return;
+        }
+        this.id = result.subscriptionId;
+      },
+    );
   }
   private receive = (notification: ApiNotification): void => {
     if (this.disposed) return;
-    if (this.opening) {
-      if (this.queued.length >= 64) {
-        this.stop(
-          new ConnectionError("limit", "Run 알림 보존 상한을 초과했습니다."),
-        );
-        return;
-      }
-      this.queued.push(notification);
-      return;
-    }
     const params = notification.params;
-    if (!record(params) || params.subscriptionId !== this.id) return;
+    if (!this.id || !record(params) || params.subscriptionId !== this.id) return;
     try {
       if (notification.method === "runs.event") {
         const value = params.event;
@@ -144,7 +131,6 @@ export class RunFeed {
     this.disposed = true;
     this.client.removeListener("notification", this.receive);
     this.client.removeListener("closed", this.closed);
-    this.queued = [];
     if (this.id)
       void this.client
         .request("runs.unsubscribe", { subscriptionId: this.id })
