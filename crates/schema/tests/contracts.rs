@@ -400,6 +400,83 @@ fn rn_messages_wire_format() {
     assert_eq!(serde_json::to_value(&response).unwrap(), wire);
 }
 
+/// REQ-018: 인증, 알림 프레임, 구독 결과, 연결 여부, 새 오류 코드.
+#[test]
+fn rn_rpc_hello_notification_and_attached_wire_format() {
+    assert_eq!(
+        serde_json::to_value(RnMethod::Hello).unwrap(),
+        json!("rn.hello")
+    );
+    let token = "a".repeat(64);
+    let hello = RnRequest {
+        protocol_version: RN_PROTOCOL_VERSION.into(),
+        request_id: "h1".into(),
+        method: RnMethod::Hello,
+        params: serde_json::to_value(RnHelloParams {
+            client_name: "telos-weaver".into(),
+            client_version: "0.0.0".into(),
+            token: SecretString::new(token.clone()),
+        })
+        .unwrap(),
+    };
+    // 전송에는 원문이 들어가고 Debug에는 들어가지 않습니다 (SAFE-04).
+    assert_eq!(
+        serde_json::to_value(&hello).unwrap()["params"]["token"],
+        json!(token)
+    );
+    assert!(!format!("{hello:?}").contains(&token));
+
+    let endpoint = json!({"hostId": "h", "provider": "telosweaver", "nativeSessionId": "core", "fingerprint": "f"});
+    let result: RnHelloResult = serde_json::from_value(json!({
+        "rpcVersion": "0.1", "hostId": "h", "connectionId": "c1", "endpoint": endpoint,
+    }))
+    .unwrap();
+    assert_eq!(result.endpoint.provider, "telosweaver");
+
+    let wire = json!({
+        "protocolVersion": RN_PROTOCOL_VERSION,
+        "method": "messages.event",
+        "params": {
+            "subscriptionId": "s1",
+            "event": { "cursor": "1:7", "sequence": 7, "kind": "receipt",
+                       "payload": { "messageId": "m1", "status": "delivered", "updatedAt": "2026-10-25T00:00:00.000Z" } },
+        },
+    });
+    let n: RnNotification = serde_json::from_value(wire.clone()).unwrap();
+    assert_eq!(n.method, RnNotificationMethod::Event);
+    let params: RnEventParams = serde_json::from_value(n.params.clone()).unwrap();
+    assert_eq!(
+        (params.subscription_id.as_str(), params.event.kind),
+        ("s1", RnEventKind::Receipt)
+    );
+    let receipt: DeliveryReceipt = serde_json::from_value(params.event.payload).unwrap();
+    assert_eq!(receipt.status, DeliveryReceiptStatus::Delivered);
+    assert_eq!(serde_json::to_value(&n).unwrap(), wire);
+
+    let sub: SubscribeResult = serde_json::from_value(json!({"subscriptionId": "s1"})).unwrap();
+    assert_eq!(sub.subscription_id, "s1");
+    // 이전 RN이 보낸 SessionEndpoint(필드 없음)는 연결되지 않은 것으로 읽습니다.
+    let old: SessionEndpoint =
+        serde_json::from_value(json!({"endpoint": endpoint, "presence": "idle"})).unwrap();
+    assert!(!old.attached);
+    let inbound: InboundMessage = serde_json::from_value(json!({
+        "messageId": "m2", "senderAddress": "alex/api-claude", "replyTo": "m1", "body": "ack", "receivedAt": "t",
+    }))
+    .unwrap();
+    assert!(inbound.sender.is_none());
+    for (code, s) in [
+        (RnErrorCode::Unauthenticated, "unauthenticated"),
+        (RnErrorCode::FrameTooLarge, "frame_too_large"),
+    ] {
+        assert_eq!(serde_json::to_value(code).unwrap(), json!(s));
+    }
+    let info: RnRpcInfo = serde_json::from_value(
+        json!({"endpoint": r"\\.\pipe\telos-rn-rpc-1", "rpcVersion": "0.1", "pid": 7}),
+    )
+    .unwrap();
+    assert_eq!(info.pid, 7);
+}
+
 // --- CLI 탐지 (REQ-010) ---
 
 #[test]

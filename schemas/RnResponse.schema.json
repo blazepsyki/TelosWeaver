@@ -70,6 +70,16 @@
           ]
         },
         {
+          "description": "`rn.hello` 전의 요청, 또는 토큰 불일치",
+          "type": "string",
+          "const": "unauthenticated"
+        },
+        {
+          "description": "프레임이 [`crate::api::MAX_FRAME_BYTES`]를 넘었습니다. 이 응답 뒤 연결을 닫습니다.",
+          "type": "string",
+          "const": "frame_too_large"
+        },
+        {
           "description": "Fork/RPC 비호환 (COMM-08)",
           "type": "string",
           "const": "unsupported_protocol_version"

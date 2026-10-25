@@ -4,7 +4,7 @@
   "type": "object",
   "properties": {
     "cursor": {
-      "description": "이전 구독의 마지막 커서. 없으면 지금부터 받습니다.",
+      "description": "이전 구독에서 마지막으로 받은 이벤트의 커서. 그 뒤의 이벤트부터 받습니다. 없으면 지금부터 받습니다.",
       "type": [
         "string",
         "null"

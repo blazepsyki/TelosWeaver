@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RnHelloResult",
+  "type": "object",
+  "properties": {
+    "connectionId": {
+      "type": "string"
+    },
+    "endpoint": {
+      "description": "Core 메일함 Endpoint(provider `telosweaver`). Core가 보내는 Envelope의 `sender`로 쓰며, 이리로 온 메시지는\n`message` 이벤트로 받습니다.",
+      "$ref": "#/$defs/EndpointRef"
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "rpcVersion": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "rpcVersion",
+    "hostId",
+    "connectionId",
+    "endpoint"
+  ],
+  "$defs": {
+    "EndpointRef": {
+      "description": "사람이 읽는 주소는 영구 Session ID가 아닙니다. 대상은 항상 이 정체성으로 고정합니다 (§12.2).",
+      "type": "object",
+      "properties": {
+        "fingerprint": {
+          "type": "string"
+        },
+        "hostId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostId",
+        "provider",
+        "nativeSessionId",
+        "fingerprint"
+      ]
+    }
+  }
+}
