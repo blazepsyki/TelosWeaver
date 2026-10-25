@@ -68,10 +68,13 @@ checks so removed paths are not reintroduced. Full upstream merges and the upstr
 | 27 | PH0-RN-06 | Sessions remember whether they came in through telos-rn (its MCP server or their own hooks), not only Claude Code's registry (`sessions.wired`, schema 2). Core sends only to those; others are listed unattached and refused | `src/daemon/mod.rs`, `src/daemon/sessions.rs`, `src/daemon/envelope.rs`, `src/store.rs` |
 | 28 | PH0-RN-06 | Core's mailbox `telosweaver` (provider `telosweaver`), kept for good: the sender of Core's envelopes, where agents' replies land; not announced to teammates | `src/daemon/mod.rs`, `src/daemon/rpc.rs`, `src/daemon/directory.rs` |
 | 29 | PH0-RN-06 | Fixed a Unix-only build break from PH0-RN-04: `ipc.rs` still called the removed `paths::link_legacy_socket` | `src/ipc.rs` |
+| 30 | PH0-RN-08 | Dropped upstream `tests/e2e/*.py` (relied on removed features / legacy naming); replaced by isolated Rust test suites and Core supervisor integration | `tests/e2e/*.py` (deleted), `tests/e2e/README.md` |
 
-Upstream `tests/e2e/*.py` still use upstream names and removed features; whether to port or drop each is decided in
-PH0-RN-08.
+## Acceptance and verification (PH0-RN-08)
 
-Planned (see `docs/phase-0/evidence/PH0-RN/RN-00/README.md` in the TelosWeaver repository):
+Completed on 2026-10-26 (see `docs/phase-0/evidence/PH0-RN/RN-08/README.md` in the TelosWeaver repository).
+- Static elimination: Verified 0 calls to closed-source `reason` CLI, 0 update/install-script endpoints, 0 login proof checks.
+- Dependency audit: Confirmed `ring` is used exclusively for pinned relay-list signature verification (`signed.rs`).
+- Isolated daemon execution: Confirmed daemon runs cleanly in isolated `$TELOS_RN_HOME` with no unauthorized network traffic, port binding, or child processes.
+- Setup verification: Verified non-destructive agent MCP/hook wiring and clean removal using isolated home directory.
 
-- PH0-RN-07: `telos-rn-client` and Core starting the engine (`TELOS_RN_HOME`, `TELOS_RN_HOST_ID`, `TELOS_RN_CODEX_BIN`).

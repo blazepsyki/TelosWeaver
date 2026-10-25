@@ -12,4 +12,4 @@ PH0-RN은 Spec v1.5 DEC-07·§12·§19.5.10에 따라 Reason Network를 Fork해 
 | PH0-RN-05 메시지·정체성·저장소 | 완료 (2026-10-25) | [RN-05](RN-05/README.md): Endpoint(Workspace 제외 Fingerprint)·Receipt(`delivered`=실제로 봄)·재바인딩 보류·멱등 키·만료·보존 7일·Migration 백업 3개·Codex CLI는 Core 전달만, 시험 196개, 메일함·실제 Claude(haiku) 왕복 |
 | PH0-RN-06 Local RPC 서버 | 완료 (2026-10-25) | [RN-06](RN-06/README.md): 전용 Pipe·시작마다 새 토큰·`rn.hello`, 원본·RPC Pipe 현재 사용자 전용 DACL, 9개 메서드, Receipt·답장·접속 이벤트와 커서·재동기화, 연결된 세션만 전송, Core 메일함, Linux 빌드 결함 수정. 시험 204개, 격리 Daemon·실제 Claude(haiku) 왕복 |
 | PH0-RN-07 Client·Core 연결 | 완료 (2026-10-25) | [RN-07](RN-07/README.md): `telos-rn-client`(접속·인증·Pipe PID 확인·시간 제한·제한된 재시도·구독), Core가 정책의 RN을 프로젝트별 상태 폴더로 시작·감시·재시작·정지, `core.health`의 `rn`(REQ-019). 실제 RN 왕복·강제 종료 후 재시작, 실제 Claude Run 중 RN 장애에도 추적·취소 독립 |
-| PH0-RN-08 제거 검증·수용 | 대기 | — |
+| PH0-RN-08 제거 검증·수용 | 완료 (2026-10-26) | [RN-08](RN-08/README.md): 정적 코드·의존성 감사, 바이너리 문자열 검사, 원본 Python E2E 폐기, 격리 setup 및 Daemon 관찰, Windows(204개)·Linux(212개) 시험 및 Core 연동 확인 |
