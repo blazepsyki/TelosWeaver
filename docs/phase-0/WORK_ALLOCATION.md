@@ -51,7 +51,7 @@
 | G0 공통 계약 확정 | 통과 (2026-10-24), 개정 1 반영 | 1차 `9710402`. 독립 검토 REQ-002~009 처리 후 기준 `077bd78`. 근거: `evidence/PH0-INTEGRATION/README.md` §1, `G0_REVISION_1.md` §4 |
 | G1 대표 Provider 실행 | 통과 확정 (2026-10-24, INTEGRATION·CLAUDE 판정, HOST 확인 완료) | 대표 Provider Claude(§6). Local API → 운영자 정책 승인 → 확장 CLI 탐지 → Claude Adapter → 공용 런타임 경로로 시작·이벤트·완료·실패·취소·결과 파일·Daemon 종료 정리를 실제 실행. HOST 확인 `G1_HOST_REVIEW.md`(취소 경합 보정 `4791c5d`, 통합 `b561da2`), REQ-015 강화 시험 실환경 5개 재통과(`399992d`). 근거: `evidence/PH0-INTEGRATION/README.md` §7 |
 | G2 전체 구성 통합 | **통과 확정** (2026-10-25, INTEGRATION 판정, CODEX·HOST·EXT 확인 `9f552b8`(통합 `e8380ae`), AGY 확인 `2fff559`) | 세 Provider Core 연결(`aef3297`), 마스터 결정 검증(`e14de42`), Extension 연결(`43ce639`·REQ-016 `2331c7c`), RN RPC(RN-06 `cfba833`)와 Core 연결(RN-07 `8fdc8a9`: Client 왕복·재시작·RN 장애 중 실제 Claude Run 독립성), 공통 계약 `7497877`·Schema 시험·Workspace 152개·Extension 28개. 모두 Windows 실환경. Linux·Remote SSH는 G3. 근거: `evidence/PH0-INTEGRATION/README.md` §8.4·§8.7~8.9, 담당 확인 `evidence/PH0-HOST/G2_HOST_REVIEW.md`·`evidence/PH0-CODEX/G2_REVIEW.md`·`evidence/PH0-EXT/G2_REVIEW.md`, PH0-AGY 행 |
-| G3 Phase 0 수용 | 대기 | Spec §19.1 필수 조건과 대상 환경 증거 필요. Linux·Remote SSH Host는 [WSL 절차](WSL_LINUX_HOST.md)로 확보 예정(미구성) |
+| G3 Phase 0 수용 | 대기 | Spec §19.1 필수 조건과 대상 환경 증거 필요. Linux·Remote SSH Host는 사용자 Ubuntu 서버 `Psyki-NAS`([절차](LINUX_REMOTE_HOST.md), Spec v1.5.2). 서버 조사 완료, Clone·Toolchain 정렬 후 HOST·Provider·RN·EXT의 Linux·Remote SSH 검증 |
 
 기존 타입·빌드·단위 테스트가 존재한다는 이유만으로 게이트를 통과시키지 않습니다. 증거는 Spec §19.5.8의 형식으로 `docs/phase-0/evidence/<작업 ID>/README.md`에 기록합니다.
 
@@ -114,9 +114,9 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 항목 | 결정 | 상태 | 결정일 |
 |---|---|---|---|
 | 줄바꿈 | 저장소 전체 LF 고정, `.cmd`·`.bat`만 CRLF (`.gitattributes`) | 적용 | 2026-10-24 |
-| Linux·Remote SSH 실행 Host | 같은 PC의 WSL2 Ubuntu 26.04를 Linux Host 겸 Remote SSH Host로 사용. 절차는 [WSL_LINUX_HOST.md](WSL_LINUX_HOST.md). G3 필수 조건이므로 미루지 않음 | 배포판 설치 완료(2026-10-25 확인): `Ubuntu-26.04`(26.04.1 LTS)·WSL2·systemd 동작, 사용자 `gth1919`. 기본 패키지·SSH 서버(`127.0.0.1:2222`, 공개키만) 구성, Windows `PATH` 제외(`appendWindowsPath=false`, 사용자 결정). Git 전역 설정·Rust·Node·SSH 키·원격 확장·Clone 남음([절차](WSL_LINUX_HOST.md) §2.0) | 2026-10-24 |
+| Linux·Remote SSH 실행 Host | **v1.5.2 (2026-10-25) 사용자 결정으로 변경:** 사용자의 Ubuntu 서버 `Psyki-NAS`(Ubuntu 26.04.1 LTS, Host ID `psyki-nas`, 저장소 `~/TelosWeaver`)가 Linux Host 겸 Remote SSH Host. 세 Provider 확장이 원격 설치·로그인되어 있어 그대로 사용, 실제 계정 시험 허용, 시간·자원 제한 없음. 절차·조사: [LINUX_REMOTE_HOST.md](LINUX_REMOTE_HOST.md). 같은 PC의 WSL2 `Ubuntu-26.04`는 예비([WSL_LINUX_HOST.md](WSL_LINUX_HOST.md), 패키지·SSH 서버·Windows 경로 제외까지 구성), 결과는 Linux 증거로만 | 서버 조사 완료. Clone·Rust 1.94.0 추가는 남음 | 2026-10-24, 변경 2026-10-25 |
 | CI | 원격 저장소는 생겼으나(2026-10-24) 사용자 결정으로 계속 보류. 도입 전까지는 통합 담당이 Spec §19.5.8의 검사 명령을 수동 실행하고 증거에 기록 | 보류 | 2026-10-24 |
-| 대상 OS 우선순위 | 구현·일상 검증은 Windows 로컬 우선. Linux·Remote SSH는 G3 전에 WSL로 확보 | 적용 | 2026-10-24 |
+| 대상 OS 우선순위 | 구현·일상 검증은 Windows 로컬 우선. Linux·Remote SSH는 G3 전에 사용자 Ubuntu 서버로 확보(v1.5.2) | 적용 | 2026-10-24 |
 | G1 대표 Provider | Claude Code. Spec §19.5.6의 기본값(Codex)에서 변경. 이유: PH0-CODEX 미배정, 통합 담당이 PH0-CLAUDE를 함께 맡음. 마스터 Provider 선택(MASTER-01)과는 무관 | 적용 | 2026-10-24 |
 | Claude 실환경 시험 조건 | 모델 `haiku`, 짧은 프롬프트. 설정 디렉터리는 기본 `~/.claude`(확장과 공유, 토큰 복사·별도 로그인 없음). 실행은 저장소 밖 일회용 폴더에서만, 허용 도구 명시(`--allowedTools`/`--disallowedTools`, `--permission-mode`), `--dangerously-skip-permissions` 금지. 시험 세션은 "시험 세션 정리" 규칙을 따름. 기존 대화는 재개·수정하지 않음 | 적용 | 2026-10-24 |
 | 마스터 Provider (Phase 0) | Claude Code. 임시 선택이며 MASTER-01에 따라 Provider를 고정하지 않고 교체 가능하게 구현. 시험 조건은 Claude 실환경 시험 조건을 따름 | 적용 | 2026-10-24 |
@@ -219,5 +219,6 @@ G0에서 등록한 Stub 경로입니다. 등록된 파일은 이제 해당 작�
 | 2026-10-25 16:24 | `claude-opus-5.5/session-c9336d2c` | 담당 확인 검토·반영: `ph0/host-g2-review`(`9f552b8`)를 `e8380ae`로 통합(HOST 시험 3개·EXT 시험 2개 조건·담당 확인 문서 3개, 제품 코드 변경 없음). `main` Workspace 155개·엄격 Clippy·fmt·Extension 29개 재통과. AGY 확인(`2fff559`)과 함께 G2 `통과 판정 → 통과 확정`, REQ-019 HOST 사후 확인 완료. §7 표 중간의 빈 줄 제거(형식만). `ph0/host-g2-review` Branch·Worktree 삭제, 원격에 없던 담당 확인 커밋 3개 포함 push | `e8380ae` |
 | 2026-10-25 16:31 | `claude-opus-5.5/session-c9336d2c` | 사용자가 WSL `Ubuntu-26.04`를 설치. 읽기 전용으로 확인해 WSL 절차 §2.0에 현황 기록(`a060c37`): §2.1 배포판·§2.2 systemd 완료, §2.3~§3 미구성. §6 "Linux·Remote SSH 실행 Host" 상태 갱신. G3 Linux·Remote SSH 검증은 §2.3~§2.9·§3 구성 뒤 착수 | `a060c37` |
 | 2026-10-25 16:40 | `claude-opus-5.5/session-c9336d2c` | WSL 구성 진행 확인: 사용자가 기본 패키지·SSH 서버 구성(§2.3·§2.6), 사용자 결정으로 `appendWindowsPath=false` 적용(`wsl -u root`). Windows에서 `127.0.0.1:2222` SSH 배너 확인. WSL 절차 §2.0·§6 상태 갱신 | `4783fca` |
+| 2026-10-25 16:48 | `claude-opus-5.5/session-c9336d2c` | 사용자 결정: Linux·Remote SSH 실행 Host를 WSL에서 사용자 Ubuntu 서버 `Psyki-NAS`(Ubuntu 26.04.1 LTS, 세 확장 원격 설치·로그인, 저장소 `~/TelosWeaver`, 실제 계정 시험 허용, 제한 없음)로 변경. 서버를 읽기 전용으로 조사(Rust 1.93.0·Node 24.22.1로 Windows와 다름, `pkg-config` 없음, 확장 두 벌, Git 전역 이메일이 개인 주소라 저장소 단위 noreply 설정 예정). Spec v1.5.2·절차 [LINUX_REMOTE_HOST.md](LINUX_REMOTE_HOST.md)(`5126d9b`), WSL 절차는 예비로 표시. §6·G3 행 갱신 | `5126d9b` |
 
 PH0-INTEGRATION은 배정표 관리 자체가 작업이므로 G3까지 `in-progress`로 유지합니다. PH0-CONTRACT는 같은 담당자가 별도 Worktree의 `ph0/contract`에서 진행했고, 통합 후 Worktree를 정리했습니다. 이후 계약 변경 요청이 오면 새 Worktree를 만들어 같은 규칙으로 처리합니다.
