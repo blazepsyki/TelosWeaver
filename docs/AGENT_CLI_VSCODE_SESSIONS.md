@@ -1,35 +1,36 @@
-# 외부 에이전트가 실행한 CLI 세션을 VS Code에서 확인하는 방법 (Codex·Claude Code)
+# 외부 에이전트가 실행한 CLI 세션을 VS Code에서 확인하는 방법 (Codex·Claude Code·Antigravity)
 
 > 확인일: 2026-10-25 (KST)
 >
-> 대상: 다른 에이전트·스크립트가 `codex exec` 또는 `claude -p`로 실행한 작업을 VS Code의 **OpenAI Codex 확장** 또는 **Claude Code 확장** 대화 목록에서 찾는 경우. Claude Code가 Codex를 부르는 경우와 Codex가 Claude Code를 부르는 경우를 모두 다룹니다.
+> 대상: 다른 에이전트·스크립트가 `codex exec`, `claude -p`, 또는 `agy` Headless 모드로 실행한 작업을 VS Code의 **OpenAI Codex 확장**, **Claude Code 확장**, **Google Antigravity 확장(및 Antigravity IDE/2.0)** 대화 목록에서 찾는 경우. 세 에이전트(Codex·Claude Code·Antigravity)가 서로를 CLI로 호출하는 모든 조합을 다룹니다.
 
 ## 1. 요약
 
-두 CLI 모두 비대화형으로 실행하면 기본값으로는 **자동화 출처**로 기록되어 VS Code 확장의 기본 대화 목록에서 빠집니다. 호출 측에서 출처를 대화형 분류로 지정하고, 확장과 같은 저장소·작업 경로를 사용해야 목록 조회 대상에 들어갑니다.
+세 CLI 모두 비대화형으로 기본 실행하면 **자동화 출처로 분류되거나 별도 데이터 디렉터리·기본 CLI 프로젝트에 격리**되어 VS Code 확장의 현재 프로젝트 대화 목록에서 빠집니다. 호출 측에서 확장과 같은 저장소·출처·프로젝트·작업 경로를 지정해야 목록 조회 대상에 들어갑니다.
 
-| 항목 | Codex CLI (→ OpenAI Codex 확장) | Claude Code CLI (→ Claude Code 확장) |
-|---|---|---|
-| 비대화형 기본 출처 | `exec` (목록 기본 필터 밖) | `entrypoint: "sdk-cli"` (목록 기본 필터 밖) |
-| 목록에 포함시키는 방법 | `codex exec --thread-source cli` | 환경 변수 `CLAUDE_CODE_ENTRYPOINT=claude-vscode` |
-| 세션 저장소 | `CODEX_HOME` (기본 `~/.codex`) | `CLAUDE_CONFIG_DIR` (기본 `~/.claude`)의 `projects/<인코딩된 cwd>/` |
-| 작업 경로 지정 | `--cd <절대 경로>` | 프로세스 `cwd` (전용 옵션 없음) |
-| 작업 경로와 목록의 관계 | 프로젝트 필터를 바꾸거나 전체 목록에서 확인 가능 | 확장은 **VS Code 첫 Workspace 폴더와 같은 cwd**의 세션만 조회. 하위 폴더·Worktree 세션은 기본 목록에 나오지 않음 |
-| 세션 ID 수집 | `--json`의 `thread.started.thread_id` | `--session-id <UUID>`로 미리 지정하거나 `stream-json`의 `system/init.session_id` |
-| 영속성을 끄는 옵션 (사용 금지) | `--ephemeral` | `--no-session-persistence` |
-| 기존 자동화 세션 전환 | `codex exec fork <ID> --thread-source cli` | `claude -p --resume <ID> --fork-session` + 환경 변수 |
+| 항목 | Codex CLI (→ OpenAI Codex 확장) | Claude Code CLI (→ Claude Code 확장) | Antigravity CLI (`agy` → Antigravity 확장·IDE) |
+|---|---|---|---|
+| 비대화형 기본 동작 | 출처 `exec` (목록 기본 필터 밖) | `entrypoint: "sdk-cli"` (목록 기본 필터 밖) | 기본 저장소 `~/.gemini/antigravity-cli` (확장 저장소와 분리) + `project_id: "default-cli-project"` |
+| 목록·프로젝트에 포함시키는 방법 | `codex exec --thread-source cli` | 환경 변수 `CLAUDE_CODE_ENTRYPOINT=claude-vscode` | `--app_data_dir=antigravity --project <프로젝트 이름 또는 UUID>` |
+| 세션 저장소 | `CODEX_HOME` (기본 `~/.codex`) | `CLAUDE_CONFIG_DIR` (기본 `~/.claude`)의 `projects/<인코딩된 cwd>/` | `~/.gemini/antigravity` (`conversation_summaries.db`, `brain/<ID>`, `conversations/<ID>.db`) |
+| 프로젝트 정의 위치 | Workspace 경로 기준 | `projects/<cwd 인코딩>` 폴더 이름 | `~/.gemini/config/projects/<UUID>.json` (`id`, `name`, `projectResources`) |
+| 작업 경로 지정 | `--cd <절대 경로>` | 프로세스 `cwd` (전용 옵션 없음) | 프로세스 `cwd` + `--add-dir <절대 경로>` |
+| 작업 경로와 목록의 관계 | 프로젝트 필터를 바꾸거나 전체 목록에서 확인 가능 | 확장은 **VS Code 첫 Workspace 폴더와 같은 cwd**의 세션만 조회. 하위 폴더·Worktree 세션은 기본 목록에 나오지 않음 | `--project <이름 또는 UUID>`를 첫 실행에 지정하면 Worktree에서 실행해도 해당 프로젝트에 귀속되며 프로젝트 기본 경로와 `--add-dir` 경로가 함께 `workspace_uris`에 기록됨 |
+| 세션 ID 수집 | `--json`의 `thread.started.thread_id` | `--session-id <UUID>`로 미리 지정하거나 `stream-json`의 `system/init.session_id` | `--output-format stream-json`의 첫 `init.conversation_id` |
+| 영속성을 끄는 옵션 (사용 금지) | `--ephemeral` | `--no-session-persistence` | 해당 옵션 없음 (`--app_data_dir` 누락 금지) |
+| 기존 자동화 세션 전환 | `codex exec fork <ID> --thread-source cli` | `claude -p --resume <ID> --fork-session` + 환경 변수 | Headless 모드에서는 `/fork` 미지원 및 `--conversation` 재개 시 `project_id` 변경 불가 → **첫 실행부터** `--app_data_dir=antigravity --project` 지정 필요 |
 
-이 절차는 **대화 목록의 조회 대상에 포함시키기 위한 방법**입니다. 실행 중인 CLI 작업의 모든 진행 내용이 확장 화면에 실시간으로 반영되거나, 확장에서 그 프로세스를 제어할 수 있다는 의미는 아닙니다. 자동화 측에서는 JSONL 이벤트와 프로세스 종료 코드를 계속 수집합니다. 실행 중에는 CLI 호출자 한쪽에서만 작업을 지시하고, VS Code에서 후속 작업을 보낼 때는 기존 실행의 종료를 먼저 확인합니다.
+이 절차는 **대화 목록의 조회 대상 및 특정 프로젝트에 포함시키기 위한 방법**입니다. 실행 중인 CLI 작업의 모든 진행 내용이 확장 화면에 실시간으로 반영되거나, 확장에서 그 프로세스를 제어할 수 있다는 의미는 아닙니다. 자동화 측에서는 JSONL 이벤트와 프로세스 종료 코드를 계속 수집합니다. 실행 중에는 CLI 호출자 한쪽에서만 작업을 지시하고, VS Code에서 후속 작업을 보낼 때는 기존 실행의 종료를 먼저 확인합니다.
 
 ## 2. 공통 원칙
 
 1. VS Code에서 사용하는 확장의 CLI 실행 파일을 확인하고, 호출 에이전트에 그 절대 경로를 전달합니다. 버전별 디렉터리는 업데이트 때 바뀌므로 영구 고정하지 않습니다. 프로젝트의 CLI 탐지 원칙은 [Spec §7](DEVELOPMENT_v1.5.md)을 따릅니다.
-2. CLI와 확장을 같은 Host·OS 사용자·세션 저장소(`CODEX_HOME` 또는 `CLAUDE_CONFIG_DIR`)에서 실행합니다. 터미널에서만 환경 변수를 바꾸면 이미 실행 중인 확장에는 반영되지 않습니다.
-3. 세션 영속성을 끄는 옵션(`--ephemeral`, `--no-session-persistence`)을 사용하지 않습니다.
+2. CLI와 확장을 같은 Host·OS 사용자·세션 저장소(`CODEX_HOME`, `CLAUDE_CONFIG_DIR`, 또는 `~/.gemini/antigravity`)에서 실행합니다. 터미널에서만 환경 변수를 바꾸면 이미 실행 중인 확장에는 반영되지 않습니다.
+3. 세션 영속성을 끄는 옵션(`--ephemeral`, `--no-session-persistence`)을 사용하지 않으며, `agy`에서는 확장 공유 디렉터리 옵션(`--app_data_dir=antigravity`)과 `--project`를 생략하지 않습니다.
 4. 셸 문자열을 조합하지 않고 실행 파일과 인자 배열을 분리해 실행하며, 프롬프트는 stdin으로 전달합니다.
-5. 세션 ID를 호출자의 작업 ID와 연결해 기록하고, 후속 작업에는 `--last`·`--continue` 대신 그 ID를 사용합니다.
-6. stdout JSONL과 stderr를 분리해 보관하고, 세션 시작 이벤트가 아니라 완료·실패 이벤트와 종료 코드로 작업 결과를 판정합니다.
-7. 출처 지정은 표시 분류만 바꿉니다. 승인·Sandbox·권한·모델 설정은 해당 작업에 허용된 기존 정책을 유지합니다.
+5. 세션 ID를 호출자의 작업 ID와 연결해 기록하고, 후속 작업에는 `--last`·`--continue`(`-c`) 대신 그 ID(`resume <ID>`, `--resume <ID>`, `--conversation <ID>`)를 사용합니다.
+6. stdout JSONL과 stderr를 분리해 보관하고, 세션 시작 이벤트가 아니라 완료·실패 이벤트와 종료 코드(특히 `agy`는 `result.denied_actions` 포함)로 작업 결과를 판정합니다.
+7. 출처·데이터 디렉터리·프로젝트 지정은 표시 분류와 귀속 프로젝트만 바꿉니다. 승인·Sandbox·권한·모델 설정은 해당 작업에 허용된 기존 정책을 유지합니다.
 8. 검증 기록에는 **CLI 작업 성공 여부**, **VS Code 목록 표시 여부**, **대화 내용 열기 여부**, **실시간 진행 반영 여부**를 각각 남기고, 직접 확인하지 않은 항목은 미검증으로 기록합니다.
 
 ---
@@ -100,7 +101,7 @@ codex exec --help
 - 예를 들어 `psyki-nas`에서 CLI 작업을 실행했다면 해당 원격 환경의 확장에서 확인합니다. Windows 로컬 창에 자동 동기화된다고 가정하지 않습니다.
 - 경로 표기나 심볼릭 링크 때문에 프로젝트 필터가 달라지지 않도록 확장에서 연 작업 경로와 CLI의 실제 `cwd`를 함께 기록합니다.
 
-이 Host 구분은 [Claude Code CLI](#b-claude-code-cli)에도 같이 적용됩니다.
+이 Host 구분은 [Claude Code CLI](#b-claude-code-cli)와 [Antigravity CLI](#c-antigravity-cli-agy)에도 같이 적용됩니다.
 
 ## A3. 새 작업을 위임하는 명령
 
@@ -404,30 +405,269 @@ Pop-Location
 
 ---
 
-# C. 서로 호출하는 경우
+# C. Antigravity CLI (`agy`)
+
+## C1. 확인한 사실과 아직 확인하지 않은 동작
+
+| 항목 | 근거와 확인 결과 |
+|---|---|
+| 설치된 Antigravity 확장 | `google.google-antigravity` 버전 `1.9.0` (Windows 로컬 및 Linux `psyki-nas`) |
+| 확장이 관리하는 CLI | `~/.gemini/bin/agy.exe` (Windows) / `~/.gemini/bin/agy` (Linux), `agy --version` 결과 `1.4.7` |
+| 데이터 디렉터리 분리 | 확장은 허브 프로세스를 `--hub --app_data_dir=antigravity`로 띄워 `~/.gemini/antigravity`를 사용(`extension.js` 확인). 반면 `agy` CLI 기본값은 `~/.gemini/antigravity-cli`이므로 `--app_data_dir=antigravity`를 생략하면 확장 DB(`conversation_summaries.db`)와 완전히 분리됨 ([AGY-DATA-03](phase-0/evidence/PH0-AGY/README.md)) |
+| 프로젝트 정의 위치 | `~/.gemini/config/projects/*.json`에 프로젝트별 `id`(UUID), `name`, `projectResources`가 저장됨. 이 환경에서는 `TelosWeaver` (`c1ad552c-317e-44a5-b059-c8f9df88d085.json`), `Vibe_dev` (`75201d01-42ea-48a2-b4b5-504013554c6f.json`), `default-cli-project.json` (`"name": "CLI Project"`), `outside-of-project.json` 확인 |
+| 기본 프로젝트 귀속 | `agy changelog`(1.0.12, 1.1.18) 및 DB 확인: CLI에서 `--project`를 생략하면 현재 작업 폴더와 무관하게 `project_id`가 `"default-cli-project"`로 기록되어 특정 프로젝트 대화 목록에서 분리됨. `--project <프로젝트 이름 또는 UUID>`를 지정해야 해당 프로젝트의 UUID로 기록됨 |
+| 작업 경로(`workspace_uris`) 기록 | Headless 실행에서 `--add-dir <절대 경로>`를 생략하면 `conversation_summaries.db`의 `workspace_uris`가 빈 문자열(`""`)로 남음. `--project TelosWeaver --add-dir <작업 폴더>`를 함께 지정하면 `workspace_uris`에 `<작업 폴더>` URI와 프로젝트 기본 폴더(`file:///d:/Downloads/Vibe_dev/TelosWeaver`) URI가 모두 기록됨 |
+| 출처(`source`) 기록 | `conversation_summaries.db` 확인: 대화형 CLI(TUI)는 `CORTEX_TRAJECTORY_SOURCE_CLI`로 기록되고, VS Code 확장 대화와 Headless Print(`--input-format stream-json --output-format stream-json`) 실행은 모두 빈 문자열(`""`)로 기록됨 |
+| 실제 기록 시험 (2026-10-25, Windows) | `--app_data_dir=antigravity --project TelosWeaver --add-dir <임시 폴더> --input-format stream-json --output-format stream-json` 실행 → `~/.gemini/antigravity/conversation_summaries.db`에 `project_id: "c1ad552c-317e-44a5-b059-c8f9df88d085"`, `workspace_uris: ["file:///<임시 폴더>","file:///d:/Downloads/Vibe_dev/TelosWeaver"]`, `app_data_dir: "antigravity"` 기록 확인 (시험 세션 `21278063-6511-418f-a873-6f0fdc900389` 즉시 정리 완료) |
+| Resume 시 프로젝트 변경 시험 | `--project` 없이 생성되어 `default-cli-project`로 기록된 세션을 `--conversation <ID> --project TelosWeaver`로 재개(Resume)해도 기존 세션의 `project_id`와 `workspace_uris`는 `default-cli-project`에서 바뀌지 않음을 확인 (시험 세션 `22feb09b-4617-463a-b0cf-7a6124888145` 즉시 정리 완료) |
+| Headless Fork 미지원 | `agy` 1.4.7은 `--fork` 플래그가 없고 Headless Print 모드에서 `/fork`를 거부함 (`/fork is not available in print mode`, [FORK-POC-01](phase-0/evidence/PH0-AGY/README.md)) |
+| Linux Remote SSH 인증 차이 | Windows 로컬은 OS 자격 증명 저장소를 공유하므로 `--app_data_dir=antigravity`가 별도 CLI 로그인 없이 동작하지만, Linux Remote SSH(`psyki-nas`)에서는 파일 기반 토큰(`~/.gemini/antigravity/antigravity-oauth-token`)을 요구하므로 원격 터미널에서 `agy --app_data_dir=antigravity`로 1회 로그인되어 있어야 함 ([PH0-AGY Linux 검증 기록](phase-0/evidence/PH0-AGY/LINUX.md)) |
+| 기존 Adapter 실행 방식 | `crates/adapters/src/agy.rs`는 기본값으로 `AgyDataDirMode::ExtensionShared`(`--app_data_dir=antigravity`)를 사용하나 `--project`는 기본 인자로 넣지 않음 |
+
+**판단:** `agy` 세션을 VS Code(Antigravity 확장·IDE·Antigravity 2.0)에서 보이면서 특정 프로젝트에 포함시키려면 **첫 번째 실행(세션 생성 시점)부터** `--app_data_dir=antigravity`, `--project <프로젝트 이름 또는 UUID>`, `--add-dir <작업 폴더 절대 경로>`를 함께 지정해야 합니다.
+
+공식 근거: `agy --help`, `agy changelog` (1.0.12 `--project`·`--new-project` 추가, 1.1.18 `--project`에 프로젝트 이름 전달 지원), [PH0-AGY 검증 기록](phase-0/evidence/PH0-AGY/README.md), [PH0-AGY Linux 검증 기록](phase-0/evidence/PH0-AGY/LINUX.md). `--app_data_dir=antigravity`와 `conversation_summaries.db` 스키마 동작은 설치된 확장 `1.9.0` 및 `agy` `1.4.7`에서 확인한 동작입니다.
+
+## C2. 호출 전에 실행 환경과 프로젝트 식별자 확인
+
+### Windows 로컬
+
+```powershell
+$agyExe = "$env:USERPROFILE\.gemini\bin\agy.exe"
+& $agyExe --version
+& $agyExe --app_data_dir=antigravity --version
+& $agyExe --help
+Get-ChildItem "$env:USERPROFILE\.gemini\config\projects\*.json" | ForEach-Object {
+    $j = Get-Content $_.FullName -Raw | ConvertFrom-Json
+    [PSCustomObject]@{ File = $_.Name; Id = $j.id; Name = $j.name }
+}
+```
+
+이 환경에서 확인한 실행 파일과 프로젝트 설정은 다음과 같습니다.
+
+```text
+실행 파일: C:\Users\Psyki-HOME\.gemini\bin\agy.exe (버전 1.4.7)
+프로젝트 목록:
+- TelosWeaver : c1ad552c-317e-44a5-b059-c8f9df88d085
+- Vibe_dev    : 75201d01-42ea-48a2-b4b5-504013554c6f
+```
+
+- `--app_data_dir=antigravity --version`이 종료 코드 `0`으로 버전을 출력하는지 먼저 확인합니다 (Spec §7.5 규칙 5).
+- Windows에서 `Resolve-Path` 대신 Rust `canonicalize()` 등으로 얻은 `\\?\D:\...` 확장 경로 접두사를 `--add-dir`에 그대로 넘기면 `agy`가 Workspace 밖 경로로 오인해 파일 쓰기를 `scratch/`로 우회시키므로, `\\?\` 접두사 없는 일반 절대 경로(`D:\Downloads\Vibe_dev\TelosWeaver` 등)를 전달합니다 ([PH0-AGY Linux 검증 기록 §5](phase-0/evidence/PH0-AGY/LINUX.md)).
+
+### Linux·WSL·Remote SSH
+
+```sh
+hostname
+id -un
+~/.gemini/bin/agy --app_data_dir=antigravity --version
+ls -la ~/.gemini/config/projects/
+ls -la ~/.gemini/antigravity/
+```
+
+- Remote SSH 호스트(예: `psyki-nas`)에서는 `agy`가 `SSH_CONNECTION`을 감지해 데이터 디렉터리 안의 파일 토큰(`~/.gemini/antigravity/antigravity-oauth-token`)을 찾습니다. 원격 VS Code 확장은 토큰을 파일로 저장하지 않으므로, 원격 호스트에서 `--app_data_dir=antigravity`로 Headless 실행을 하려면 사용자가 원격 터미널에서 `~/.gemini/bin/agy --app_data_dir=antigravity`로 1회 로그인을 마친 상태여야 합니다.
+- 원격 호스트의 `~/.gemini/config/projects/`에 대상 프로젝트 JSON이 있는지도 함께 확인합니다.
+
+## C3. 새 작업을 위임하는 명령
+
+### PowerShell
+
+`-p` 뒤에 다른 플래그가 오면 프롬프트 문자열로 오인할 수 있으므로([PH0-AGY 검증 기록 §2](phase-0/evidence/PH0-AGY/README.md)), 비대화형 자동화에서는 `--input-format stream-json --output-format stream-json`으로 실행하고 stdin에 Stream JSON 사용자 메시지 한 줄을 보낸 뒤 stdin을 닫는 방식을 권장합니다.
+
+```powershell
+$agyExe = "$env:USERPROFILE\.gemini\bin\agy.exe"
+$workspace = (Resolve-Path 'D:\Downloads\Vibe_dev\TelosWeaver').Path
+$project = 'TelosWeaver'   # 또는 'c1ad552c-317e-44a5-b059-c8f9df88d085'
+$prompt = 'AGENTS.md와 README.md를 읽고 프로젝트 구조를 한국어로 설명해 주세요. 파일은 수정하지 마세요.'
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+
+$inputJson = @{
+    event = 'user'
+    message = @{
+        role = 'user'
+        content = $prompt
+    }
+} | ConvertTo-Json -Compress
+
+Push-Location $workspace
+try {
+    $inputJson | & $agyExe `
+        --app_data_dir=antigravity `
+        --project $project `
+        --add-dir $workspace `
+        --mode plan `
+        --disable-slash-commands `
+        --input-format stream-json `
+        --output-format stream-json
+    $runExitCode = $LASTEXITCODE
+} finally {
+    Pop-Location
+}
+```
+
+Worktree에서 작업할 때는 `$workspace`에 배정된 Worktree 절대 경로를 지정하고 `--project TelosWeaver`를 그대로 유지합니다. 그러면 작업은 Worktree에서 격리되어 실행되면서도, 대화 목록에서는 `TelosWeaver` 프로젝트 아래에 묶입니다.
+
+### 에이전트 코드에서 프로세스를 직접 실행하는 경우
+
+```python
+import json
+import os
+import subprocess
+from pathlib import Path
+
+agy_exe = Path.home() / ".gemini" / "bin" / "agy.exe"
+workspace = Path(r"D:\Downloads\Vibe_dev\TelosWeaver").resolve(strict=True)
+# Windows에서 \\?\ 접두사가 붙은 경우 제거
+workspace_str = str(workspace).removeprefix("\\\\?\\")
+project_name = "TelosWeaver"
+prompt = "AGENTS.md와 README.md를 읽고 프로젝트 구조를 설명해 주세요. 파일은 수정하지 마세요."
+
+stdin_payload = json.dumps({
+    "event": "user",
+    "message": {"role": "user", "content": prompt},
+}, ensure_ascii=False) + "\n"
+
+result = subprocess.run(
+    [
+        str(agy_exe),
+        "--app_data_dir=antigravity",
+        "--project", project_name,
+        "--add-dir", workspace_str,
+        "--mode", "plan",
+        "--disable-slash-commands",
+        "--input-format", "stream-json",
+        "--output-format", "stream-json",
+    ],
+    input=stdin_payload,
+    cwd=workspace_str,
+    env=os.environ.copy(),
+    encoding="utf-8",
+    capture_output=True,
+    shell=False,
+)
+
+conversation_id = None
+final_result = None
+for line in result.stdout.splitlines():
+    event = json.loads(line)
+    if event.get("event") == "init" and conversation_id is None:
+        conversation_id = event.get("conversation_id")
+    elif event.get("event") == "result":
+        final_result = event.get("result", {})
+
+denied = [] if final_result is None else (final_result.get("denied_actions") or [])
+status = None if final_result is None else final_result.get("status")
+soft_denied_empty = (
+    status == "SUCCESS"
+    and bool(denied)
+    and not (final_result.get("response") or "").strip()
+)
+
+print(json.dumps({
+    "conversationId": conversation_id,
+    "exitCode": result.returncode,
+    "status": status,
+    "deniedActions": denied,
+    "softDeniedFailure": soft_denied_empty,
+}))
+```
+
+`agy` 1.4.7은 Headless 모드에서 도구 권한이 소프트 거부되어 아무 응답을 만들지 못해도 종료 코드 `0`과 `result.status: "SUCCESS"`를 반환할 수 있습니다([PH0-AGY 검증 기록 §2](phase-0/evidence/PH0-AGY/README.md)). 따라서 호출자는 종료 코드만 보지 않고 `result.status`, `result.denied_actions`, `result.response`를 함께 확인해 성공 여부를 판정합니다.
+
+## C4. 같은 세션에 후속 작업 보내기
+
+```powershell
+$inputJson = @{
+    event = 'user'
+    message = @{
+        role = 'user'
+        content = '앞선 분석에서 확인한 수정 사항을 적용해 주세요.'
+    }
+} | ConvertTo-Json -Compress
+
+Push-Location $workspace
+try {
+    $inputJson | & $agyExe `
+        --app_data_dir=antigravity `
+        --project $project `
+        --conversation '<CONVERSATION_ID>' `
+        --add-dir $workspace `
+        --mode accept-edits `
+        --disable-slash-commands `
+        --input-format stream-json `
+        --output-format stream-json
+} finally {
+    Pop-Location
+}
+```
+
+- `--continue`(`-c`)는 가장 최근 대화를 고르므로 다중 에이전트 환경에서는 사용하지 않고 항상 `--conversation <CONVERSATION_ID>`를 지정합니다.
+- 첫 실행과 동일하게 `--app_data_dir=antigravity`와 `--add-dir`를 유지합니다.
+
+## C5. 이미 만들어진 CLI 세션을 특정 프로젝트로 옮기거나 포함하기
+
+- **`--app_data_dir=antigravity` 없이 만들어진 세션 (`~/.gemini/antigravity-cli`)**:
+  - 별도 데이터 디렉터리와 DB에 저장되어 있으므로 `--app_data_dir=antigravity --conversation <ID>`로 찾을 수 없습니다 (`Conversation Not Found`).
+- **`--app_data_dir=antigravity`는 지정했으나 `--project`를 생략해 `default-cli-project`로 만들어진 세션**:
+  - VS Code·Antigravity UI의 `CLI Project`(`default-cli-project`) 목록에는 나타나지만, 이후 `--conversation <ID> --project TelosWeaver`로 재개해도 `project_id`가 `TelosWeaver`로 바뀌지 않습니다(C1 시험 확인).
+  - 또한 `agy` 1.4.7 Headless Print 모드는 `/fork`를 지원하지 않습니다(`FORK-POC-01`).
+- **권장 절차**:
+  - 내부 SQLite(`conversation_summaries.db`)나 `.pb` 파일을 직접 수정하지 않습니다(공통 원칙 및 DEC-08).
+  - 특정 프로젝트 아래에 표시되어야 하는 작업은 **새 세션을 시작할 때부터** `--app_data_dir=antigravity --project <프로젝트 이름 또는 UUID> --add-dir <Workspace>`를 지정해 생성합니다.
+
+## C6. VS Code에서 확인하고 문제를 구분하는 순서
+
+1. 호출 측에서 `init.conversation_id`, 종료 코드, `result.status`, `result.denied_actions`를 확인합니다.
+2. `~/.gemini/antigravity/conversation_summaries.db`에 해당 `conversation_id` 행이 생성되었고 `project_id`가 대상 프로젝트 UUID와 일치하는지 확인합니다(읽기 전용 조회).
+
+   ```powershell
+   python -c "import sqlite3, os; conn = sqlite3.connect(os.path.expanduser('~/.gemini/antigravity/conversation_summaries.db')); print(conn.execute('SELECT conversation_id, step_count, workspace_uris, project_id, app_data_dir FROM conversation_summaries WHERE conversation_id = ?', ('<CONVERSATION_ID>',)).fetchall())"
+   ```
+
+3. VS Code(Antigravity 확장·IDE 또는 Antigravity 2.0)에서 해당 프로젝트(`TelosWeaver` 등)의 대화 목록을 확인합니다. 갱신되지 않으면 `Developer: Reload Window` 후 다시 확인합니다.
+4. 대화를 열어 사용자 요청과 응답이 정상 표시되는지 확인하고, 목록 표시와 대화 열기를 구분해 기록합니다.
+
+| 증상 | 확인할 항목 |
+|---|---|
+| CLI 실행은 성공했으나 VS Code 어디에도 없음 | `--app_data_dir=antigravity`가 누락되어 `~/.gemini/antigravity-cli`에 저장되었는지 확인 |
+| 전체·`CLI Project`에는 있으나 대상 프로젝트에 없음 | 첫 실행에 `--project <프로젝트 이름 또는 UUID>`를 지정했는지 확인. `default-cli-project`로 생성된 뒤 Resume에만 `--project`를 붙였는지 확인 |
+| `--project` 이름이 거부됨 | `~/.gemini/config/projects/*.json`의 `name` 또는 `id`와 정확히 일치하는지, `agy` 버전이 `1.1.18` 이상인지 확인 |
+| 파일 쓰기가 프로젝트 폴더가 아닌 `scratch/`에 생성됨 | `--add-dir`가 누락되었거나 Windows `\\?\` 확장 경로 접두사가 포함된 경로를 전달했는지, `--mode accept-edits`(또는 `auto`)를 지정했는지 확인 |
+| 종료 코드는 0인데 응답이 비어 있고 작업이 안 됨 | Headless 모드에서 도구 권한이 소프트 거부되었는지 `result.denied_actions`와 stderr 확인 |
+| Linux Remote SSH에서 `authentication failed or timed out` | 원격 호스트의 `~/.gemini/antigravity/antigravity-oauth-token` 유무 확인 ([C2](#linuxwslremote-ssh)) |
+
+---
+
+# D. 서로 호출하는 경우
+
+세 에이전트(Codex, Claude Code, Antigravity `agy`)가 서로를 비대화형 CLI로 호출할 때 호출 측에서 지정할 핵심 옵션과 확인 위치는 다음과 같습니다.
 
 | 호출 방향 | 호출 측에서 지정할 것 | 확인할 곳 |
 |---|---|---|
-| Claude Code → Codex | Codex 확장 동봉 `codex.exe`, `exec --thread-source cli --cd <Workspace> --json -` | OpenAI Codex 확장 대화 목록 ([A](#a-codex-cli)) |
-| Codex → Claude Code | Claude Code 확장 동봉 `claude.exe`, `CLAUDE_CODE_ENTRYPOINT=claude-vscode`, cwd = VS Code Workspace, `-p --session-id <UUID>` | Claude Code 확장 세션 목록 ([B](#b-claude-code-cli)) |
-| Claude Code → Claude Code | 부모 세션 변수 제거 후 `CLAUDE_CODE_ENTRYPOINT` 명시 ([B2](#호출자가-claude-code-세션-안에서-실행-중인-경우)) | Claude Code 확장 세션 목록 |
-| Codex → Codex | `--thread-source cli` | OpenAI Codex 확장 대화 목록 |
+| Claude Code / Agy → **Codex** | Codex 확장 동봉 `codex.exe`, `exec --thread-source cli --cd <Workspace> --json -` | OpenAI Codex 확장 대화 목록 ([A](#a-codex-cli)) |
+| Codex / Agy → **Claude Code** | Claude Code 확장 동봉 `claude.exe`, 부모 `CLAUDE*` 변수 제거 후 `CLAUDE_CODE_ENTRYPOINT=claude-vscode`, `cwd` = VS Code 첫 Workspace 폴더, `-p --session-id <UUID> --output-format stream-json --verbose` | Claude Code 확장 세션 목록 ([B](#b-claude-code-cli)) |
+| Codex / Claude Code → **Antigravity (`agy`)** | `~/.gemini/bin/agy[.exe]`, `--app_data_dir=antigravity --project <프로젝트 이름 또는 UUID> --add-dir <Workspace> --input-format stream-json --output-format stream-json` (stdin에 JSON 사용자 메시지 1줄 전송 후 EOF) | Antigravity 확장·IDE 해당 프로젝트 대화 목록 ([C](#c-antigravity-cli-agy)) |
+| Claude Code → **Claude Code** | 부모 세션 변수 제거 후 `CLAUDE_CODE_ENTRYPOINT=claude-vscode` 명시 ([B2](#호출자가-claude-code-세션-안에서-실행-중인-경우)) | Claude Code 확장 세션 목록 |
+| Codex → **Codex** | `--thread-source cli` | OpenAI Codex 확장 대화 목록 |
+| Antigravity (`agy`) → **Antigravity (`agy`)** | `--app_data_dir=antigravity --project <프로젝트 이름 또는 UUID> --add-dir <Workspace>` (동일 `conversation_id`를 동시에 열지 않고 새 세션 또는 종료 후 `--conversation <ID>`로 직렬화) | Antigravity 확장·IDE 해당 프로젝트 대화 목록 |
 
-- 호출하는 에이전트의 Sandbox가 상대 CLI의 세션 저장소(`~/.codex`, `~/.claude`) 쓰기나 네트워크 접근을 막으면 세션이 저장되지 않거나 실행이 실패할 수 있습니다. 이 경우 허용 범위를 넓히지 말고 해당 작업의 승인 정책에 따라 처리합니다. Codex Sandbox 안에서 Claude Code를 실행하는 경우는 이 문서에서 시험하지 않았습니다.
-- 호출 측의 환경 변수가 자식 프로세스로 그대로 상속되므로, 상대 CLI의 출처·저장소 변수는 호출 코드에서 명시적으로 설정합니다.
-- 양쪽 확장에서 같은 작업을 확인하려면 두 CLI 모두 같은 Workspace 경로에서 실행하고, 작업 기록에 Codex 세션 ID와 Claude 세션 ID를 함께 남깁니다.
+- 호출하는 에이전트의 Sandbox나 파일 접근 정책이 상대 CLI의 세션 저장소(`~/.codex`, `~/.claude`, `~/.gemini/antigravity`) 쓰기나 네트워크 접근을 막으면 세션이 저장되지 않거나 실행이 실패할 수 있습니다. 이 경우 임의로 권한 우회 플래그를 쓰지 말고 해당 작업의 승인 정책에 따라 처리합니다.
+- 호출 측의 환경 변수가 자식 프로세스로 그대로 상속되므로, 상대 CLI의 출처·저장소 변수는 호출 코드에서 명시적으로 설정(또는 부모 세션 변수 제거)합니다.
+- 양쪽 확장에서 같은 작업을 추적하려면 작업 기록에 호출 에이전트 세션 ID와 피호출 CLI의 세션 ID(`thread_id` / `session_id` / `conversation_id`)를 함께 남깁니다.
 
-# D. TelosWeaver Adapter와의 관계
+# E. TelosWeaver Adapter와의 관계
 
-현재 TelosWeaver Codex Adapter는 `codex exec`가 아니라 `app-server --stdio`와 `thread/start`·`thread/resume`·`thread/fork`를 사용합니다. 따라서 `--thread-source cli`를 Adapter 실행 인자에 그대로 추가하는 변경은 적용 대상이 아닙니다. App Server에서 `thread/list.sourceKinds`는 **조회할 출처를 고르는 필터**이며, 지정한다고 생성된 Thread의 출처가 바뀌지는 않습니다.
+현재 TelosWeaver Codex Adapter(`crates/adapters/src/codex.rs`)는 `codex exec`가 아니라 `app-server --stdio`와 `thread/start`·`thread/resume`·`thread/fork`를 사용합니다. 따라서 `--thread-source cli`를 Adapter 실행 인자에 그대로 추가하는 변경은 적용 대상이 아닙니다. App Server에서 `thread/list.sourceKinds`는 **조회할 출처를 고르는 필터**이며, 지정한다고 생성된 Thread의 출처가 바뀌지는 않습니다.
 
 현재 TelosWeaver Claude Adapter(`crates/adapters/src/claude.rs`)는 `claude -p`를 실행하고 `CLAUDE_CODE_ENTRYPOINT`를 지정하지 않으므로, 상위 환경에 값이 없으면 세션이 `sdk-cli`로 기록되어 Claude Code 확장 목록에서 제외됩니다.
 
+현재 TelosWeaver Antigravity Adapter(`crates/adapters/src/agy.rs`)는 기본값으로 `AgyDataDirMode::ExtensionShared`(`--app_data_dir=antigravity`)를 사용하므로 세션이 VS Code 확장과 공유하는 `~/.gemini/antigravity/conversation_summaries.db`에 기록됩니다(`AgyDataDirMode::DefaultCli`로 바꾸면 `~/.gemini/antigravity-cli`로 분리됨). 다만 기본 실행 인자에 `--project`는 포함하지 않으므로 `AgyLaunch::extra_args`에 `["--project".into(), "<프로젝트 이름 또는 UUID>".into()]`를 전달하지 않으면 `project_id`가 `default-cli-project`로 기록됩니다.
+
 Adapter가 시작한 Run도 확장 목록에 보이도록 하는 요구는 Spec v1.5.3의 DEC-08·[§7.6](DEVELOPMENT_v1.5.md#76-vs-code-확장-대화-목록-표시)으로 확정했고, 각 Adapter 담당에게 [작업 지시](phase-0/evidence/PH0-INTEGRATION/VSCODE_LISTING_ASSIGNMENTS.md)로 배정했습니다. 구현·판정 전까지는 위 설명이 현재 상태입니다.
 
-이 문서는 외부 에이전트의 CLI 호출 절차를 정리한 운영 문서이며 Adapter 구현, 공통 계약, Phase 0의 완료 판정은 변경하지 않습니다. 기존 구현·시험 근거는 [PH0-CODEX 검증 기록](phase-0/evidence/PH0-CODEX/README.md)과 [PH0-CLAUDE 검증 기록](phase-0/evidence/PH0-CLAUDE/README.md)을 참고합니다.
+이 문서는 외부 에이전트의 CLI 호출 절차를 정리한 운영 문서이며 Adapter 구현, 공통 계약, Phase 0의 완료 판정은 변경하지 않습니다. 기존 구현·시험 근거는 [PH0-CODEX 검증 기록](phase-0/evidence/PH0-CODEX/README.md), [PH0-CLAUDE 검증 기록](phase-0/evidence/PH0-CLAUDE/README.md), [PH0-AGY 검증 기록](phase-0/evidence/PH0-AGY/README.md)([Linux 검증 기록](phase-0/evidence/PH0-AGY/LINUX.md))을 참고합니다.
 
-# E. 위임 에이전트에 전달할 지시 예시
+# F. 위임 에이전트에 전달할 지시 예시
 
 ### Codex를 호출하게 할 때
 
@@ -451,5 +691,18 @@ cwd는 VS Code에서 연 Workspace 폴더와 같은 절대 경로로 하고, 새
 기존 권한 모드·허용 도구·모델 정책을 유지하고, --no-session-persistence와 bypassPermissions는 사용하지 마세요.
 세션 ID를 작업 ID와 연결해 기록하고, 후속 작업에는 --continue 대신 같은 cwd에서 --resume <세션 ID>를 사용해 주세요.
 종료 코드와 result 이벤트의 is_error를 확인하고, stdout JSONL과 stderr를 분리해 보관해 주세요.
+CLI 실행 결과와 VS Code 목록·대화 표시 확인 결과를 구분하고, 확인하지 않은 화면 동작은 미검증으로 보고해 주세요.
+```
+
+### Antigravity (`agy`)를 호출하게 할 때
+
+```text
+Antigravity(agy) 작업을 호출할 때 VS Code Antigravity 확장과 같은 Host, OS 사용자, ~/.gemini/antigravity 데이터 디렉터리를 사용해 주세요.
+~/.gemini/bin/agy[.exe] 실행 파일의 절대 경로와 --app_data_dir=antigravity --version, ~/.gemini/config/projects/*.json의 대상 프로젝트 이름(또는 UUID)을 확인해 주세요.
+새 작업은 첫 실행부터 --app_data_dir=antigravity --project <프로젝트 이름 또는 UUID> --add-dir <배정된 Workspace 표준 절대 경로> --disable-slash-commands --input-format stream-json --output-format stream-json 으로 실행하고, 프롬프트는 stdin에 {"event":"user","message":{"role":"user","content":"..."}} 한 줄을 쓴 뒤 즉시 stdin(EOF)을 닫아 전달해 주세요.
+Windows에서는 --add-dir와 cwd에 \\?\ 접두사가 없는 표준 절대 경로를 전달해 주세요.
+기존 모드(--mode plan 또는 accept-edits)·모델·추론 강도(--effort) 정책을 유지하고, --dangerously-skip-permissions는 사용하지 마세요.
+init 이벤트의 conversation_id를 작업 ID와 연결해 기록하고, 후속 작업에는 --continue(-c) 대신 --conversation <conversation_id>를 사용해 주세요.
+종료 코드뿐 아니라 result 이벤트의 status, denied_actions, response를 함께 확인해 소프트 거부 여부를 판정하고, stdout JSONL과 stderr를 분리해 보관해 주세요.
 CLI 실행 결과와 VS Code 목록·대화 표시 확인 결과를 구분하고, 확인하지 않은 화면 동작은 미검증으로 보고해 주세요.
 ```

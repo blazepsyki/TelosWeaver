@@ -5,7 +5,7 @@
 - 기준 설계: [docs/DEVELOPMENT_v1.5.md](docs/DEVELOPMENT_v1.5.md)
 - 진행 현황: [docs/phase-0/WORK_ALLOCATION.md](docs/phase-0/WORK_ALLOCATION.md) (작업 배정·게이트·변경 요청의 단일 원본)
 - 에이전트 작업 지침: [AGENTS.md](AGENTS.md)
-- 외부 에이전트가 실행한 CLI 세션 표시(Codex·Claude Code): [VS Code에서 세션 확인](docs/AGENT_CLI_VSCODE_SESSIONS.md)
+- 외부 에이전트가 실행한 CLI 세션 표시(Codex·Claude Code·Antigravity): [VS Code에서 세션 확인](docs/AGENT_CLI_VSCODE_SESSIONS.md)
 
 ## 현재 상태 — Phase 0 (기술 검증)
 
