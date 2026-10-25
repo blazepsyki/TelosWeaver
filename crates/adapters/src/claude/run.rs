@@ -2,6 +2,7 @@
 //!
 //! Run은 전용 프로세스 하나와 Turn 하나입니다. 프롬프트를 stdin에 쓴 뒤 바로 닫으므로
 //! 프로세스는 `result` 뒤에 스스로 끝납니다. 종료 이벤트는 항상 `process_exited`입니다.
+//! `result` 뒤에 CLI가 Turn을 이어가면(백그라운드 작업 완료 등) 그 출력은 Run에 넣지 않고 프로세스를 끝냅니다.
 
 use std::{
     sync::{
@@ -156,6 +157,7 @@ impl RunEntry {
     pub async fn supervise(self: Arc<Self>, grace: Duration) {
         let mut mapper = StreamMapper::default();
         let mut protocol_failed = false;
+        let mut continued = false;
         match self.handle.take_output() {
             Ok(mut output) => {
                 let mut open = 2;
@@ -163,12 +165,22 @@ impl RunEntry {
                     let Some(event) = output.next().await else {
                         break;
                     };
+                    let turn_done = mapper.turn_finished();
                     match event {
                         OutputEvent::Line {
                             stream: OutputStream::Stdout,
                             data,
                             ..
-                        } if !protocol_failed => match mapper.map_line(&data) {
+                        } if !protocol_failed && !continued => match mapper.map_line(&data) {
+                            // §7.2: Turn이 끝난 뒤 Provider가 스스로 시작한 Turn은 이 Run이 감독하지 않습니다.
+                            Ok(payloads) if turn_done && !payloads.is_empty() => {
+                                continued = true;
+                                self.stop_continuation(grace);
+                            }
+                            Err(_) if turn_done => {
+                                continued = true;
+                                self.stop_continuation(grace);
+                            }
                             Ok(payloads) => {
                                 if let Some(id) = mapper.session_id() {
                                     let mut state = self.state.lock().unwrap();
@@ -246,6 +258,15 @@ impl RunEntry {
             status.ok().map(|s| (s.code, s.cause)),
             report.ok(),
         )));
+    }
+
+    /// `turn_finished` 뒤에는 이벤트를 더 둘 수 없으므로 기록 없이 프로세스만 끝냅니다.
+    /// 종료 코드가 없는 요청 종료로 보고되어 Run은 성공으로 판정되지 않습니다.
+    fn stop_continuation(&self, grace: Duration) {
+        let handle = self.handle.clone();
+        tokio::spawn(async move {
+            let _ = handle.terminate(grace).await;
+        });
     }
 
     /// Protocol 오류는 정상 메시지로 해석하지 않고 프로세스를 끝냅니다 (REQ-003).

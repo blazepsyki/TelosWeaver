@@ -159,6 +159,36 @@ async fn env_completed_run() {
     assert_eq!(exit.children_reaped, Some(true));
 }
 
+/// §7.2: 백그라운드 작업을 요청해도 CLI가 첫 `result` 뒤에 Turn을 이어가지 않고 스스로 끝납니다
+/// (`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS`). 이어갔다면 Adapter가 프로세스를 끝내 요청 종료로 보고됩니다.
+#[tokio::test]
+#[ignore = "runs the real Claude Code CLI"]
+async fn env_background_tasks_do_not_continue_the_run() {
+    let mut launch = launch(
+        "background",
+        "Use the Bash tool with run_in_background set to true to run: sleep 5. Then reply 'started'. When the background command finishes, create a file named done.txt containing ok and reply done.",
+    );
+    launch.tools = None;
+    launch.permission_mode = "acceptEdits".into();
+    launch.allowed_tools = vec!["Bash(sleep:*)".into(), "Write".into()];
+    let _ = std::fs::remove_file(launch.cwd.join("done.txt"));
+    let adapter = adapter(launch);
+    let events = run(&adapter, &context("env-background")).await;
+    assert_eq!(check_run_events(&events), Ok(RunTermination::ProcessExited));
+    let turns = payloads(&events)
+        .into_iter()
+        .filter(|p| matches!(p, ProviderEventPayload::TurnFinished(_)))
+        .count();
+    assert_eq!(turns, 1);
+    assert_eq!(turn_status(&events), Some(TurnStatus::Completed));
+    let exit = exit(&events);
+    assert_eq!(
+        (exit.exit_code, exit.termination),
+        (Some(0), ProcessTermination::Exited),
+        "the CLI must end by itself after the only turn"
+    );
+}
+
 /// PROV-07: 시작 전 정책으로 허용하지 않은 도구는 거부되고 파일이 생기지 않습니다.
 #[tokio::test]
 #[ignore = "runs the real Claude Code CLI"]
