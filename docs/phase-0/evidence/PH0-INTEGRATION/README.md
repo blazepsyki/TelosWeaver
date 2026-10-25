@@ -327,3 +327,34 @@ Rust 1.99.1(사용자가 Windows·Linux를 맞춤)에서 deprecated된 `AtomicUs
 시험 개수 차이(Windows 155 / Linux 152)는 플랫폼 전용 시험입니다. Windows 전용 4개(`token_acl_contains_only_current_user`, `pipe_acl_contains_only_current_user`, `non_utf8_windows_path_is_rejected_before_execution`, `windows_eof_exit_and_job_kill_report_actual_child_termination`), Linux 전용 1개(`external_signal_is_not_reported_as_a_natural_exit`). RN Fork(Windows 204 / Linux 212)도 플랫폼별 시험 구성이 다릅니다.
 
 Provider·모델 호출은 없었습니다. 다음은 작업별 실환경 시험(절차 §4.3: HOST 런타임·확장 탐지·세 Provider·RN Core 연결·Extension Remote-SSH)과 Remote SSH 시나리오(§4.4)입니다.
+
+### 9.3 G3 Linux 배정 작업 통합 (`b99ff29`)
+
+사용자 지시로 INTEGRATION이 각 에이전트의 CLI를 직접 실행해 [작업 지시](G3_LINUX_ASSIGNMENTS.md) §2~§5를 맡겼습니다(Codex CLI 0.164.0-alpha.11.1 `codex exec` ×3, Antigravity CLI 1.4.7 `agy -p` ×1, 전체 권한 + 지시문의 범위 제한). 네 Branch는 모두 `94e1369` 기준이며 자기 경로만 바꿨습니다.
+
+| 작업 | Branch·커밋 | 결과 | 증거 |
+|---|---|---|---|
+| PH0-HOST | `ph0/host-linux` `fe1b49d`·`ba8df90`·`4df2769` | H1 Process Group SIGKILL 시험 추가·`runtime_native` 통과, H2 실제 `telos-weaver serve`의 XDG Socket·0700/0600·인증 거부·`rn` degraded·DenyRuns·Socket 정리(`host_linux.rs`), H3 두 벌 설치에서 활성 Claude 2.1.310·Codex 26.1021.22027·`agy` 탐지(`discovery_environment.rs`). 다른 사용자 접근·`XDG_RUNTIME_DIR` 대체 경로는 미실행 | [HOST](../PH0-HOST/LINUX.md) |
+| PH0-CODEX | `ph0/codex-linux` `d393275`·`d2056b1`·`ac43487` | 실환경 7개 통과(`gpt-6-luna`, effort low), 활성 CLI 0.164.0-alpha.11.1, Thread 7개 Archive 확인, 과거 Windows 누락 Thread 5개도 Archive 상태. 시험 코드만 수정(Host ID·플랫폼 문자열을 환경에 맞춤, Windows 기본값 유지) | [CODEX](../PH0-CODEX/LINUX.md) |
+| PH0-EXT | `ph0/ext-linux` `86da91d`·`e371c29` | E1 Linux Core 실제 연결(`live-core.cjs`, Socket·토큰 0600, 디렉터리 0700, 잘못된 토큰 거부) 통과. **E2 Remote-SSH Extension Host는 사용자 VS Code 조작이 필요해 미실행**(단계별 절차 기록) | [EXT](../PH0-EXT/LINUX.md) |
+| PH0-AGY | `ph0/agy-linux` `aa347cc`·`5374729` | 실환경 7개 통과(`gemini-3.8-flash-low`, effort low). Adapter 수정 2건: SSH 미로그인 메시지의 `Authentication` 분류, Linux SIGTERM 직전 `result(ERROR)`를 취소로 정규화. 시험 대화 7개 즉시 삭제 | [AGY](../PH0-AGY/LINUX.md) |
+
+**검토:** AGY의 취소 정규화는 result 줄에서 `TurnFinished(Cancelled)`를 내고 종료 경로가 `mapper.turn_finished()`로 중복을 막는 것을 확인했습니다. 인증 분류는 시간 초과 분류보다 먼저 검사됩니다. 새 Linux 시험 파일 두 개는 `#![cfg(target_os = "linux")]`라 Windows 빌드에서 빠집니다.
+
+| 병합본 검사 | Windows | `psyki-nas` |
+|---|---|---|
+| `cargo test --workspace --locked` | 155개 통과, 33개 제외 | 153개 통과, 35개 제외 |
+| 엄격 Clippy·fmt | 통과 | 통과 |
+| Extension `npm test` | 29개 | 29개 |
+| `live-core.cjs`(그 Host의 Core) | 1개 | 1개 |
+| `host_linux`(실제 Daemon, 모델 호출 없음) | — | 통과 |
+| `discovery_environment` | — | **전제 조건 실패**(아래) |
+
+**환경 변화:** 2026-10-25 22:18:55에 서버 VS Code Server가 이전 확장(Claude 2.1.309·Codex 26.1007.21434)을 지워 확장이 한 벌씩만 남았습니다(`.obsolete` 갱신 시각). 그래서 `discovery_environment`의 "두 벌 설치" 단언이 실패합니다. HOST의 통과 기록은 두 벌이 있던 실행 시점의 것이며 설치 목록이 증거에 남아 있습니다. 그 단언만 임시로 뺀 재실행은 통과했습니다(활성 버전·실행 파일·`agy` 위치 모두 일치, 커밋하지 않음).
+
+**후속 요청:**
+1. PH0-HOST: `discovery_environment`의 두 벌 설치를 실패가 아닌 전제 조건 보고로 바꿈(한 벌이면 활성 선택 규칙의 다중 버전 경로가 검증되지 않았음을 출력).
+2. PH0-AGY: 취소 정규화(`run.rs`)의 Mock 시험 추가(현재 실환경으로만 확인).
+3. PH0-AGY 인계: Linux Remote SSH에서 `agy`는 `<app_data_dir>/antigravity-oauth-token` 파일 토큰을 쓰는데 확장 공유 폴더(`~/.gemini/antigravity`)에는 이 파일이 없습니다. `phase0_g2`의 Linux 재실행은 기본 CLI 폴더(`~/.gemini/antigravity-cli`)로 하거나 사용자가 `--app_data_dir=antigravity`로 한 번 로그인해야 합니다(AGY-DATA-02).
+
+**시험 세션:** Codex Thread 7개는 Archive 완료([CODEX](../PH0-CODEX/LINUX.md)에 ID), Antigravity 대화 7개는 AGY가 즉시 삭제했고 빈 폴더를 확인([AGY](../PH0-AGY/LINUX.md)에 ID), HOST·EXT는 Provider 세션 없음. 병합 시 서버 임시 폴더(`/tmp/telos-codex-live-*`, `/tmp/telos-codex-linux-audit-*`)를 지웁니다.
