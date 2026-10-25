@@ -15,7 +15,7 @@ Phase 0 G3에 필요한 Linux 실행 Host와 단일 Remote SSH 실행 Host를 �
 | 작업 위치 | WSL 내부 ext4의 `~/src/TelosWeaver`. `/mnt/d/...`에서 빌드·실행하지 않습니다 |
 | 저장소 지위 | 검증용 Clone입니다. 대표 저장소가 아니며 배정표를 수정하지 않습니다 |
 | Remote SSH | WSL 안의 OpenSSH 서버, `127.0.0.1:2222`, 공개키 인증만 허용 |
-| Toolchain | Windows와 같은 버전: rustc/cargo 1.94.0, Node 24.22.1, npm 11.19.1 (2026-10-25 Windows Node를 올려 서버와 맞춤) |
+| Toolchain | Windows와 같은 버전: rustc/cargo 1.99.1, Node 24.22.1, npm 11.19.1 (2026-10-25 Rust는 사용자가 1.99.1로 올리고 Windows Node를 올려 서버와 맞춤) |
 
 `/mnt/d`(drvfs)를 쓰지 않는 이유: 파일 권한·대소문자·줄바꿈 동작이 Linux와 다르고, Unix Socket(`<stateDir>/core.sock`) 생성이 제한되며, 빌드가 크게 느립니다. 이 경로에서 얻은 결과는 Linux 증거로 쓰지 않습니다.
 
@@ -74,7 +74,7 @@ git config --global core.autocrlf false   # 줄바꿈은 저장소의 .gitattrib
 ### 2.4 Rust (WSL)
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.94.0 --component clippy,rustfmt
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.99.1 --component clippy,rustfmt
 . "$HOME/.cargo/env"
 rustc -V && cargo -V
 ```

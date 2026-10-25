@@ -2,7 +2,7 @@
 
 > **소유:** PH0-INTEGRATION (Spec §19.5.3)  
 > **근거:** Spec v1.5.2 §19.1(Windows/Linux Build, VS Code 로컬과 단일 Remote SSH)·§19.5.8 G3, 사용자 결정 2026-10-25  
-> **상태:** 서버 조사 완료(2026-10-25, §2). Node·Git 이메일 정렬 완료, Rust 1.94.0은 사용자가 올림, 저장소 Clone(§3)은 아직 하지 않았습니다.  
+> **상태:** 서버 조사 완료(2026-10-25, §2). Toolchain(Rust 1.99.1·Node 24.22.1)과 Git 이메일 정렬 완료, 저장소 Clone(§3)은 아직 하지 않았습니다.  
 > **예비:** 같은 PC의 WSL2 `Ubuntu-26.04`는 [WSL 절차](WSL_LINUX_HOST.md)대로 예비로 둡니다. WSL 결과는 Linux 증거로만 쓰고 Remote SSH 증거로 쓰지 않습니다.
 
 ## 1. 결정 사항 (2026-10-25)
@@ -13,7 +13,7 @@
 | 접속 | Windows `~/.ssh/config`의 `Psyki-NAS`(사용자 `gth1919`, 키 `~/.ssh/psyki.pem`). `Psyki-NAS-backup`은 같은 서버의 다른 경로이며 증거에는 `Psyki-NAS`를 씁니다 |
 | Host ID | `psyki-nas` (Windows 로컬은 `windows-local`). 증거·설정에서 Host를 섞지 않습니다 (SAFE-10, RN-POC-11) |
 | 저장소 | 서버의 `~/TelosWeaver` (검증용 Clone, 대표 저장소 아님, 배정표를 고치지 않음) |
-| Toolchain | Windows와 버전을 맞춥니다(사용자 결정): Rust 1.94.0(서버는 사용자가 올림), Node 24.22.1·npm 11.19.1(Windows를 24.14.0에서 올림) |
+| Toolchain | Windows와 버전을 맞춥니다(사용자 결정): Rust 1.99.1(사용자가 Windows·서버 모두 올림, clippy 0.1.99·rustfmt 1.10.0, rustup 1.29.2), Node 24.22.1·npm 11.19.1(Windows를 24.14.0에서 올림) |
 | Provider | 서버에 원격 설치된 세 VS Code 확장과 그 로그인 상태를 그대로 씁니다. Windows의 인증 파일·토큰을 복사하지 않습니다 |
 | 실환경 시험 | 실제 계정으로 수행(사용자 허락). 가벼운 모델·서버의 일회용 임시 폴더, 서버의 기존 대화·설정은 건드리지 않음, 시험 세션은 병합 시점에 삭제(배정표 §6 "시험 세션 정리") |
 | 자원 | 시간·자원 제한 없음(사용자). 사용자 단위 프로세스·사용자 전용 Socket만 쓰고 시스템 설정은 바꾸지 않습니다 |
@@ -27,7 +27,7 @@
 | systemd | `degraded`(실패한 Unit이 있음. 시험에 쓰는 사용자 서비스와는 무관한지 시험 시 확인) |
 | 실행 환경 | `XDG_RUNTIME_DIR=/run/user/1000`, `XDG_STATE_HOME` 미설정(기본 `~/.local/state`). TelosWeaver·telos-rn 상태 폴더 없음 |
 | 패키지 | `build-essential` 12.12ubuntu2.26.04.2(gcc 15.2.0), `git` 2.53.0, `curl` 8.18.0. `pkg-config`·`libssl-dev` 없음 — OpenSSL 의존성은 없어 `libssl-dev`는 필요 없음. `pkg-config`는 RN Fork 첫 Linux 빌드에서 필요한지 확인 |
-| Rust | rustup 1.28.2, `stable` = rustc·cargo 1.93.0, clippy 0.1.93, rustfmt 1.8.0. Windows 기준(1.94.0)과 다름 → 사용자가 1.94.0으로 올림(§3) |
+| Rust | rustup 1.28.2, `stable` = rustc·cargo 1.93.0, clippy 0.1.93, rustfmt 1.8.0. 당시 Windows(1.94.0)와 다름 → 사용자가 양쪽을 1.99.1로 올림(§3) |
 | Node | nvm 0.40.3, 기본 v24.22.1, npm 11.19.1. Windows를 같은 버전으로 올려 맞춤(winget `OpenJS.NodeJS.LTS` 24.14.0 → 24.22.1, npm 11.9.0 → 11.19.1, Extension 시험 29개 재통과) |
 | Git 전역 설정 | `user.name=blazepsyki`. `user.email`이 개인 주소였으나 사용자 요청으로 전역 값을 GitHub noreply 주소(`22346903+blazepsyki@users.noreply.github.com`)로 바꿈 |
 | 원격 확장 | `anthropic.claude-code` 2.1.309·2.1.310, `openai.chatgpt` 26.1007.21434·26.1021.22027, `google.google-antigravity` 1.9.0(`extensions.json`에 세 개). 버전이 두 벌인 확장은 §7.5의 활성 버전 선택 규칙 시험 대상입니다 |
@@ -41,7 +41,7 @@ CLI 경로 패턴은 2026-10-24 Windows 관찰(Spec §7.5)과 같은 구조이�
 | 단계 | 내용 | 수행 |
 |---|---|---|
 | Clone | `git clone https://github.com/blazepsyki/TelosWeaver ~/TelosWeaver`, `git -C ~/TelosWeaver config core.autocrlf false`(이메일은 전역 noreply 값을 씀) | INTEGRATION |
-| Rust 1.94.0 | 서버 기본 Toolchain을 1.94.0(clippy·rustfmt 포함)으로 올림 | 사용자 |
+| Rust | 완료: Windows·서버 모두 `stable` 1.99.1(rustc·cargo 1.99.1, clippy 0.1.99, rustfmt 1.10.0, rustup 1.29.2) | 사용자 |
 | Node | 완료: 서버 기본 v24.22.1에 Windows를 맞춤 | 완료 |
 | `pkg-config` | RN Fork 빌드가 요구하면 `sudo apt install -y pkg-config` | 사용자(필요할 때) |
 
