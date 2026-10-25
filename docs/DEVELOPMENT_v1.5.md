@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.5)  
+> **문서 버전:** 1.5 (개정 1.5.6)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-26  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -38,6 +38,7 @@
 | v1.5.3 | 2026-10-25 | Managed Run 세션을 각 Provider의 VS Code 확장 대화 목록에 표시(DEC-08, §7.6). Provider별 출처 지정 방식(Claude `CLAUDE_CODE_ENTRYPOINT`, Codex `threadSource` 검증, Agy 확장 데이터 디렉터리), 운영자 설정 `listed`/`hidden`, Workspace 경로 제약, Capability `vscode_listing`과 판정 방법, 실행 중 이중 조작 금지. AGENT-05 추가, §19.1 Phase 0 확인 항목 추가 |
 | v1.5.4 | 2026-10-26 | §7.6을 Phase 0 판정 결과로 보정(REQ-021): Codex App Server는 `threadSource`(analytics 분류)·초기화 이름과 관계없이 저장된 Thread를 `vscode` 출처로 기록하므로 `hidden` 수단이 없고 운영자 정책에서 거부(사용자 결정). Antigravity `hidden`은 확장 인덱스에 CLI 출처로 색인되지만 확장 화면에서는 숨겨짐. 세 Provider `listed`·Claude/Agy `hidden`의 자동 판정과 사용자 화면 확인 결과, 운영자 정책 `vscodeListing`(Agy `dataDir`과의 관계)과 승인 Snapshot 기록, Agy 요약 인덱스 잔여 행 처리 |
 | v1.5.5 | 2026-10-26 | Antigravity 인증의 Host별 차이(§7.5 AGY-DATA-02·Host별 규칙, §7.6): Linux Remote SSH 세션의 `agy`는 데이터 디렉터리 안의 파일 토큰을 쓰고 원격 확장은 확장 디렉터리에 토큰 파일을 두지 않아, `--app_data_dir=antigravity`가 그 Host에서는 별도 로그인 없이 동작하지 않음. Phase 0의 `psyki-nas`는 이미 로그인된 CLI 기본 디렉터리(`hidden`)를 운영자 정책으로 명시해 씀(사용자 결정). 그 Host의 Antigravity Managed Run은 원격 확장 목록에 보이지 않음 |
+| v1.5.6 | 2026-10-26 | §7.3 Provider가 스스로 이어가는 Turn: 전용 프로세스 Run은 Turn 하나이므로 Provider의 백그라운드 작업처럼 첫 Turn 뒤에 이어지는 Turn을 막고(Claude `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`), 그래도 이어지면 기록하지 않고 프로세스를 끝내 성공으로 판정하지 않음(G3 발견 2) |
 
 ## 목차
 
@@ -549,6 +550,8 @@ Core는 여러 Provider를 `Arc<dyn AgentAdapter>`로 다루므로 Trait은 객�
 Turn 완료, 프로세스 종료, Task 검증 성공은 별도 사건입니다. 지속형 프로세스는 Turn 완료 후에도 살아 있을 수 있습니다. Exit Code뿐 아니라 요구 출력, Provider 결과, Tool 거부·실패를 함께 판정합니다.
 
 취소 요청 접수와 실제 종료를 구분합니다. Supervisor가 유예 시간 후 강제 종료와 자식 프로세스 회수를 담당합니다. Windows Job Object, Unix Process Group 등의 실제 수단을 선택해 PoC로 확인합니다. 종료 확인 전에 Writer Lock을 해제하지 않습니다.
+
+**Provider가 스스로 이어가는 Turn:** 전용 프로세스 Run은 Turn 하나입니다. Provider가 첫 Turn의 결과 뒤에 백그라운드 작업 완료 등으로 같은 프로세스에서 Turn을 이어가면, 그 Turn은 Core가 요청하거나 감독하지 않은 실행입니다. Adapter는 Provider 설정으로 이런 작업을 끄고(Claude Code: 자식 환경 `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`, 2.1.310에서 Bash `run_in_background` 거부 확인), 그래도 이어지면 그 출력을 Run 이벤트에 넣지 않고 프로세스를 끝냅니다. 이 Run은 요청 종료로 보고되어 성공으로 판정하지 않습니다(근거: `docs/phase-0/evidence/PH0-INTEGRATION/README.md` §9.6).
 
 시작 실패, 인증 오류, 잘못된 설정, Protocol Parse, Tool Denial, Timeout, Resource Limit, Provider 오류를 구분합니다. Run·실행 경로·버전·실패 단계를 연결하며 알 수 없는 상태를 성공으로 처리하지 않습니다.
 
