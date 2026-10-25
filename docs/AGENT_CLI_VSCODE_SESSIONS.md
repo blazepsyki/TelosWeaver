@@ -638,6 +638,7 @@ try {
 | `--project` 이름이 거부됨 | `~/.gemini/config/projects/*.json`의 `name` 또는 `id`와 정확히 일치하는지, `agy` 버전이 `1.1.18` 이상인지 확인 |
 | 파일 쓰기가 프로젝트 폴더가 아닌 `scratch/`에 생성됨 | `--add-dir`가 누락되었거나 Windows `\\?\` 확장 경로 접두사가 포함된 경로를 전달했는지, `--mode accept-edits`(또는 `auto`)를 지정했는지 확인 |
 | 종료 코드는 0인데 응답이 비어 있고 작업이 안 됨 | Headless 모드에서 도구 권한이 소프트 거부되었는지 `result.denied_actions`와 stderr 확인 |
+| 시험 대화를 지울 때 `conversations/<ID>.db`(`-wal`·`-shm`)가 사용 중이라 삭제 실패 | 확장 허브(`agy --hub`)가 화면에 연 대화의 DB를 잡고 있음(2026-10-26 확인, `brain/<ID>`는 삭제됨). 확장에서 대화를 닫거나 UI에서 삭제한 뒤 다시 지움. 화면 확인을 요청할 때는 확인 뒤 대화를 닫아 달라고 함께 요청 |
 | Linux Remote SSH에서 `authentication failed or timed out` | 원격 호스트의 `~/.gemini/antigravity/antigravity-oauth-token` 유무 확인 ([C2](#linuxwslremote-ssh)) |
 
 ---

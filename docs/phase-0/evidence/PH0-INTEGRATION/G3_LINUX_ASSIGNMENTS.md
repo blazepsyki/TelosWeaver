@@ -22,6 +22,10 @@
 7. **시험 세션 정리:** 세션 ID를 증거에 남기고 병합 시점에 지웁니다(배정표 §6 "시험 세션 정리"). 서버에서 Claude는 `~/.claude/projects/<시험 폴더>`, Codex는 App Server `thread/archive`, Antigravity는 `brain/<id>`·`conversations/<id>.db`(`-wal`·`-shm`).
 8. **배정표:** 착수·완료를 자기 행과 §7에 단독 커밋으로 기록합니다. §7 표 행 사이에 빈 줄을 넣지 않습니다(표가 끊김).
 9. **끝나면:** 자기 Worktree(Windows·서버)는 그대로 두고 INTEGRATION에 통합을 요청합니다. 병합 후 정리는 INTEGRATION이 합니다.
+10. **INTEGRATION이 CLI로 위임할 때(2026-10-26 사용자 지시):** 위임 세션이 사용자 VS Code 확장 목록에 보이도록 [CLI 세션 표시 문서](../../../AGENT_CLI_VSCODE_SESSIONS.md) F절을 따릅니다. 작업 경로는 Worktree 그대로 둡니다.
+    - **Antigravity:** 첫 실행부터 `--app_data_dir=antigravity --project TelosWeaver --add-dir <Worktree>`, Stream JSON 입력. 권한은 `--dangerously-skip-permissions` 대신 `--mode accept-edits`. 화면 표시 확인됨(문서 C1).
+    - **Codex:** `codex exec`는 `--thread-source cli`를 붙여도 출처가 `exec`로 남아 목록에 보이지 않습니다. REQ-022 결과가 나올 때까지 표시되지 않는다는 점을 사용자에게 알리고, 보고서·로그로 진행을 공유합니다.
+    - 2026-10-25 실행(`codex exec -s danger-full-access`, `agy -p --dangerously-skip-permissions`)은 이 규칙 전이라 목록에 나타나지 않습니다.
 
 ## 2. Codex — PH0-HOST
 
