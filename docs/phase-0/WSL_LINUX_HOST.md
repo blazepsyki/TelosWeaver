@@ -21,7 +21,7 @@ Phase 0 G3에 필요한 Linux 실행 Host와 단일 Remote SSH 실행 Host를 �
 
 ## 2. 최초 구성 (한 번만)
 
-### 2.0 구성 현황 (2026-10-25 확인)
+### 2.0 구성 현황 (2026-10-25 확인, 같은 날 갱신)
 
 읽기 전용 명령으로 확인했습니다(설치·변경 없음).
 
@@ -30,15 +30,17 @@ Phase 0 G3에 필요한 Linux 실행 Host와 단일 Remote SSH 실행 Host를 �
 | WSL | 확인 | WSL 2.6.3.0, 커널 6.6.87.2-1, WSLg 1.0.71, Windows 10.0.26300.9711. `%UserProfile%\.wslconfig`는 `[wsl2] processors=8`만 있음(네트워크 모드 기본값) |
 | §2.1 배포판 | 완료 | `Ubuntu-26.04`, WSL 버전 2, 기본 배포판. `Ubuntu 26.04.1 LTS`(resolute). Linux 사용자 `gth1919`. 디스크 `/` 1007G 중 1.4G 사용 |
 | §2.2 systemd | 완료 | `/etc/wsl.conf`에 `[boot] systemd=true`, `[user] default=gth1919`. `systemctl is-system-running` = `running` |
-| §2.3 패키지·Git | **미완료** | `git` 2.53.0·`curl` 8.18.0만 기본 설치. `build-essential`·`pkg-config`·`libssl-dev`·`openssh-server` 없음. Git 전역 `user.name`·`user.email`·`core.autocrlf` 미설정 |
+| Windows 경로 제외 | 완료 | 사용자 결정으로 `/etc/wsl.conf`에 `[interop] appendWindowsPath=false` 추가(`wsl -u root`), `wsl --terminate` 후 `PATH`의 Windows 항목 0개, `npm`·`node` 없음 확인 |
+| §2.3 패키지 | 완료(사용자) | `build-essential` 12.12ubuntu2.26.04.2(gcc 15.2.0), `pkg-config` 2.5.1-4, `libssl-dev` 3.5.5-1ubuntu3.7, `openssh-server` 1:10.2p1-2ubuntu3.8, `git` 2.53.0, `curl` 8.18.0 |
+| §2.3 Git 전역 설정 | **미완료** | `user.name`·`user.email`·`core.autocrlf` 미설정 |
 | §2.4 Rust | **미완료** | `rustc`·`cargo` 없음 |
-| §2.5 Node.js | **미완료** | Linux `node` 없음. `npm`은 Windows 것(`/mnt/c/Program Files/nodejs/npm` 11.9.0)이 잡힘 — 아래 주의 |
-| §2.6 SSH 서버 | **미완료** | `openssh-server` 미설치, 22·2222 대기 없음 |
+| §2.5 Node.js | **미완료** | Linux `node`·`npm` 없음(Windows 경로 제외 뒤) |
+| §2.6 SSH 서버 | 완료(사용자) | `/etc/ssh/sshd_config.d/10-telos.conf`. `ssh.service` active·enabled, `ssh.socket` active(Socket 활성화). 대기는 `127.0.0.1:2222`만. 실효 설정(`sshd -T`): port 2222, 비밀번호·키보드 대화형 인증 끔, 공개키 인증 켬, root는 `prohibit-password`. Windows에서 `127.0.0.1:2222` TCP 연결 시 배너 `SSH-2.0-OpenSSH_10.2p1 Ubuntu-2ubuntu3.8`(기본 localhost 전달 동작) |
 | §2.7 SSH 키·접속 | **미완료** | WSL `~/.ssh` 없음 |
 | §2.8·§2.9 VS Code·Provider 확장 | **미완료** | `~/.vscode-server/extensions`·`~/.gemini/bin` 없음 |
 | §3 코드 | **미완료** | `~/src/TelosWeaver` 없음 |
 
-**주의 — Windows 경로 섞임:** WSL의 기본 상호 운용으로 `PATH`에 Windows 경로 33개가 붙어 있습니다. Linux에 없는 명령이 Windows 실행 파일로 실행되므로(`npm` 등), 그 결과를 Linux 증거로 쓰면 안 됩니다. 시험 전에 `command -v node npm cargo rustc`가 Linux 경로(`/home/<user>/…`, `/usr/…`)인지 확인합니다. Windows 경로를 아예 빼려면 `/etc/wsl.conf`에 `[interop] appendWindowsPath=false`를 더하고 `wsl --shutdown`합니다(사용자 결정, 아직 적용하지 않음).
+**Windows 경로 제외:** WSL 기본 상호 운용은 `PATH`에 Windows 경로를 붙여(처음 확인 때 33개) Linux에 없는 명령을 Windows 실행 파일로 실행합니다(`npm` 등). Windows 도구가 Linux 증거에 섞이지 않도록 `appendWindowsPath=false`로 뺐습니다. 그래도 시험 전에 `command -v node npm cargo rustc`가 Linux 경로(`/home/<user>/…`, `/usr/…`)인지 확인합니다. WSL 안에서 `code .` 같은 Windows 명령은 쓸 수 없으며, Remote-SSH 접속에는 영향이 없습니다.
 
 ### 2.1 배포판 설치 (Windows PowerShell)
 
