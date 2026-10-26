@@ -253,13 +253,13 @@ async fn hidden_is_explicitly_unsupported_and_never_starts_a_process() {
         .detect(fixtures::HOST_ID)
         .await
         .unwrap()
-        .remove("vscode_listing")
+        .remove(capability_keys::VSCODE_LISTING)
         .unwrap();
     assert_eq!(capability.state, CapabilityState::Unsupported);
     let (task, context) = inputs();
     assert!(matches!(
         adapter.start_run(&task, &context).await,
-        Err(AdapterError::UnsupportedCapability { .. })
+        Err(AdapterError::UnsupportedCapability { capability, .. }) if capability == capability_keys::VSCODE_LISTING
     ));
     assert_eq!(runtime.spawns.load(Ordering::SeqCst), 0);
     assert!(adapter.owned_thread_ids().is_empty());
@@ -274,7 +274,7 @@ async fn unlisted_native_sources_fail_before_generation_and_preserve_source_owne
         context.session.source_session_id = Some("source-fixture".into());
         assert!(matches!(
             adapter.start_run(&task, &context).await,
-            Err(AdapterError::UnsupportedCapability { .. })
+            Err(AdapterError::UnsupportedCapability { capability, .. }) if capability == capability_keys::VSCODE_LISTING
         ));
         let requests = runtime.requests.lock().unwrap();
         assert!(!requests.iter().any(|r| r["method"] == "turn/start"));
@@ -290,14 +290,96 @@ async fn listing_capability_does_not_claim_an_unverified_cli_or_extension() {
     let (adapter, _) = configured(Mode::Good, CodexApprovals::Deny);
     let capabilities = adapter.detect(fixtures::HOST_ID).await.unwrap();
     assert_eq!(
-        capabilities["vscode_listing"].state,
+        capabilities[capability_keys::VSCODE_LISTING].state,
         CapabilityState::Unverified
     );
     assert_eq!(
-        capabilities["vscode_listing"].evidence_level,
+        capabilities[capability_keys::VSCODE_LISTING].evidence_level,
         EvidenceLevel::MockTested
     );
 }
+
+// Spec §7.1, REQ-024: key normalization must not promote an unverified configuration.
+#[tokio::test]
+async fn detect_reports_common_keys_and_preserves_fixture_judgements() {
+    let (adapter, _) = configured(Mode::Good, CodexApprovals::Deny);
+    let capabilities = adapter.detect(fixtures::HOST_ID).await.unwrap();
+    let reported: std::collections::HashSet<_> = capabilities.keys().map(String::as_str).collect();
+    assert_eq!(reported, capability_keys::ALL.iter().copied().collect());
+    for capability in capabilities.values() {
+        assert_eq!(capability.state, CapabilityState::Unverified);
+        assert_eq!(capability.evidence_level, EvidenceLevel::MockTested);
+        assert_eq!(capability.provider_version, "fixture-version");
+        assert_eq!(capability.host_id, fixtures::HOST_ID);
+    }
+}
+
+// REQ-024 only renames keys; platform/version judgement changes belong to C3.
+#[tokio::test]
+async fn common_keys_keep_existing_verified_version_judgements() {
+    let (mut adapter, _) = configured(Mode::Good, CodexApprovals::Deny);
+    let config = Arc::get_mut(&mut adapter.inner)
+        .unwrap()
+        .config
+        .as_mut()
+        .unwrap();
+    config.cli_version = "codex-cli 0.164.0-alpha.11.1".into();
+    config.executable = PathBuf::from("openai.chatgpt-26.1021.22027-win32-x64").join("codex.exe");
+    let capabilities = adapter.detect(fixtures::HOST_ID).await.unwrap();
+    for (key, capability) in capabilities {
+        let verified = cfg!(all(target_os = "windows", target_arch = "x86_64"))
+            && key != capability_keys::SEND_INPUT
+            && key != capability_keys::ANSWER_APPROVAL;
+        let (state, evidence) = if verified {
+            (CapabilityState::Supported, EvidenceLevel::EnvironmentTested)
+        } else {
+            (CapabilityState::Unverified, EvidenceLevel::MockTested)
+        };
+        assert_eq!(
+            (capability.state, capability.evidence_level),
+            (state, evidence),
+            "{key}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn request_specific_refusals_use_common_keys_and_keep_their_reasons() {
+    assert!(matches!(
+        CodexAdapter::default().detect(fixtures::HOST_ID).await,
+        Err(AdapterError::UnsupportedCapability { capability, .. }) if capability == capability_keys::MANAGED_RUN
+    ));
+    let (adapter, runtime) = configured(Mode::Good, CodexApprovals::Deny);
+    let (task, mut context) = inputs();
+    context.session.mode = SessionMode::Resume;
+    context.session.source_session_id = Some("source-fixture".into());
+    context.session.source_turn_id = Some("turn-fixture".into());
+    assert!(matches!(
+        adapter.start_run(&task, &context).await,
+        Err(AdapterError::UnsupportedCapability { capability, reason })
+            if capability == capability_keys::NATIVE_RESUME && reason.contains("specific turn")
+    ));
+    assert!(
+        !runtime
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|r| r["method"] == "turn/start")
+    );
+
+    let (adapter, _) = configured(Mode::Hold, CodexApprovals::Deny);
+    let (task, context) = inputs();
+    adapter.start_run(&task, &context).await.unwrap();
+    assert!(matches!(
+        adapter.answer_approval(&context.run_id, "not-interactive", ApprovalAnswer::Allow).await,
+        Err(AdapterError::UnsupportedCapability { capability, reason })
+            if capability == capability_keys::ANSWER_APPROVAL && reason.contains("does not permit interactive approval")
+    ));
+    adapter.cancel_run(&context.run_id).await.unwrap();
+    assert!(check_run_events(&collect(&adapter, &context.run_id).await).is_ok());
+}
+
 async fn collect(adapter: &CodexAdapter, id: &str) -> Vec<ProviderEvent> {
     tokio::time::timeout(
         Duration::from_secs(3),
@@ -446,7 +528,7 @@ async fn interactive_approval_is_correlated_and_repeated_answers_are_idempotent(
         adapter
             .answer_approval(&context.run_id, &request, ApprovalAnswer::Allow)
             .await,
-        Err(AdapterError::UnsupportedCapability { .. })
+        Err(AdapterError::UnsupportedCapability { capability, .. }) if capability == capability_keys::ANSWER_APPROVAL
     ));
     adapter
         .answer_approval(&context.run_id, &request, ApprovalAnswer::Deny)

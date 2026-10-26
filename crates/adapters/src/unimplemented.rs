@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use futures::{StreamExt, stream::BoxStream};
 use telos_schema::{
     ApprovalAnswer, Capability, ProviderEvent, RunContext, RunInspection, RunStarted, TaskSpec,
+    capability_keys,
 };
 
 use crate::{AdapterError, AgentAdapter};
@@ -48,7 +49,7 @@ impl AgentAdapter for UnsupportedAdapter {
         _task: &TaskSpec,
         _context: &RunContext,
     ) -> Result<RunStarted, AdapterError> {
-        Err(Self::unsupported("start_run"))
+        Err(Self::unsupported(capability_keys::MANAGED_RUN))
     }
 
     fn events(
@@ -56,7 +57,8 @@ impl AgentAdapter for UnsupportedAdapter {
         _run_id: &str,
         _after_sequence: u64,
     ) -> BoxStream<'static, Result<ProviderEvent, AdapterError>> {
-        futures::stream::once(async { Err(Self::unsupported("events")) }).boxed()
+        futures::stream::once(async { Err(Self::unsupported(capability_keys::EVENT_STREAM)) })
+            .boxed()
     }
 
     async fn send_input(
@@ -65,7 +67,7 @@ impl AgentAdapter for UnsupportedAdapter {
         _input_id: &str,
         _text: &str,
     ) -> Result<(), AdapterError> {
-        Err(Self::unsupported("send_input"))
+        Err(Self::unsupported(capability_keys::SEND_INPUT))
     }
 
     async fn answer_approval(
@@ -74,11 +76,11 @@ impl AgentAdapter for UnsupportedAdapter {
         _request_id: &str,
         _decision: ApprovalAnswer,
     ) -> Result<(), AdapterError> {
-        Err(Self::unsupported("answer_approval"))
+        Err(Self::unsupported(capability_keys::ANSWER_APPROVAL))
     }
 
     async fn cancel_run(&self, _run_id: &str) -> Result<bool, AdapterError> {
-        Err(Self::unsupported("cancel_run"))
+        Err(Self::unsupported(capability_keys::CANCEL))
     }
 
     async fn inspect_run(&self, _run_id: &str) -> Result<RunInspection, AdapterError> {

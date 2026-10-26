@@ -7,14 +7,14 @@ use std::sync::Arc;
 
 use futures::StreamExt;
 use telos_adapters::{AdapterError, AgentAdapter, UnsupportedAdapter};
-use telos_schema::{ApprovalAnswer, FailureKind, RunInspection, fixtures};
+use telos_schema::{ApprovalAnswer, FailureKind, RunInspection, capability_keys, fixtures};
 
 fn adapter() -> Arc<dyn AgentAdapter> {
     Arc::new(UnsupportedAdapter::new("test-double"))
 }
 
-fn is_unsupported<T: std::fmt::Debug>(result: &Result<T, AdapterError>) -> bool {
-    matches!(result, Err(AdapterError::UnsupportedCapability { .. }))
+fn is_unsupported<T: std::fmt::Debug>(result: &Result<T, AdapterError>, expected: &str) -> bool {
+    matches!(result, Err(AdapterError::UnsupportedCapability { capability, .. }) if capability == expected)
 }
 
 #[tokio::test]
@@ -30,19 +30,30 @@ async fn rejects_every_control_as_unsupported() {
     let task = fixtures::task_spec();
     let context = fixtures::run_context(&task);
 
-    assert!(is_unsupported(&adapter.start_run(&task, &context).await));
     assert!(is_unsupported(
-        &adapter.send_input("run-1", "in-1", "hi").await
+        &adapter.start_run(&task, &context).await,
+        capability_keys::MANAGED_RUN
+    ));
+    assert!(is_unsupported(
+        &adapter.send_input("run-1", "in-1", "hi").await,
+        capability_keys::SEND_INPUT,
     ));
     assert!(is_unsupported(
         &adapter
             .answer_approval("run-1", "req-1", ApprovalAnswer::Deny)
-            .await
+            .await,
+        capability_keys::ANSWER_APPROVAL,
     ));
-    assert!(is_unsupported(&adapter.cancel_run("run-1").await));
+    assert!(is_unsupported(
+        &adapter.cancel_run("run-1").await,
+        capability_keys::CANCEL
+    ));
 
     let mut events = adapter.events("run-1", 0);
-    assert!(is_unsupported(&events.next().await.unwrap()));
+    assert!(is_unsupported(
+        &events.next().await.unwrap(),
+        capability_keys::EVENT_STREAM
+    ));
     assert!(events.next().await.is_none());
 }
 
@@ -57,7 +68,7 @@ async fn reports_unknown_instead_of_guessing_run_state() {
 #[test]
 fn unsupported_maps_to_failure_kind() {
     let error = AdapterError::UnsupportedCapability {
-        capability: "cancel_run".into(),
+        capability: capability_keys::CANCEL.into(),
         reason: "test".into(),
     };
     assert_eq!(
