@@ -7,7 +7,7 @@
 | Branch / Worktree | `main` / `D:\Downloads\Vibe_dev\TelosWeaver` |
 | 기준 Commit | `3f050e9` |
 | G0 기준 Commit | `9710402` |
-| 상태 | G0 통과. G1~G3 진행 전 |
+| 상태 | G0·G1·G2 통과 확정. G3 통과 판정(사용자 확인 대기, §11) |
 
 ## 1. G0 판정
 
@@ -592,3 +592,22 @@ HOST(`Codex / PH0-HOST-REQ023-01a17586`)가 `ph0/host-req023`에 제출(`41d019f
 | Claude | `~/.claude/projects/`의 시험 폴더 8개 삭제(`C--Users-Psyki-HOME-AppData-Local-Temp-telos-claude-env-{cancel,completed,denied,invalid-model,listing,listing-hidden,resume}`, `…-telos-phase0-g2-completed-workspace`). 사용자 Workspace 폴더 `d--Downloads-Vibe-dev`에서는 화면 확인용 파일 2개(`46ad660e…`, `d1e69e03…`)만 삭제하고 다른 대화는 건드리지 않음 |
 | Codex | DEC-08 시험 Thread는 CODEX가 모두 공식 Archive(증거 §6). G2 통합 시험 Thread `01a17393…`도 Archive |
 | Antigravity | 대화 파일은 AGY·G2 정리로 삭제됨. 남은 `33339a4c-298f-4432-ab36-f22d4d30c013`(Codex 화면 확인 폴더의 시험 대화)의 `brain`·`conversations/*.db`를 삭제. 요약 인덱스(`conversation_summaries.db`)의 시험 행(확장 쪽 12개, CLI 쪽 12개)은 확장 내부 DB라 수정하지 않음(§7.6). 확장 쪽 `listed` 행은 확장 목록에 빈 항목으로 보일 수 있어 사용자 결정 필요 |
+
+## 11. 발견 3 통합과 G3 판정 (2026-10-26)
+
+### 11.1 PH0-EXT 발견 3 검토·통합 (`96e61b8`)
+
+PH0-EXT(`Codex / PH0-EXT-HEALTH-01a17586`)가 `ph0/ext-health`에 제출(`754365c`, [EXT 기록](../PH0-EXT/HEALTH_STALE.md), [지시서](EXT_HEALTH_FOLLOWUP.md)).
+
+| 항목 | 결과 |
+|---|---|
+| 범위 | `extension/**`와 EXT 증거만. Core·계약·재연결 정책·구독 불변 |
+| 변경 | 연결 종료·재연결 실패 전환이 `root`·`message`만 남기고 `health`·`hello`를 버림(X1·X2). 상태 View·StatusBar 도움말은 `connected`에서만 Core 정보·Health 구성 요소 표시(X3). 출력 창 전환 기록 불변(X4) |
+| 검사(INTEGRATION, Windows) | `npm test` 32개 통과, `live-core.cjs` 1개(실제 Core 강제 종료 뒤 `error`·Health·hello 제거 확인), `test:host` 6항목·`coreSurvivedHostExit=true`. 남은 시험 Core 없음. 모델 호출 없음 |
+
+Worktree·Branch를 삭제했습니다.
+
+### 11.2 G3 판정
+
+[G3 대조표](G3_ACCEPTANCE.md): §19.1 필수 12항목 모두 Windows·`psyki-nas`·Remote SSH 증거를 연결했고 미지원·미검증 항목을 따로 판정했습니다. **INTEGRATION 판정: 통과.** 사용자 확인 뒤 확정합니다.
+
