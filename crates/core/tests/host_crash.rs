@@ -139,7 +139,8 @@ async fn core_crash_terminates_real_provider_and_tool_descendants() {
         cleanup.core.id()
     );
     let token_path = root.join("state/telos-weaver").join(&key).join("api-token");
-    let deadline = Instant::now() + Duration::from_secs(20);
+    // Discovery hashes the bundled CLI twice; debug SHA fallback can be slow on older CPUs.
+    let deadline = Instant::now() + Duration::from_secs(120);
     while !token_path.exists() {
         assert!(
             cleanup.core.try_wait().unwrap().is_none(),

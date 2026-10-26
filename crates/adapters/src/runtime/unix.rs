@@ -24,6 +24,8 @@ pub struct Control {
     retired: AtomicBool,
     #[cfg(target_os = "linux")]
     receipt: Mutex<File>,
+    #[cfg(target_os = "linux")]
+    guard_failed: AtomicBool,
 }
 pub fn spawn(spec: CommandSpec) -> io::Result<Spawned> {
     let mut command = Command::new(spec.program.canonicalize()?);
@@ -77,6 +79,8 @@ pub fn spawn(spec: CommandSpec) -> io::Result<Spawned> {
             retired: AtomicBool::new(false),
             #[cfg(target_os = "linux")]
             receipt: Mutex::new(receipt),
+            #[cfg(target_os = "linux")]
+            guard_failed: AtomicBool::new(false),
         }),
         stdin,
         stdout,
@@ -87,31 +91,74 @@ pub fn spawn(spec: CommandSpec) -> io::Result<Spawned> {
 impl Control {
     pub fn try_wait(&self) -> io::Result<Option<ExitStatus>> {
         let mut cached = self.status.lock().unwrap();
-        if cached.is_none()
-            && let Some(status) = self.child.lock().unwrap().try_wait()?
+        #[cfg(target_os = "linux")]
         {
-            #[cfg(target_os = "linux")]
-            {
+            if self.guard_failed.load(Ordering::Acquire) {
+                return Err(io::Error::other(
+                    "Linux guard did not confirm descendant termination",
+                ));
+            }
+            if cached.is_none() {
                 use std::io::Read;
-                let mut confirmed = [0];
-                if self
+                let mut child = self.child.lock().unwrap();
+                let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };
+                // Keep the guard zombie until all final PG signals are sent:
+                // its PID must still reserve our PGID, including on guard failure.
+                if unsafe {
+                    libc::waitid(
+                        libc::P_PID,
+                        child.id(),
+                        &mut info,
+                        libc::WEXITED | libc::WNOHANG | libc::WNOWAIT,
+                    )
+                } != 0
+                {
+                    let error = io::Error::last_os_error();
+                    if error.raw_os_error() == Some(libc::EINTR) {
+                        return Ok(None);
+                    }
+                    return Err(error);
+                }
+                if unsafe { info.si_pid() } == 0 {
+                    return Ok(None);
+                }
+                let mut receipt = [0];
+                let confirmed = self
                     .receipt
                     .lock()
                     .unwrap()
-                    .read_exact(&mut confirmed)
-                    .is_err()
-                    || confirmed != [1]
-                {
-                    // A dead guard without its receipt cannot establish tree completion.
+                    .read_exact(&mut receipt)
+                    .is_ok()
+                    && receipt == [1];
+                if !confirmed {
                     unsafe {
                         libc::kill(-self.pgid, libc::SIGKILL);
                     }
+                }
+                let status = child
+                    .try_wait()?
+                    .ok_or_else(|| io::Error::other("Linux guard exit unavailable"))?;
+                self.retired.store(true, Ordering::Release);
+                if !confirmed {
+                    self.guard_failed.store(true, Ordering::Release);
                     return Err(io::Error::other(
                         "Linux guard did not confirm descendant termination",
                     ));
                 }
-                self.retired.store(true, Ordering::Release);
+                *cached = Some(ExitStatus {
+                    code: status.code(),
+                    cause: if status.code().is_some() {
+                        TerminationCause::Exited
+                    } else {
+                        TerminationCause::External
+                    },
+                });
             }
+        }
+        #[cfg(not(target_os = "linux"))]
+        if cached.is_none()
+            && let Some(status) = self.child.lock().unwrap().try_wait()?
+        {
             *cached = Some(ExitStatus {
                 code: status.code(),
                 cause: if status.code().is_some() {
