@@ -372,8 +372,8 @@ async fn unix_sigterm_resistance_escalates_and_removes_the_process_group() {
         OutputEvent::Line { data, .. } => String::from_utf8(data).unwrap().parse::<i32>().unwrap(),
         _ => panic!("missing child pid"),
     };
-    let group = handle.identity().pid as i32;
-    assert_eq!(unsafe { libc::getpgid(group) }, group);
+    let group = unsafe { libc::getpgid(handle.identity().pid as i32) };
+    assert!(group > 0);
     assert_eq!(unsafe { libc::getpgid(child) }, group);
     let report = tokio::time::timeout(
         Duration::from_secs(5),

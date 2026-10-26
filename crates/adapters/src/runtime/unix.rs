@@ -13,11 +13,17 @@ use std::{
     time::Duration,
 };
 
+#[cfg(target_os = "linux")]
+#[path = "linux_guard.rs"]
+mod guard;
+
 pub struct Control {
     child: Mutex<Child>,
     pgid: i32,
     status: Mutex<Option<ExitStatus>>,
     retired: AtomicBool,
+    #[cfg(target_os = "linux")]
+    receipt: Mutex<File>,
 }
 pub fn spawn(spec: CommandSpec) -> io::Result<Spawned> {
     let mut command = Command::new(spec.program.canonicalize()?);
@@ -39,7 +45,23 @@ pub fn spawn(spec: CommandSpec) -> io::Result<Spawned> {
             command.env_remove(key);
         }
     }
+    #[cfg(target_os = "linux")]
+    let mut receipt = guard::prepare(&mut command)?;
     let mut child = command.spawn()?;
+    let pgid = child.id() as i32;
+    #[cfg(target_os = "linux")]
+    let pid = match guard::provider_pid(&mut receipt) {
+        Ok(pid) => pid,
+        Err(error) => {
+            unsafe {
+                libc::kill(-pgid, libc::SIGKILL);
+            }
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(error);
+        }
+    };
+    #[cfg(not(target_os = "linux"))]
     let pid = child.id();
     let stdin = child
         .stdin
@@ -50,9 +72,11 @@ pub fn spawn(spec: CommandSpec) -> io::Result<Spawned> {
     Ok(Spawned {
         control: Arc::new(Control {
             child: Mutex::new(child),
-            pgid: pid as i32,
+            pgid,
             status: Mutex::new(None),
             retired: AtomicBool::new(false),
+            #[cfg(target_os = "linux")]
+            receipt: Mutex::new(receipt),
         }),
         stdin,
         stdout,
@@ -66,6 +90,28 @@ impl Control {
         if cached.is_none()
             && let Some(status) = self.child.lock().unwrap().try_wait()?
         {
+            #[cfg(target_os = "linux")]
+            {
+                use std::io::Read;
+                let mut confirmed = [0];
+                if self
+                    .receipt
+                    .lock()
+                    .unwrap()
+                    .read_exact(&mut confirmed)
+                    .is_err()
+                    || confirmed != [1]
+                {
+                    // A dead guard without its receipt cannot establish tree completion.
+                    unsafe {
+                        libc::kill(-self.pgid, libc::SIGKILL);
+                    }
+                    return Err(io::Error::other(
+                        "Linux guard did not confirm descendant termination",
+                    ));
+                }
+                self.retired.store(true, Ordering::Release);
+            }
             *cached = Some(ExitStatus {
                 code: status.code(),
                 cause: if status.code().is_some() {
@@ -86,6 +132,9 @@ impl Control {
         }
     }
     fn signal(&self, signal: i32) -> io::Result<()> {
+        // Serialize signaling with reaping: the guard PID reserves the PGID
+        // until try_wait records its receipt (Spec §14.3, REQ-023).
+        let _status = self.status.lock().unwrap();
         if self.retired.load(Ordering::Acquire) {
             return Ok(());
         }
