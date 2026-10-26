@@ -38,7 +38,7 @@
 | Antigravity Headless Native Fork | 미지원 | **미지원 유지** | `agy` 1.4.7 `--help`에 Fork 수단 없음(`--conversation`·`--continue`만), Headless `/fork` 거부(FORK-POC-01) | CLI 갱신 시 재확인 |
 | Antigravity 실행 중 승인 응답 | 미지원 | **미지원 유지** | `--help`의 권한 수단은 `--mode`(accept-edits·auto·plan)와 `--dangerously-skip-permissions`뿐. 실시간 응답 Protocol 없음 | — |
 | Claude·Antigravity `send_input` | 미지원 | **설계상 미지원**(CLI 수단은 있음) | 두 CLI 모두 `--input-format stream-json`으로 같은 프로세스에 메시지를 더 보낼 수 있으나 메시지마다 새 Turn을 실행합니다(`agy --help`: "runs a turn for each"). 공통 이벤트 규칙(REQ-006, Run당 Turn 1개, `turn_finished` 뒤 새 Turn 금지, Spec v1.5.6 §7.3)과 맞지 않아 후속 입력은 Resume Run으로 처리 | 진행 중 Turn 조정(steering)이 필요하면 Phase 1에서 계약과 함께 검토 |
-| **Claude `answer_approval`** | 미지원 | **미구현(CLI 수단 확인)**으로 정정 | Adapter 사유 "print mode has no live approval path"(근거 수준 `documented`)는 현재 CLI와 다릅니다. 2.1.310의 `--permission-prompt-tool stdio`(+ `initialize` 제어 요청)에서 Write 직전 `control_request`(`can_use_tool`)가 오고, Allow 응답이면 파일 생성·Deny 응답이면 미생성·`permission_denials` 1을 확인(2026-10-26 Windows, `haiku`, 일회용 폴더, 세션 3개 즉시 삭제). `--permission-prompts host`만 주고 응답자가 없으면 자동 거부 | Capability 사유 정정(CLAUDE). 구현은 Phase 1(승인 UI·정책과 함께) |
+| **Claude `answer_approval`** | 미지원 | **미구현(CLI 수단 확인)**으로 정정 | Adapter 사유 "print mode has no live approval path"(근거 수준 `documented`)는 현재 CLI와 다릅니다. 2.1.310의 `--permission-prompt-tool stdio`(+ `initialize` 제어 요청)에서 Write 직전 `control_request`(`can_use_tool`)가 오고, Allow 응답이면 파일 생성·Deny 응답이면 미생성·`permission_denials` 1을 확인(2026-10-26 Windows, `haiku`, 일회용 폴더, 세션 3개 즉시 삭제). `--permission-prompts host`만 주고 응답자가 없으면 자동 거부 | 사용자 결정: `unsupported` 유지·사유 정정·근거 시험 추가, 구현은 Phase 1([CLAUDE 후속](CLAUDE_CAPABILITY_FOLLOWUP.md), REQ-024 단계 B 뒤) |
 | Codex `vscodeListing: hidden` | 미지원 | **미지원 유지** | REQ-021 실측: App Server는 출처 지정과 무관하게 `vscode`로 저장. 외부 `exec`은 Adapter 경로가 아님(REQ-022) | — |
 | Codex `send_input`(`turn/steer`)·승인 Allow | 미검증 | **미검증 유지** | 구현과 Mock 시험만 있고 실환경 시험이 없음. Phase 0 운영자 정책은 Codex 승인을 `Deny`로 고정해 Allow 경로가 Core에서 쓰이지 않음 | 실환경 시험 추가(CODEX), Phase 1 승인 정책 연결 때 |
 | Claude Fork의 부모 기준 Turn 지정(`source_turn_id`) | 미검증 | **미검증 유지** | 2.1.310 `--help`에 특정 메시지·Turn 기준 재개·분기 옵션이 없음(`--resume <id> --fork-session`은 새 세션 ID로 이어 씀) | 필요 시 미지원으로 확정 |
@@ -59,6 +59,8 @@
 | C2 | **Claude `native_resume`·`native_fork`가 `unverified`**(사유 "Phase 0 experiment pending"). 실제로는 Windows·Linux 실환경 Resume/Fork 통과 | 지원 기능을 낮게 보고(안전 쪽이지만 부정확) |
 | C3 | **Codex가 `win32-x64`만 검증으로 보고.** Linux에서 실환경 7개가 통과했는데 모든 항목이 `unverified`·`mock-tested` | Linux 지원을 낮게 보고 |
 | C4 | **Claude `answer_approval` 사유가 사실과 다름**(위 표) | 미구현을 CLI 한계로 잘못 설명 |
+
+후속: C1은 [REQ-024](REQ-024.md)(Codex), C3은 [CODEX 후속](CODEX_CAPABILITY_FOLLOWUP.md), C2·C4는 [CLAUDE 후속](CLAUDE_CAPABILITY_FOLLOWUP.md)(사용자 결정: C2는 `unverified` 유지·사유 정정, REQ-024 단계 B 뒤 처리).
 
 Antigravity `native_resume`의 `unverified`는 사유(세션 소유권·잘못된 세션 복구가 P1)를 적은 의도적 판정이라 불일치로 보지 않습니다.
 
