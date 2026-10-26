@@ -492,20 +492,43 @@ async fn env_steering_updates_the_same_turn() {
 }
 
 const APPROVAL_WRITE_COMMAND: &str = "Set-Content -LiteralPath approval.txt -Value C3_APPROVED";
+const APPROVAL_PROFILE: &str = "phase0-c3-approval-write";
+
+fn approval_case(id: &str, prompt: &str) -> (TaskSpec, RunContext) {
+    let (mut task, context) = case(id, prompt);
+    task.permission_profile_id = APPROVAL_PROFILE.into();
+    task.workspace.mode = WorkspaceMode::Directory;
+    task.workspace.read_only = false;
+    task.workspace.workspace_id = Some(context.workspace_id.clone());
+    (task, context)
+}
+
+fn approval_scope(task: &TaskSpec, context: &RunContext) -> bool {
+    task.permission_profile_id == APPROVAL_PROFILE
+        && !task.workspace.read_only
+        && task.workspace.workspace_id.as_deref() == Some(context.workspace_id.as_str())
+        && task.workspace.host_id == context.host_id
+        && task.id == context.task_id
+        && task.revision == context.task_revision
+}
 
 struct ApprovalResolver {
     inner: LiveResolver,
 }
 impl CodexLaunchResolver for ApprovalResolver {
     fn resolve(&self, task: &TaskSpec, context: &RunContext) -> Result<CodexLaunch, AdapterError> {
+        ensure(
+            approval_scope(task, context),
+            "live approval Task scope is not authorized",
+        )?;
         let mut launch = self.inner.resolve(task, context)?;
         launch.approvals = CodexApprovals::Prompt;
         Ok(launch)
     }
     fn authorize_approval(
         &self,
-        _: &TaskSpec,
-        _: &RunContext,
+        task: &TaskSpec,
+        context: &RunContext,
         request: &Value,
     ) -> Result<(), AdapterError> {
         let params = &request["params"];
@@ -528,7 +551,8 @@ impl CodexLaunchResolver for ApprovalResolver {
                 "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoProfile -Command '{APPROVAL_WRITE_COMMAND}'"
             ),
         ];
-        if request["method"] == "item/commandExecution/requestApproval"
+        if approval_scope(task, context)
+            && request["method"] == "item/commandExecution/requestApproval"
             && cwd.as_deref() == Some(self.inner.cwd.as_path())
             && params
                 .get("networkApprovalContext")
@@ -554,9 +578,23 @@ fn live_approval_policy_rejects_other_actions_locations_and_network_requests() {
             model: "fixture".into(),
         },
     };
-    let (task, context) = case("approval-policy", "fixture");
+    let (task, context) = approval_case("approval-policy", "fixture");
     let request = json!({"method":"item/commandExecution/requestApproval","params":{"cwd":cwd,"command":APPROVAL_WRITE_COMMAND}});
     assert!(policy.authorize_approval(&task, &context, &request).is_ok());
+    let mut readonly = task.clone();
+    readonly.workspace.read_only = true;
+    assert!(
+        policy
+            .authorize_approval(&readonly, &context, &request)
+            .is_err()
+    );
+    let mut unrelated = context.clone();
+    unrelated.task_id = "unrelated".into();
+    assert!(
+        policy
+            .authorize_approval(&task, &unrelated, &request)
+            .is_err()
+    );
     let mut escaped = request.clone();
     escaped["params"]["command"] = json!(format!(
         "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command '{APPROVAL_WRITE_COMMAND}'"
@@ -607,7 +645,7 @@ async fn env_approval_allow_and_deny_control_the_write() {
         } else {
             "deny"
         };
-        let (task, context) = case(
+        let (task, context) = approval_case(
             &format!("approval-{label}"),
             &format!(
                 "Use exec_command to run exactly `{APPROVAL_WRITE_COMMAND}` in the current directory. Request sandbox_permissions=require_escalated so the host can approve this one write. Do not use another tool or a fallback. If permission is denied, stop and reply DENIED; otherwise reply DONE."
