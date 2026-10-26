@@ -94,3 +94,16 @@
 | `11848e67-e74a-456e-9d44-ecafdc0ede92` (2차) | hidden | `antigravity-cli/brain/<id>`, `antigravity-cli/conversations/<id>.db` | CLI 인덱스 1행. 확장 인덱스 미러 행은 사라짐 |
 
 `-wal`·`-shm`·`.pb`는 남지 않았습니다. 공통 규칙 §1.4에 따라 `conversation_summaries.db`는 수정하지 않았으므로 요약 행 4개가 남아 있습니다. `listed` 2행은 확장 목록에 내용 없는 항목으로 보일 수 있습니다. 지우려면 사용자가 확장 UI에서 삭제해야 합니다. 1차 회차는 시험 단언 실패(§3.3 발견)로 끝났지만 정리는 단언 전에 실행되었습니다.
+
+## 8. 후속: 주석 보정
+
+- **목적:** DEC-08 제출 시점의 "확장 UI 표시 여부 미검증" 주석을 사용자 화면 확인 결과(`07b7210`, Windows 로컬)와 일치하도록 보정 ([지시서](../PH0-INTEGRATION/AGY_LISTING_FOLLOWUP.md)).
+- **수정 위치:**
+  1. `crates/adapters/src/agy.rs` (`AgyVsCodeListing::Hidden` 문서 주석): 확장 인덱스에 CLI 출처 행이 생기더라도 확장 UI가 이를 목록에서 걸러 표시하지 않음(숨겨짐)을 사용자 화면 확인(`07b7210`, Windows 로컬, 확장 1.9.0·`agy` 1.4.7)으로 확인했음을 명시 (§3.3·§4 참조, Linux·Remote SSH는 미판정).
+  2. `crates/adapters/tests/agy_environment.rs` (`env_vscode_listing` 관찰 주석): 허브 감시 원인은 추정으로 두고, 확장 UI 숨김은 사용자 화면 확인에 근거하며 자동 시험은 파일 위치와 인덱스 출처만 확인한다는 점을 명확히 구분.
+- **검사 결과:**
+  - `cargo fmt --all --check`: 통과
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 통과
+  - `cargo test -p telos-adapters --test agy_adapter`: 16개 통과 (0 실패)
+  - `cargo test --workspace`: 167개 통과 (0 실패, 37개 ignored)
+- **비고:** 주석만 변경되었으며 런타임 동작 코드, 테스트 단언, Capability 사유 문자열, 공개 API는 변경 없음. 실환경 모델 호출 시험 불필요.
