@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | 작성 | PH0-INTEGRATION (`claude-opus-5.5/session-c9336d2c`), 2026-10-26 |
-| 기준 | `main` `96e61b8`(발견 3 통합 포함), Spec v1.5.6, 공통 계약 `7497877` |
+| 기준 | 첫 판정 `main` `96e61b8`(Spec v1.5.6, 계약 `7497877`). **최종 재검토 `main` `1249bba`**(Spec v1.5.7, 계약 `6a4f58a`, 2026-10-26) |
 | 근거 규칙 | Spec §19.1(체크리스트·통과 조건), §19.5.6 G3("§19.1의 모든 필수 조건과 Windows/Linux·Remote SSH 해당 환경 증거, 미지원 기능 판정 확보, INTEGRATION이 근거를 모아 보고") |
 | 대상 환경 | Windows 11 로컬 `windows-local`, Linux `psyki-nas`(Ubuntu 26.04.1 LTS), 단일 Remote SSH(Windows VS Code → `psyki-nas`) |
 | 판정 | **통과 판정(INTEGRATION).** 사용자 확인 뒤 확정 |
@@ -22,10 +22,10 @@
 | 6 | RN Fork에서 Reason CLI 연동·자동 업데이트·계정 로그인 제거, Windows/Linux Build, Health·Version·Discovery·통제된 Message RPC | RN-02·03 제거, RN-08 제거 검증, 격리 시험 204개, RN-06 RPC(인증·탐색·전송·구독·재동기화)·실제 Claude 세션 왕복, RN-07 Core 시작·재시작·정지 | 첫 Linux 빌드, 격리 시험 212개, `phase0_rn` 2개(Core가 띄운 RN과 왕복·재시작·정지, RN 정지 중 Run 독립) | §8.9·§9.2·§9.4·§9.7, [RN](../PH0-RN/README.md) | 충족(검증 한계는 §9.7) |
 | 7 | VS Code 로컬과 단일 Remote SSH에서 실제 CLI·Workspace·Core의 Host 확인 | 로컬 Extension·Core·Provider 모두 `windows-local` | Remote-SSH 원격 Extension Host에서 Core 시작·연결·재연결, 창 종료 뒤 Core 생존, Core·Provider·Workspace 모두 `psyki-nas`. Run 중 SSH 단절에도 원격 Run 지속·중복 없음 | §8.7, §9.5 | 충족 |
 | 8 | 이벤트 구독 전 종료, 잘못된 Stream, 프로세스·자식 종료와 기본 권한 적용 | 끝난 Run 재생(`api_replays_finished_run_and_unsubscribes_live_run`), 긴 줄·UTF-8·Protocol 오류(`oversized_line_…`, `exact_frame_utf8_…`), Job Object 자식 회수와 Core 강제 종료 시 트리 종료(`owner_crash_…`, 실제 Core·Claude 24ms), 도구 거부(Claude·Codex·Agy `env_tool_denied`) | Process Group 회수, Core 강제 종료 시 감시 프로세스로 Provider·도구·세션 분리 자손까지 회수(최종 코드 실제 Core·Claude 67ms), `turn_finished` 뒤 이어진 Turn 차단(발견 2) | §9.5·§9.6·§9.9, [HOST REQ-023](../PH0-HOST/REQ-023.md), HOST·Provider 시험 | 충족 |
-| 9 | Native Resume·Fork 실험과 Provider별 증거·제한(신규 실행과 별개 판정) | Claude: Resume·Fork 동작(부모 Turn 지정 미검증). Codex: Resume 같은 Thread·Fork 새 Thread·부모 불변. Antigravity: Resume 동작, Headless Fork **미지원**(`/fork is not available in print mode`, `UnsupportedCapability`) | Claude `claude_environment`의 Resume/Fork 통과 | 각 Provider README §Resume·Fork, §9.4 | 충족(Agy Fork는 미지원으로 판정, §19.1에서 필수 아님) |
-| 10 | Core/RN·Adapter Event·MasterDecision의 Schema와 Contract Test | 계약 기준 `7497877`, `telos-schema` Contract·Vector 시험, `json_schemas`(생성물 불일치 시 실패) | 같은 시험이 Linux Workspace에 포함 | [CONTRACT](../PH0-CONTRACT/README.md), §1·§6·§8.9 | 충족 |
+| 9 | Native Resume·Fork 실험과 Provider별 증거·제한(신규 실행과 별개 판정) | Claude: Resume·Fork 동작, Turn 지정 재개·분기는 실행 전 거부(`ffdc70a`). Antigravity Turn 지정 Resume도 거부(`423b2a3`). Codex: Resume 같은 Thread·Fork 새 Thread·부모 불변. Antigravity: Resume 동작, Headless Fork **미지원**(`/fork is not available in print mode`, `UnsupportedCapability`) | Claude `claude_environment`의 Resume/Fork 통과 | 각 Provider README §Resume·Fork, §9.4 | 충족(Agy Fork는 미지원으로 판정, §19.1에서 필수 아님) |
+| 10 | Core/RN·Adapter Event·MasterDecision의 Schema와 Contract Test | 계약 기준 `6a4f58a`(REQ-024 공통 Capability 키 포함), `telos-schema` Contract·Vector 시험, `json_schemas`(생성물 불일치 시 실패) | 같은 시험이 Linux Workspace에 포함 | [CONTRACT](../PH0-CONTRACT/README.md), §1·§6·§8.9 | 충족 |
 | 11 | Crate 경계 고정, 공통 Schema → JSON Schema·TypeScript 생성, Extension 사용 경로와 불일치 검출 | 의존 방향 `schema ← adapters, rn-client ← core`(Cargo 선언), `schemas/` 커밋본과 생성 결과 비교(`json_schemas`), Extension은 빌드마다 `schemas/`에서 TypeScript 재생성(커밋 안 함)·`tsc`로 사용 불일치 검출, Project Key Vector·Rust 상수 대조 시험 | Extension `npm test` 29개(당시) 통과 | AGENTS.md 구조 규칙, §3·§8.7, `extension/scripts/gen-types.mjs`, `extension/test/client.test.cjs` | 충족 |
-| 12 | Rust Core Daemon의 Windows/Linux Build와 Extension의 실행 파일 탐지·시작·연결 | Workspace 169개 통과, Extension Node 32개·실제 Core·격리 Host 6항목(발견 3 통합 `96e61b8`) | Workspace 171개 통과, Extension E1(Socket·토큰 0600·디렉터리 0700·잘못된 토큰 거부), E2 원격 Extension Host 시작·연결 | §9.3·§9.5·§9.9, [EXT Linux](../PH0-EXT/LINUX.md), [EXT HEALTH_STALE](../PH0-EXT/HEALTH_STALE.md) | 충족 |
+| 12 | Rust Core Daemon의 Windows/Linux Build와 Extension의 실행 파일 탐지·시작·연결 | 최종 `1249bba`: Workspace 177개 통과·42개 제외, 엄격 Clippy·fmt, Extension 32개, RN Fork fmt·Clippy. 발견 3 통합 때 실제 Core·격리 Host 6항목 | 최종 `1249bba`: Workspace 179개 통과·42개 제외, 엄격 Clippy·fmt, Extension 32개. Extension E1(Socket·토큰 0600·디렉터리 0700·잘못된 토큰 거부), E2 원격 Extension Host 시작·연결 | §9.3·§9.5·§9.9, [EXT Linux](../PH0-EXT/LINUX.md), [EXT HEALTH_STALE](../PH0-EXT/HEALTH_STALE.md) | 충족 |
 
 **통과 조건 대조:** 세 Provider가 같은 상위 계약으로 신규 작업의 실행·성공·실패·취소를 보고합니다(1). RN Fork Build와 필수 RPC(6), 마스터 결정 검증 경로(3)가 Windows·Linux에서 재현됩니다. Agy Headless Fork와 기존 IDE Attached 성공은 필수가 아니며, 실패한 실험은 지원 기능으로 표시하지 않았습니다(§2).
 
@@ -38,10 +38,10 @@
 | Antigravity Headless Native Fork | 미지원 | **미지원 유지** | `agy` 1.4.7 `--help`에 Fork 수단 없음(`--conversation`·`--continue`만), Headless `/fork` 거부(FORK-POC-01) | CLI 갱신 시 재확인 |
 | Antigravity 실행 중 승인 응답 | 미지원 | **미지원 유지** | `--help`의 권한 수단은 `--mode`(accept-edits·auto·plan)와 `--dangerously-skip-permissions`뿐. 실시간 응답 Protocol 없음 | — |
 | Claude·Antigravity `send_input` | 미지원 | **설계상 미지원**(CLI 수단은 있음) | 두 CLI 모두 `--input-format stream-json`으로 같은 프로세스에 메시지를 더 보낼 수 있으나 메시지마다 새 Turn을 실행합니다(`agy --help`: "runs a turn for each"). 공통 이벤트 규칙(REQ-006, Run당 Turn 1개, `turn_finished` 뒤 새 Turn 금지, Spec v1.5.6 §7.3)과 맞지 않아 후속 입력은 Resume Run으로 처리 | 진행 중 Turn 조정(steering)이 필요하면 Phase 1에서 계약과 함께 검토 |
-| **Claude `answer_approval`** | 미지원 | **미구현(CLI 수단 확인)**으로 정정 | Adapter 사유 "print mode has no live approval path"(근거 수준 `documented`)는 현재 CLI와 다릅니다. 2.1.310의 `--permission-prompt-tool stdio`(+ `initialize` 제어 요청)에서 Write 직전 `control_request`(`can_use_tool`)가 오고, Allow 응답이면 파일 생성·Deny 응답이면 미생성·`permission_denials` 1을 확인(2026-10-26 Windows, `haiku`, 일회용 폴더, 세션 3개 즉시 삭제). `--permission-prompts host`만 주고 응답자가 없으면 자동 거부 | 사용자 결정: `unsupported` 유지·사유 정정·근거 시험 추가, 구현은 Phase 1([CLAUDE 후속](CLAUDE_CAPABILITY_FOLLOWUP.md), REQ-024 단계 B 뒤) |
+| **Claude `answer_approval`** | 미지원 | **미구현(CLI 수단 확인)**으로 정정 | Adapter 사유 "print mode has no live approval path"(근거 수준 `documented`)는 현재 CLI와 다릅니다. 2.1.310의 `--permission-prompt-tool stdio`(+ `initialize` 제어 요청)에서 Write 직전 `control_request`(`can_use_tool`)가 오고, Allow 응답이면 파일 생성·Deny 응답이면 미생성·`permission_denials` 1을 확인(2026-10-26 Windows, `haiku`, 일회용 폴더, 세션 3개 즉시 삭제). `--permission-prompts host`만 주고 응답자가 없으면 자동 거부 | 처리 완료(`ffdc70a`): `unsupported` 유지·사유 정정·실시간 승인 실환경 시험(Windows·`psyki-nas`). 구현은 Phase 1(§3) |
 | Codex `vscodeListing: hidden` | 미지원 | **미지원 유지** | REQ-021 실측: App Server는 출처 지정과 무관하게 `vscode`로 저장. 외부 `exec`은 Adapter 경로가 아님(REQ-022) | — |
 | Codex `send_input`(`turn/steer`)·승인 Allow | 미검증 | **Windows 통과(C3)**, Linux 미검증 | C3(`9db02ff`, [CODEX 기록](../PH0-CODEX/CAPABILITY.md)): Windows에서 같은 Turn steering(응답 `C3_STEERED`, `turn_finished` 1개)과 명령 실행 승인 Allow/Deny(파일 생성/미생성)를 실환경 통과. `fileChange`·권한 확장·MCP 승인과 Linux 제어는 미검증. Core 정책은 여전히 승인 `Deny` 고정 | Linux 제어 시험은 선택 |
-| Claude Fork의 부모 기준 Turn 지정(`source_turn_id`) | 미검증 | **미검증 유지** | 2.1.310 `--help`에 특정 메시지·Turn 기준 재개·분기 옵션이 없음(`--resume <id> --fork-session`은 새 세션 ID로 이어 씀) | 필요 시 미지원으로 확정 |
+| Claude·Antigravity의 특정 Turn 기준 재개·분기(`source_turn_id`) | 미검증 | **미지원 확정** | CLI `--help`에 수단이 없음. 이전에는 값을 무시하고 최신 지점에서 실행했으나 이제 실행 전에 `UnsupportedCapability`로 거부(Claude `ffdc70a`, Antigravity `423b2a3`). Codex Resume도 거부, Codex Fork만 `lastTurnId`로 지원 | — |
 | DEC-08 Linux·Remote SSH 화면 확인, 실시간 화면 반영 | 미검증 | 미검증 유지 | 사용자 VS Code 조작 필요. §19.1 필수 아님 | 선택 |
 | 확장 다중 버전 선택(서버) | 미검증(현 서버) | 유지 | 2026-10-25 두 벌 설치 시점 HOST H3 통과, 현재 한 벌 | 두 벌 환경이 생기면 재실행 |
 | **Windows 정상 종료 신호** | (누락) | **미구현** | Windows 취소는 stdin을 닫고 유예 뒤 Job 강제 종료. 정상 종료 신호를 보내지 않음(§7.4) | Phase 1 검토 |
@@ -64,15 +64,26 @@
 
 **처리 현황(2026-10-26):** C1 완료(계약 `6a4f58a`, Claude `ffdc70a`, Antigravity `c6f7383`, REQ-024 §7). C2·C4 완료(`ffdc70a`, [CLAUDE 기록](../PH0-CLAUDE/CAPABILITY.md)): Resume·Fork 사유 정정·근거 수준 `environment-tested`, `answer_approval` 사유 정정과 실시간 승인 실환경 시험(Windows·`psyki-nas` 통과), 함께 **Claude가 `source_turn_id`를 무시하고 최신 지점에서 재개·분기하던 동작을 거부로 수정**. C3 완료(`9db02ff`): Codex 판정이 (플랫폼, CLI 버전) 증거 목록과 설치 manifest(확장 ID·버전·플랫폼) 기준이 되어 Linux 기본 기능·목록 표시가 `supported`로 보고되고, Windows `send_input`·`answer_approval`이 실환경 근거로 `supported`. 후속 발견(Antigravity Resume의 `source_turn_id` 무시)은 `423b2a3`로 수정 완료(REQ-024 §7).
 
-**C5(판정 기준 차이, C3 검토에서 발견):** `native_resume`·`native_fork`를 Codex는 `supported`(세부 제한은 사유), Claude·Antigravity는 `unverified`(Phase 0 실환경 통과, 세션 소유권 등 Phase 1 조건이 남았다는 이유, Claude는 사용자 결정 1-B)로 보고합니다. 셋 다 Phase 0 실환경을 통과했으므로 같은 근거에 다른 상태입니다. Spec §7.1은 "키 하나의 `supported`가 세부 조건까지 보장하지 않는다"고 정해 두 방식 모두 규칙 위반은 아니지만, Phase 1에서 Core가 이 값으로 판단하기 전에 기준을 하나로 정해야 합니다(사용자 결정 필요).
+**C5(판정 기준 차이, C3 검토에서 발견):** `native_resume`·`native_fork`를 Codex는 `supported`(세부 제한은 사유), Claude·Antigravity는 `unverified`(Phase 0 실환경 통과, 세션 소유권 등 Phase 1 조건이 남았다는 이유, Claude는 사용자 결정 1-B)로 보고합니다. 셋 다 Phase 0 실환경을 통과했으므로 같은 근거에 다른 상태입니다. Spec §7.1은 "키 하나의 `supported`가 세부 조건까지 보장하지 않는다"고 정해 두 방식 모두 규칙 위반은 아닙니다. **사용자 결정(2026-10-26): Phase 1로 이월**(§3). Core가 Capability로 집행하기 전에 기준을 하나로 정합니다.
 
-Antigravity `native_resume`의 `unverified`는 사유(세션 소유권·잘못된 세션 복구가 P1)를 적은 의도적 판정이라 불일치로 보지 않습니다.
+Antigravity `native_resume`의 `unverified`는 사유(세션 소유권·잘못된 세션 복구가 P1)를 적은 의도적 판정이지만, Codex와의 기준 차이는 위 C5에 포함됩니다.
 
-**G3 판정에 미치는 영향:** 없습니다. 위 항목은 모두 §19.1 필수 조건이 아니며, §19.1 1번의 "같은 상위 계약으로 실행·성공·실패·취소 보고"는 공통 이벤트 계약으로 충족합니다. C1~C4는 지원을 과장하지 않고(낮게 보고하거나 미구현) Spec §2.1 원칙("지원하는 것처럼 표시하지 않음")에도 어긋나지 않습니다.
+**G3 판정에 미치는 영향:** 없습니다. 위 항목은 모두 §19.1 필수 조건이 아니며, §19.1 1번의 "같은 상위 계약으로 실행·성공·실패·취소 보고"는 공통 이벤트 계약으로 충족합니다. C1~C5는 지원을 과장하지 않고(낮게 보고하거나 미구현) Spec §2.1 원칙("지원하는 것처럼 표시하지 않음")에도 어긋나지 않습니다.
 
 ## 3. Phase 0 범위 밖으로 남는 것 (Phase 1 P0)
 
 영속 저장소·재시작 복구(Spec §14.2·§14.3의 미완 Run·Lock 대조), Scheduler·Workspace 관리·검증·Artifact, 정식 정책(`core/policy`), 미집행 마스터 결정 kind 5종, Extension 전체 UI(Task 목록·마스터 대화·승인·Artifact), 메시지 기능의 외부 노출. 모두 Phase 0에서 지원한다고 표시하지 않습니다.
+
+**Phase 0에서 이월한 결정·과제** (G3 확정과 무관, Phase 1 착수 때 처리)
+
+| # | 내용 | 출처 |
+|---|---|---|
+| P1-1 | **C5:** `native_resume`·`native_fork`의 판정 기준 통일(Codex `supported` 대 Claude·Antigravity `unverified`). Core가 Capability로 집행하기 전에 결정 | §2.1, 사용자 결정 2026-10-26 |
+| P1-2 | 실시간 승인 구현: Claude `answer_approval`(CLI `--permission-prompt-tool stdio` 확인됨), Core 승인 정책(현재 Codex `Deny` 고정)·승인 UI와 함께 | §2, C4 |
+| P1-3 | 진행 중 Turn 조정(steering): Codex는 Windows 통과, Claude·Antigravity는 공통 계약과 함께 검토 | §2 |
+| P1-4 | 미검증 확장: Codex Linux 제어(`send_input`·승인), `fileChange`·MCP 승인, DEC-08 Linux 화면·실시간 반영, Linux Local API 다른 사용자·대체 경로, 확장 다중 버전 선택(서버) | §2 |
+| P1-5 | Windows 정상 종료 신호(현재 유예 뒤 강제 종료) | §2 |
+| P1-6 | CI 도입 여부(현재 수동 검사) | §4 |
 
 ## 4. 남은 운영 결정
 
@@ -84,3 +95,5 @@ Antigravity `native_resume`의 `unverified`는 사유(세션 소유권·잘못�
 §19.1의 필수 항목 12개 모두 대상 환경 증거가 있고, 미지원 기능은 §2와 같이 판정했습니다. INTEGRATION은 **G3 통과**로 판정하며, 사용자 확인을 받으면 배정표 §3을 "통과 확정"으로 바꿉니다.
 
 **확정 조건(사용자 결정 2026-10-26):** 진행 중이거나 착수를 기다리는 작업(기록 시점 PH0-CODEX C3, PH0-AGY Turn 지정 Resume 거부. 후자는 `423b2a3`로 완료)이 모두 끝나고 추가 작업이 없을 때 확정을 검토합니다. 그때 이 대조표를 다시 점검해 사용자에게 보고합니다.
+
+**확정 전 재검토(2026-10-26, `1249bba`):** 진행 중·착수 대기 작업 없음(배정표 모든 작업 `integrated`/`verified`, PH0-INTEGRATION만 `in-progress`). 첫 판정 뒤 들어온 변경(REQ-024 공통 Capability 키·Spec v1.5.7, Claude·Codex·Antigravity Capability 보정, Turn 지정 재개·분기 거부, C3 실환경 제어 시험)이 §19.1 항목을 약화하지 않음을 확인했습니다. 일회용 Worktree에서 최종 공통 검사: Windows Workspace 177개·Linux 179개 통과(각 42개 제외), 엄격 Clippy·fmt 양 OS, Extension 32개 양 OS, RN Fork fmt·Clippy(Windows). 모델 호출 시험은 다시 돌리지 않았고, 이후 변경의 실환경 근거는 각 통합 기록(C2·C4 `ffdc70a`, C3 `9db02ff`)에 있습니다. C5 등 남은 결정·과제는 §3 이월 표로 Phase 1에 넘깁니다. **INTEGRATION 결론: G3 통과 판정 유지, 확정 가능.** 사용자 확인을 받으면 배정표 §3을 "통과 확정"으로 바꿉니다.
