@@ -65,12 +65,29 @@ fn enter(owner: i32, owner_group: i32, report: i32, max_fd: libc::rlim_t) -> io:
         }
         libc::close(fd);
         libc::signal(libc::SIGCHLD, libc::SIG_DFL);
+        let mut gate = [-1; 2];
+        if libc::pipe2(gate.as_mut_ptr(), libc::O_CLOEXEC) != 0 {
+            return Err(io::Error::last_os_error());
+        }
         let provider = libc::fork();
         if provider < 0 {
             return Err(io::Error::last_os_error());
         }
         if provider == 0 {
             libc::close(report);
+            libc::close(gate[1]);
+            let mut armed = [0];
+            let count = loop {
+                let count = libc::read(gate[0], armed.as_mut_ptr().cast(), 1);
+                if count < 0 && *libc::__errno_location() == libc::EINTR {
+                    continue;
+                }
+                break count;
+            };
+            libc::close(gate[0]);
+            if count != 1 || armed != [1] {
+                return Err(io::Error::from_raw_os_error(libc::ECANCELED));
+            }
             return Ok(());
         }
         // Leave the provider PG before it can be terminated. The guard remains a
@@ -82,6 +99,11 @@ fn enter(owner: i32, owner_group: i32, report: i32, max_fd: libc::rlim_t) -> io:
         let bytes = provider.to_ne_bytes();
         let reported =
             libc::write(report, bytes.as_ptr().cast(), bytes.len()) == bytes.len() as isize;
+        libc::close(gate[0]);
+        if separated && reported && libc::getppid() == owner {
+            libc::write(gate[1], [1_u8].as_ptr().cast(), 1);
+        }
+        libc::close(gate[1]);
         close_other_fds(report, max_fd);
         if separated && reported {
             loop {

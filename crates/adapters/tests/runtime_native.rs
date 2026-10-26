@@ -550,3 +550,37 @@ async fn natural_exit_reaps_descendant_in_another_session() {
     assert_eq!(handle.wait().await.unwrap().code, Some(0));
     assert!(!process_alive(child));
 }
+
+// The spawning Tokio worker may exit while Core is still alive (REQ-023).
+#[cfg(target_os = "linux")]
+#[tokio::test]
+async fn spawning_thread_exit_does_not_stop_a_live_run() {
+    let command = spec("sleep");
+    let handle = std::thread::spawn(move || {
+        tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(NativeRuntime.spawn(command))
+            .unwrap()
+    })
+    .join()
+    .unwrap();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert!(process_alive(handle.identity().pid));
+    let report = handle.terminate(Duration::ZERO).await.unwrap();
+    assert_eq!(report.children, ChildrenReaped::All);
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test]
+async fn guard_death_without_a_receipt_is_not_confirmed_termination() {
+    let handle = NativeRuntime.spawn(spec("sleep")).await.unwrap();
+    let guard = unsafe { libc::getpgid(handle.identity().pid as i32) };
+    assert!(guard > 0);
+    assert_eq!(unsafe { libc::kill(guard, libc::SIGKILL) }, 0);
+    assert!(
+        tokio::time::timeout(Duration::from_secs(3), handle.wait())
+            .await
+            .unwrap()
+            .is_err()
+    );
+}
