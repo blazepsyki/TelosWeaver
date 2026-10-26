@@ -481,6 +481,29 @@ Antigravity(`gemini-3.8-flash/session-f1b89d3a`, 독립 검토자, Spec §19.5.1
 
 판정: RN-08 완료 조건(제거 검증과 기능 시험의 근거 존재, 대상 OS 증거와 남은 조건 인계)을 위 한계와 함께 충족한다고 보고 통합합니다.
 
+### 9.8 비차단 후속 두 건 검토·통합 (2026-10-26)
+
+**PH0-AGY `Hidden` 주석 보정**(`gemini-3.8-flash/session-c2e931ec`, `502a3c8`, [지시서](AGY_LISTING_FOLLOWUP.md)). 병합 `c28c801`.
+
+| 항목 | 결과 |
+|---|---|
+| 범위 | `agy.rs` `AgyVsCodeListing::Hidden` 문서 주석, `agy_environment.rs` `env_vscode_listing` 관찰 주석, AGY 증거 §8. 주석만 변경(동작·단언·Capability 사유·공개 API 불변) |
+| 내용 | 화면 확인(`07b7210`)의 범위를 Windows 로컬·확장 1.9.0·`agy` 1.4.7로 한정하고 Linux·Remote SSH는 미판정으로 적음. 자동 시험이 UI 숨김을 보장하지 않는다는 구분 유지 |
+| 검사(병합본, Windows) | `cargo fmt --all --check`·엄격 Clippy 통과, `agy_adapter` 16개 통과. 담당 제출: Workspace 167개 통과·37개 제외 |
+
+**REQ-022 Codex 외부 호출 절차 보정**(`Codex / PH0-CODEX-REQ022-01a17586`, 이전 세션 `…-01a17034` 인수, `80bd5c0`, [요청서](REQ-022.md), [CODEX 기록](../PH0-CODEX/REQ-022.md)). 병합 `6990c32`.
+
+| 항목 | 결과 |
+|---|---|
+| 범위 | `docs/AGENT_CLI_VSCODE_SESSIONS.md` 요약·A1~A6·D·E·F, CODEX 증거, 참고 클라이언트 `req022_app_server.py`와 오프라인 시험. Spec·공통 계약·Adapter 불변 |
+| 결론 | `exec --thread-source cli`·`exec fork … --thread-source cli`는 `thread_source`만 바꾸고 `source`는 `exec`로 남아 기본 목록에서 제외. 표시할 작업은 App Server `thread/start`·`turn/start`, 기존 `exec` 대화는 App Server `thread/fork`로 새 `vscode` Thread |
+| 참고 클라이언트 검토 | 승인·클라이언트 도구 요청을 자동 허용하지 않음, 응답 정책(Sandbox·승인·네트워크·쓰기 범위)이 요청과 다르면 Turn 전 거부, `source`가 `cli`·`vscode`가 아니면 거부, `ephemeral: false`, 설정 값·자격 증명 미출력. Turn `completed`·서버 종료 코드·클라이언트 종료 코드를 구분 |
+| 화면 확인 | 새 App Server 대화(`01a173dd-3257-…`)의 목록 표시·열기는 사용자 확인 통과. App Server Fork 분기의 화면 열기·실시간 반영·Linux·Remote SSH는 미검증으로 문서에 기록 |
+| 검사(INTEGRATION) | 오프라인 시험 6개 Worktree·병합본 각각 통과(`python -I -B …/test_req022_app_server.py`), `git diff --check` 통과. 실계정 재실행 없음(담당의 실환경 결과는 이전 세션 기록에 근거, CODEX 기록 §6) |
+| 시험 Thread | CODEX 기록 §5의 9개 모두 `~/.codex` 활성 세션 0개·보관 1개씩(INTEGRATION 재확인). 요청서의 시험 Thread 2개는 접수 때 Archive |
+
+두 건 모두 Worktree·Branch를 삭제했습니다.
+
 ## 10. DEC-08 VS Code 확장 목록 표시 통합 (2026-10-26)
 
 | 항목 | 값 |
