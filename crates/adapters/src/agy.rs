@@ -86,8 +86,9 @@ pub enum AgyVsCodeListing {
     Listed,
     /// `--app_data_dir` 옵션을 생략(`AgyDataDirMode::DefaultCli`)해
     /// CLI 기본 디렉터리(`~/.gemini/antigravity-cli`)에 분리 기록합니다.
-    /// 다만 확장 허브가 실행 중이면 확장 인덱스에 `source = CORTEX_TRAJECTORY_SOURCE_CLI`로 나타나는 것이 관찰되었고
-    /// 확장 UI에서 실제로 숨겨지는지는 미검증입니다(`docs/phase-0/evidence/PH0-AGY/VSCODE_LISTING.md` §3.3).
+    /// 확장 허브가 실행 중이면 확장 인덱스에 `source = CORTEX_TRAJECTORY_SOURCE_CLI` 행이 생길 수 있으나,
+    /// 확장 UI가 이를 목록에서 걸러 표시하지 않음(숨겨짐)을 사용자 화면 확인(`07b7210`, Windows 로컬, 확장 1.9.0·`agy` 1.4.7)으로 확인했습니다
+    /// (`docs/phase-0/evidence/PH0-AGY/VSCODE_LISTING.md` §3.3·§4, Linux·Remote SSH는 미판정).
     /// 디렉터리별로 로그인 상태가 분리되므로(`AGY-DATA-02`) 별도 CLI 로그인이 없으면 인증 실패로 보고합니다.
     Hidden,
 }

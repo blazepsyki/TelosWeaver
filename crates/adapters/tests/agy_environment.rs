@@ -802,8 +802,8 @@ async fn env_vscode_listing_summaries_and_workspace_filter() {
     // 2026-10-25 관찰(VSCODE_LISTING.md §3.3): 확장 허브(`agy --hub --app_data_dir=antigravity`)가 실행 중이면
     // DefaultCli 대화가 확장 인덱스(~/.gemini/antigravity/conversation_summaries.db)에도
     // source="CORTEX_TRAJECTORY_SOURCE_CLI"(제목 없음)로 나타났고, 대화 DB를 지운 뒤에는 사라졌습니다.
-    // 원인(허브의 추가 대화 폴더 감시로 추정)과 확장 UI 표시 여부는 미검증이므로 여기서는 관찰만 고정합니다.
-    // 즉 이 시험은 "hidden이 확장 인덱스에서 제외된다"를 보장하지 않습니다.
+    // 허브 감시 원인은 추정으로 두며, 확장 UI 숨김은 사용자 화면 확인(`07b7210`, Windows 로컬)으로 확인했습니다.
+    // 이 자동 시험은 파일 위치와 인덱스 출처만 확인하며, "hidden이 확장 인덱스에서 제외된다"나 UI 표시 자체를 자동으로 보장하지 않습니다.
     if let Some(mirrored) = &ext_summary_for_hidden {
         assert_eq!(
             mirrored["source"].as_str(),
