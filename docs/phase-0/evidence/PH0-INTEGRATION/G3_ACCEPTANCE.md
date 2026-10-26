@@ -62,6 +62,8 @@
 
 후속: C1은 [REQ-024](REQ-024.md)(Codex), C3은 [CODEX 후속](CODEX_CAPABILITY_FOLLOWUP.md), C2·C4는 [CLAUDE 후속](CLAUDE_CAPABILITY_FOLLOWUP.md)(사용자 결정: C2는 `unverified` 유지·사유 정정, REQ-024 단계 B 뒤 처리).
 
+**처리 현황(2026-10-26):** C1 계약·Codex·Claude 전환 완료(`6a4f58a`·`ffdc70a`), Antigravity 전환 진행 중. C2·C4 완료(`ffdc70a`, [CLAUDE 기록](../PH0-CLAUDE/CAPABILITY.md)): Resume·Fork 사유 정정·근거 수준 `environment-tested`, `answer_approval` 사유 정정과 실시간 승인 실환경 시험(Windows·`psyki-nas` 통과), 함께 **Claude가 `source_turn_id`를 무시하고 최신 지점에서 재개·분기하던 동작을 거부로 수정**. C3 대기.
+
 Antigravity `native_resume`의 `unverified`는 사유(세션 소유권·잘못된 세션 복구가 P1)를 적은 의도적 판정이라 불일치로 보지 않습니다.
 
 **G3 판정에 미치는 영향:** 없습니다. 위 항목은 모두 §19.1 필수 조건이 아니며, §19.1 1번의 "같은 상위 계약으로 실행·성공·실패·취소 보고"는 공통 이벤트 계약으로 충족합니다. C1~C4는 지원을 과장하지 않고(낮게 보고하거나 미구현) Spec §2.1 원칙("지원하는 것처럼 표시하지 않음")에도 어긋나지 않습니다.
