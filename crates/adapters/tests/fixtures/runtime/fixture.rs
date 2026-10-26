@@ -23,14 +23,29 @@ fn main() {
         Some("sleep") => loop {
             std::thread::sleep(Duration::from_millis(50));
         },
-        Some("tree" | "orphan") => {
-            let child = Command::new(std::env::current_exe().unwrap())
-                .arg("sleep")
-                .spawn()
-                .unwrap();
+        Some("tree" | "orphan" | "detached-tree" | "detached-orphan") => {
+            let mut command = Command::new(std::env::current_exe().unwrap());
+            command.arg("sleep");
+            #[cfg(unix)]
+            if args[1].starts_with("detached-") {
+                use std::os::unix::process::CommandExt;
+                unsafe extern "C" {
+                    fn setsid() -> i32;
+                }
+                unsafe {
+                    command.pre_exec(|| {
+                        if setsid() < 0 {
+                            Err(io::Error::last_os_error())
+                        } else {
+                            Ok(())
+                        }
+                    });
+                }
+            }
+            let child = command.spawn().unwrap();
             println!("{}", child.id());
             io::stdout().flush().unwrap();
-            if args[1] == "tree" {
+            if args[1].ends_with("tree") {
                 loop {
                     std::thread::sleep(Duration::from_millis(50));
                 }

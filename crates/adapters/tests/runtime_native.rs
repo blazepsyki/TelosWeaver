@@ -398,3 +398,155 @@ async fn unix_sigterm_resistance_escalates_and_removes_the_process_group() {
         .await
         .unwrap();
 }
+
+// Subprocess fixture: its abrupt death bypasses all runtime destructors (REQ-023).
+#[test]
+fn runtime_owner_fixture() {
+    let Some(report) = std::env::var_os("TELOS_RUNTIME_OWNER_REPORT") else {
+        return;
+    };
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let mode = std::env::var("TELOS_RUNTIME_OWNER_MODE").unwrap();
+        let mut command = spec(&mode);
+        command.program = std::env::var_os("TELOS_RUNTIME_FIXTURE").unwrap().into();
+        let handle = NativeRuntime.spawn(command).await.unwrap();
+        let mut output = handle.take_output().unwrap();
+        let event = output.next().await.unwrap();
+        let child = match event {
+            OutputEvent::Line { data, .. } => String::from_utf8(data).unwrap(),
+            _ => panic!("missing child pid"),
+        };
+        std::fs::write(report, format!("{} {child}", handle.identity().pid)).unwrap();
+        std::future::pending::<()>().await;
+    });
+}
+
+fn process_alive(pid: u32) -> bool {
+    #[cfg(unix)]
+    {
+        unsafe { libc::kill(pid as i32, 0) == 0 }
+    }
+    #[cfg(windows)]
+    unsafe {
+        use windows_sys::Win32::{Foundation::*, System::Threading::*};
+        let process = OpenProcess(PROCESS_SYNCHRONIZE, 0, pid);
+        if process.is_null() {
+            return false;
+        }
+        let alive = WaitForSingleObject(process, 0) == WAIT_TIMEOUT;
+        CloseHandle(process);
+        alive
+    }
+}
+
+fn stop_fixture(pid: u32) {
+    #[cfg(unix)]
+    unsafe {
+        libc::kill(pid as i32, libc::SIGKILL);
+    }
+    #[cfg(windows)]
+    unsafe {
+        use windows_sys::Win32::{Foundation::CloseHandle, System::Threading::*};
+        let process = OpenProcess(PROCESS_TERMINATE, 0, pid);
+        if !process.is_null() {
+            TerminateProcess(process, 1);
+            CloseHandle(process);
+        }
+    }
+}
+
+fn owner_crash(mode: &str) {
+    struct Cleanup {
+        owner: std::process::Child,
+        pids: Vec<u32>,
+        report: PathBuf,
+    }
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            let _ = self.owner.kill();
+            let _ = self.owner.wait();
+            for &pid in &self.pids {
+                if process_alive(pid) {
+                    stop_fixture(pid);
+                }
+            }
+            let _ = std::fs::remove_file(&self.report);
+        }
+    }
+    let report = std::env::temp_dir().join(format!("telos-owner-{}-{mode}", std::process::id()));
+    let _ = std::fs::remove_file(&report);
+    let executable = fixture();
+    let owner = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", "runtime_owner_fixture", "--nocapture"])
+        .env("TELOS_RUNTIME_OWNER_REPORT", &report)
+        .env("TELOS_RUNTIME_OWNER_MODE", mode)
+        .env("TELOS_RUNTIME_FIXTURE", executable)
+        .stdout(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let mut cleanup = Cleanup {
+        owner,
+        pids: vec![],
+        report,
+    };
+    let start = std::time::Instant::now();
+    while !cleanup.report.exists() {
+        assert!(
+            cleanup.owner.try_wait().unwrap().is_none(),
+            "fixture owner exited"
+        );
+        assert!(
+            start.elapsed() < Duration::from_secs(15),
+            "fixture ready timeout"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    cleanup.pids = std::fs::read_to_string(&cleanup.report)
+        .unwrap()
+        .split_whitespace()
+        .map(|pid| pid.parse().unwrap())
+        .collect();
+    assert_eq!(cleanup.pids.len(), 2);
+    assert!(cleanup.pids.iter().all(|&pid| process_alive(pid)));
+    cleanup.owner.kill().unwrap();
+    cleanup.owner.wait().unwrap();
+    let start = std::time::Instant::now();
+    while cleanup.pids.iter().any(|&pid| process_alive(pid))
+        && start.elapsed() < Duration::from_secs(5)
+    {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(
+        cleanup.pids.iter().all(|&pid| !process_alive(pid)),
+        "owner crash left processes: {:?}",
+        cleanup.pids
+    );
+}
+
+// Spec §3, §7.3, SAFE-03, REQ-023: no owner Drop can execute after SIGKILL/TerminateProcess.
+#[test]
+fn owner_crash_removes_provider_and_grandchild() {
+    owner_crash("tree");
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn owner_crash_removes_descendant_in_another_session() {
+    owner_crash("detached-tree");
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test]
+async fn natural_exit_reaps_descendant_in_another_session() {
+    let handle = NativeRuntime.spawn(spec("detached-orphan")).await.unwrap();
+    let events = collect(&handle).await;
+    let child = events
+        .iter()
+        .find_map(|event| match event {
+            OutputEvent::Line { data, .. } => String::from_utf8_lossy(data).parse::<u32>().ok(),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(handle.wait().await.unwrap().code, Some(0));
+    assert!(!process_alive(child));
+}
