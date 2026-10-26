@@ -13,11 +13,19 @@ use std::{
     time::Duration,
 };
 
+#[cfg(target_os = "linux")]
+#[path = "linux_guard.rs"]
+mod guard;
+
 pub struct Control {
     child: Mutex<Child>,
     pgid: i32,
     status: Mutex<Option<ExitStatus>>,
     retired: AtomicBool,
+    #[cfg(target_os = "linux")]
+    receipt: Mutex<File>,
+    #[cfg(target_os = "linux")]
+    guard_failed: AtomicBool,
 }
 pub fn spawn(spec: CommandSpec) -> io::Result<Spawned> {
     let mut command = Command::new(spec.program.canonicalize()?);
@@ -39,7 +47,23 @@ pub fn spawn(spec: CommandSpec) -> io::Result<Spawned> {
             command.env_remove(key);
         }
     }
+    #[cfg(target_os = "linux")]
+    let mut receipt = guard::prepare(&mut command)?;
     let mut child = command.spawn()?;
+    let pgid = child.id() as i32;
+    #[cfg(target_os = "linux")]
+    let pid = match guard::provider_pid(&mut receipt) {
+        Ok(pid) => pid,
+        Err(error) => {
+            unsafe {
+                libc::kill(-pgid, libc::SIGKILL);
+            }
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(error);
+        }
+    };
+    #[cfg(not(target_os = "linux"))]
     let pid = child.id();
     let stdin = child
         .stdin
@@ -50,9 +74,13 @@ pub fn spawn(spec: CommandSpec) -> io::Result<Spawned> {
     Ok(Spawned {
         control: Arc::new(Control {
             child: Mutex::new(child),
-            pgid: pid as i32,
+            pgid,
             status: Mutex::new(None),
             retired: AtomicBool::new(false),
+            #[cfg(target_os = "linux")]
+            receipt: Mutex::new(receipt),
+            #[cfg(target_os = "linux")]
+            guard_failed: AtomicBool::new(false),
         }),
         stdin,
         stdout,
@@ -63,6 +91,71 @@ pub fn spawn(spec: CommandSpec) -> io::Result<Spawned> {
 impl Control {
     pub fn try_wait(&self) -> io::Result<Option<ExitStatus>> {
         let mut cached = self.status.lock().unwrap();
+        #[cfg(target_os = "linux")]
+        {
+            if self.guard_failed.load(Ordering::Acquire) {
+                return Err(io::Error::other(
+                    "Linux guard did not confirm descendant termination",
+                ));
+            }
+            if cached.is_none() {
+                use std::io::Read;
+                let mut child = self.child.lock().unwrap();
+                let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };
+                // Keep the guard zombie until all final PG signals are sent:
+                // its PID must still reserve our PGID, including on guard failure.
+                if unsafe {
+                    libc::waitid(
+                        libc::P_PID,
+                        child.id(),
+                        &mut info,
+                        libc::WEXITED | libc::WNOHANG | libc::WNOWAIT,
+                    )
+                } != 0
+                {
+                    let error = io::Error::last_os_error();
+                    if error.raw_os_error() == Some(libc::EINTR) {
+                        return Ok(None);
+                    }
+                    return Err(error);
+                }
+                if unsafe { info.si_pid() } == 0 {
+                    return Ok(None);
+                }
+                let mut receipt = [0];
+                let confirmed = self
+                    .receipt
+                    .lock()
+                    .unwrap()
+                    .read_exact(&mut receipt)
+                    .is_ok()
+                    && receipt == [1];
+                if !confirmed {
+                    unsafe {
+                        libc::kill(-self.pgid, libc::SIGKILL);
+                    }
+                }
+                let status = child
+                    .try_wait()?
+                    .ok_or_else(|| io::Error::other("Linux guard exit unavailable"))?;
+                self.retired.store(true, Ordering::Release);
+                if !confirmed {
+                    self.guard_failed.store(true, Ordering::Release);
+                    return Err(io::Error::other(
+                        "Linux guard did not confirm descendant termination",
+                    ));
+                }
+                *cached = Some(ExitStatus {
+                    code: status.code(),
+                    cause: if status.code().is_some() {
+                        TerminationCause::Exited
+                    } else {
+                        TerminationCause::External
+                    },
+                });
+            }
+        }
+        #[cfg(not(target_os = "linux"))]
         if cached.is_none()
             && let Some(status) = self.child.lock().unwrap().try_wait()?
         {
@@ -86,6 +179,9 @@ impl Control {
         }
     }
     fn signal(&self, signal: i32) -> io::Result<()> {
+        // Serialize signaling with reaping: the guard PID reserves the PGID
+        // until try_wait records its receipt (Spec §14.3, REQ-023).
+        let _status = self.status.lock().unwrap();
         if self.retired.load(Ordering::Acquire) {
             return Ok(());
         }
