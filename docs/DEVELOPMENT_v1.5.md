@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.7)  
+> **문서 버전:** 1.5 (개정 1.5.8)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-26  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -40,6 +40,7 @@
 | v1.5.5 | 2026-10-26 | Antigravity 인증의 Host별 차이(§7.5 AGY-DATA-02·Host별 규칙, §7.6): Linux Remote SSH 세션의 `agy`는 데이터 디렉터리 안의 파일 토큰을 쓰고 원격 확장은 확장 디렉터리에 토큰 파일을 두지 않아, `--app_data_dir=antigravity`가 그 Host에서는 별도 로그인 없이 동작하지 않음. Phase 0의 `psyki-nas`는 이미 로그인된 CLI 기본 디렉터리(`hidden`)를 운영자 정책으로 명시해 씀(사용자 결정). 그 Host의 Antigravity Managed Run은 원격 확장 목록에 보이지 않음 |
 | v1.5.6 | 2026-10-26 | §7.3 Provider가 스스로 이어가는 Turn: 전용 프로세스 Run은 Turn 하나이므로 Provider의 백그라운드 작업처럼 첫 Turn 뒤에 이어지는 Turn을 막고(Claude `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`), 그래도 이어지면 기록하지 않고 프로세스를 끝내 성공으로 판정하지 않음(G3 발견 2) |
 | v1.5.7 | 2026-10-26 | 공통 Capability 키 계약(REQ-024, §7.1): `detect()`와 `UnsupportedCapability.capability`가 쓰는 공통 키 8개(`managed_run`·`event_stream`·`cancel`·`native_resume`·`native_fork`·`send_input`·`answer_approval`·`vscode_listing`)와 의미·필수 범위, 문자열 상수와 같은 원본에서 생성하는 `CommonCapabilityKey` Schema, 세부 제한은 키가 아니라 `reason`, 한 요청의 거부가 영구 미지원을 뜻하지 않음, Provider 고유 키 `provider.<provider_id>.<feature>`, 생략·알 수 없는 키는 지원 근거가 아님(§7.2) |
+| v1.5.8 | 2026-10-26 | 지원 백로그 `docs/SUPPORT_BACKLOG.md` 신설(사용자 요청): 미지원·설계상 미지원·미구현·미검증 기능을 지원 조건·재확인 방법과 함께 한 목록으로 유지하고 CLI 버전 변화 때 재판정(§7.1). PH0-INTEGRATION 경로에 등록(§19.5.3) |
 
 ## 목차
 
@@ -458,6 +459,7 @@ Capability는 `supported`·`unsupported`·`unverified`와 Provider 버전·Host�
 - Capability가 `supported`라는 이유로 승인·파일·실행 권한을 부여하지 않습니다(권한은 정책이 정함).
 - Provider 고유 키는 `provider.<provider_id>.<feature>`(`snake_case`)를 씁니다. 공통 8개는 접두어 없는 예약 이름입니다. 알 수 없는 키를 공통 기능의 별칭으로 추측하지 않고, 공통 소비자는 이를 필수 기능 지원 근거로 삼지 않습니다. 공통 키의 추가·의미 변경은 CONTRACT 변경 요청과 이 절의 개정으로만 합니다.
 - RN의 `RnSessionCapabilities`와 실패 분류 `unsupported_capability`는 이 키 목록과 별개입니다.
+- `unsupported`·`unverified`로 판정하거나 미구현으로 남긴 기능은 [지원 백로그](SUPPORT_BACKLOG.md)에 지원 조건·재확인 방법과 함께 기록하고, Provider CLI·확장 버전이 바뀌면 다시 판정합니다.
 
 ### 7.2 공통 실행·제어 계약
 
@@ -1327,7 +1329,7 @@ G0 완료 시 공통 인터페이스와 최소 컴파일 가능한 등록 경로
 
 | 작업 ID | 책임·산출물 | 독점 수정 경로 | 선행 조건 |
 |---|---|---|---|
-| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/src/integration/**, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, AGENTS.md, CLAUDE.md, docs/DEVELOPMENT_v1.5.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md, docs/phase-0/LINUX_REMOTE_HOST.md | 최초 지정, G0 준비부터 담당 |
+| PH0-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·환경 시험·게이트 판정 | Cargo.toml, Cargo.lock, crates/*/Cargo.toml, crates/core/src/lib.rs, crates/core/src/main.rs, crates/core/src/integration/**, crates/core/tests/phase0_*.rs, crates/core/tests/phase0/**, crates/core/README.md, .github/workflows/**, .gitignore, .gitattributes, .gitmodules, README.md, AGENTS.md, CLAUDE.md, docs/DEVELOPMENT_v1.5.md, docs/phase-0/WORK_ALLOCATION.md, docs/phase-0/WSL_LINUX_HOST.md, docs/phase-0/LINUX_REMOTE_HOST.md, docs/SUPPORT_BACKLOG.md | 최초 지정, G0 준비부터 담당 |
 | PH0-CONTRACT | 공통 Rust 계약·Payload Schema·생성 원본·Wire/Schema 시험, Adapter Trait·공통 오류 | crates/schema/**, schemas/**, crates/adapters/src/lib.rs, crates/adapters/src/unimplemented.rs, crates/adapters/tests/unimplemented.rs | INTEGRATION과 G0 확정 |
 | PH0-HOST | 공용 프로세스 I/O·취소·자식 회수, VS Code 확장 CLI 공통 탐색, 최소 Core API·Supervisor와 Fixture 경로 | crates/adapters/src/runtime/**, crates/adapters/src/discovery/**, crates/adapters/tests/runtime_*.rs, crates/adapters/tests/discovery_*.rs, crates/adapters/tests/support/runtime/**, crates/adapters/tests/fixtures/runtime/**, crates/core/src/api/**, crates/core/src/execution/**, crates/core/tests/host_*.rs, crates/core/tests/fixtures/host/** | G0, 공용 런타임·API 계약 |
 | PH0-CODEX | Codex App Server 접속·신규 실행·이벤트 매핑·오류·취소, Resume/Fork 실험 | crates/adapters/src/codex.rs, crates/adapters/src/codex/**, crates/adapters/tests/codex_*.rs, crates/adapters/tests/fixtures/codex/** | G0, HOST 공개 인터페이스 |
