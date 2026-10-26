@@ -5,9 +5,10 @@
 //!   프롬프트를 stdin의 Stream JSON 메시지로 보내고 바로 닫습니다. 명령줄 길이·인용 문제를 피하기 위해서입니다.
 //! - 이어지는 대화는 같은 Run의 입력이 아니라 다음 Run의 `resume`으로 처리합니다. 공통 이벤트 규칙상
 //!   전용 프로세스 Run에서 `turn_finished` 뒤에 다른 Turn을 둘 수 없기 때문입니다. 그래서 `send_input`은 미지원입니다.
-//! - Print 모드에는 실행 중 승인 응답 경로가 없습니다. 권한은 시작 전에 [`ClaudeLaunch`]로 정하고
-//!   `answer_approval`은 미지원입니다 (§7.4와 같은 원칙).
-//! - Resume(`--resume`)·Fork(`--resume` + `--fork-session`) 인자는 구성하지만 Capability는 실험 전까지 `unverified`입니다.
+//! - 권한은 시작 전에 [`ClaudeLaunch`]로 정하고 `answer_approval`은 미구현입니다. CLI는
+//!   `--permission-prompt-tool stdio`로 실행 중 승인 요청을 보내지만(2.1.310 실환경 확인), 이를 쓰는 승인 정책·UI는 Phase 1입니다.
+//! - Resume(`--resume`)·Fork(`--resume` + `--fork-session`)는 Phase 0 실환경을 통과했지만 세션 소유권 등 Phase 1 조건이 남아
+//!   Capability는 `unverified`입니다. 특정 Turn 기준 재개·분기(`source_turn_id`)는 CLI 수단이 없어 거부합니다.
 //! - 세션을 VS Code 확장 대화 목록에 표시할지는 [`VsCodeListing`]으로 정하고 `CLAUDE_CODE_ENTRYPOINT`로
 //!   지정합니다 (§7.6, DEC-08). 기본은 표시입니다.
 //! - 백그라운드 작업(`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`)을 끕니다. 켜져 있으면 CLI가 첫 `result` 뒤에도
@@ -25,7 +26,7 @@ use async_trait::async_trait;
 use futures::{StreamExt, stream::BoxStream};
 use telos_schema::{
     ApprovalAnswer, Capability, CapabilityState, EvidenceLevel, FailureKind, ProviderEvent,
-    RunContext, RunInspection, RunStarted, SessionMode, TaskSpec,
+    RunContext, RunInspection, RunStarted, SessionMode, TaskSpec, capability_keys,
 };
 
 use crate::{
@@ -46,6 +47,15 @@ const VERIFIED_CLI_VERSIONS: &[&str] = &["2.1.310"];
 
 /// 확장 대화 목록 표시를 실환경으로 판정한 CLI 버전입니다 (§7.6). Claude는 확장과 CLI 버전이 같습니다.
 const VSCODE_LISTING_VERIFIED_VERSIONS: &[&str] = &["2.1.310"];
+
+/// `--permission-prompt-tool stdio`의 실시간 승인 요청을 실환경으로 확인한 CLI 버전입니다
+/// (`env_permission_prompt_tool_offers_live_approval`, G3 재검토 C4).
+const LIVE_APPROVAL_VERIFIED_VERSIONS: &[&str] = &["2.1.310"];
+
+const SEND_INPUT_REASON: &str = "each run is one turn; follow-up turns run as a new resumed run";
+const ANSWER_APPROVAL_REASON: &str = "not implemented by this adapter; the CLI offers live approval via --permission-prompt-tool stdio (verified on 2.1.310), deferred to Phase 1 approval policy and UI";
+const NATIVE_RESUME_REASON: &str = "Phase 0 environment tests passed on Windows and Linux (PROV-05); resume appends turns to the source session, resuming at a specific turn is unsupported, and session ownership and invalid-session recovery are Phase 1";
+const NATIVE_FORK_REASON: &str = "Phase 0 environment tests passed on Windows and Linux (FORK-POC-01); forks continue from the latest point, forking at a specific turn is unsupported, and session ownership and invalid-session recovery are Phase 1";
 
 /// 세션 출처를 정하는 환경 변수. 확장은 `sdk-cli`·`sdk-ts`·`sdk-py` 세션을 기본 목록에서 뺍니다 (§7.6).
 const ENTRYPOINT_ENV: &str = "CLAUDE_CODE_ENTRYPOINT";
@@ -185,9 +195,12 @@ impl ClaudeCodeAdapter {
     }
 
     fn config(&self) -> Result<&ClaudeCodeConfig, AdapterError> {
-        self.config
-            .as_ref()
-            .ok_or_else(|| unsupported("start_run", "Claude Code CLI was not discovered"))
+        self.config.as_ref().ok_or_else(|| {
+            unsupported(
+                capability_keys::MANAGED_RUN,
+                "Claude Code CLI was not discovered",
+            )
+        })
     }
 
     fn run(&self, run_id: &str) -> Result<Arc<RunEntry>, AdapterError> {
@@ -276,6 +289,18 @@ fn command_args(
     match session.mode {
         SessionMode::Fresh | SessionMode::Capsule => {}
         SessionMode::Resume | SessionMode::NativeFork => {
+            // CLI에 특정 Turn 기준 재개·분기 옵션이 없습니다. 마지막 지점으로 대체하지 않고 거부합니다 (Spec §2.1·§7.1).
+            if session.source_turn_id.is_some() {
+                let key = if session.mode == SessionMode::Resume {
+                    capability_keys::NATIVE_RESUME
+                } else {
+                    capability_keys::NATIVE_FORK
+                };
+                return Err(unsupported(
+                    key,
+                    "resume or fork at a specific turn is not supported by this CLI",
+                ));
+            }
             let source = session
                 .source_session_id
                 .as_deref()
@@ -354,7 +379,7 @@ impl AgentAdapter for ClaudeCodeAdapter {
         let mut caps = HashMap::new();
         if host_id != config.host_id {
             caps.insert(
-                "managed_run".into(),
+                capability_keys::MANAGED_RUN.into(),
                 capability(
                     CapabilityState::Unsupported,
                     EvidenceLevel::Documented,
@@ -376,38 +401,56 @@ impl AgentAdapter for ClaudeCodeAdapter {
                 Some("this CLI version has not been environment-tested"),
             )
         };
-        for name in ["managed_run", "event_stream", "cancel"] {
+        for name in [
+            capability_keys::MANAGED_RUN,
+            capability_keys::EVENT_STREAM,
+            capability_keys::CANCEL,
+        ] {
             caps.insert(name.into(), capability(state, evidence, reason));
         }
         caps.insert(
-            "send_input".into(),
+            capability_keys::SEND_INPUT.into(),
             capability(
                 CapabilityState::Unsupported,
                 EvidenceLevel::ContractTested,
-                Some("follow-up turns run as a new resumed run"),
+                Some(SEND_INPUT_REASON),
             ),
         );
+        // C4: CLI는 실시간 승인 수단을 제공하지만 Adapter는 구현하지 않습니다(Phase 1, 사용자 결정 2·3).
         caps.insert(
-            "answer_approval".into(),
-            capability(
-                CapabilityState::Unsupported,
-                EvidenceLevel::Documented,
-                Some("print mode has no live approval path; permissions are set before start"),
-            ),
+            capability_keys::ANSWER_APPROVAL.into(),
+            if self.verified(LIVE_APPROVAL_VERIFIED_VERSIONS) {
+                capability(
+                    CapabilityState::Unsupported,
+                    EvidenceLevel::EnvironmentTested,
+                    Some(ANSWER_APPROVAL_REASON),
+                )
+            } else {
+                capability(
+                    CapabilityState::Unsupported,
+                    EvidenceLevel::Documented,
+                    Some("not implemented by this adapter; permissions are set before start"),
+                )
+            },
         );
-        for name in ["native_resume", "native_fork"] {
+        // C2: Phase 0 실환경은 통과했지만 P1 조건이 남아 `unverified`로 둡니다(사용자 결정 1).
+        let session_evidence = if self.verified(VERIFIED_CLI_VERSIONS) {
+            EvidenceLevel::EnvironmentTested
+        } else {
+            EvidenceLevel::Documented
+        };
+        for (name, reason) in [
+            (capability_keys::NATIVE_RESUME, NATIVE_RESUME_REASON),
+            (capability_keys::NATIVE_FORK, NATIVE_FORK_REASON),
+        ] {
             caps.insert(
                 name.into(),
-                capability(
-                    CapabilityState::Unverified,
-                    EvidenceLevel::Documented,
-                    Some("Phase 0 experiment pending (PROV-05, FORK-POC-01)"),
-                ),
+                capability(CapabilityState::Unverified, session_evidence, Some(reason)),
             );
         }
         // 운영자 설정과 무관하게 수단의 지원 여부를 보고합니다 (§7.6).
         caps.insert(
-            "vscode_listing".into(),
+            capability_keys::VSCODE_LISTING.into(),
             if self.verified(VSCODE_LISTING_VERIFIED_VERSIONS) {
                 capability(
                     CapabilityState::Supported,
@@ -505,10 +548,7 @@ impl AgentAdapter for ClaudeCodeAdapter {
         _input_id: &str,
         _text: &str,
     ) -> Result<(), AdapterError> {
-        Err(unsupported(
-            "send_input",
-            "follow-up turns run as a new resumed run",
-        ))
+        Err(unsupported(capability_keys::SEND_INPUT, SEND_INPUT_REASON))
     }
 
     async fn answer_approval(
@@ -518,8 +558,8 @@ impl AgentAdapter for ClaudeCodeAdapter {
         _decision: ApprovalAnswer,
     ) -> Result<(), AdapterError> {
         Err(unsupported(
-            "answer_approval",
-            "print mode has no live approval path",
+            capability_keys::ANSWER_APPROVAL,
+            ANSWER_APPROVAL_REASON,
         ))
     }
 

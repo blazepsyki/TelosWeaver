@@ -17,9 +17,10 @@ use telos_adapters::{
     runtime::*,
 };
 use telos_schema::{
-    ApprovalAnswer, CapabilityState, FailureKind, ProcessTermination, ProviderEvent,
+    ApprovalAnswer, CapabilityState, EvidenceLevel, FailureKind, ProcessTermination, ProviderEvent,
     ProviderEventKind, ProviderEventPayload, RunContext, RunInspection, RunTermination,
-    SessionMode, TaskSpec, ToolOutcome, TurnStatus, check_run_events, fixtures,
+    SessionMode, TaskSpec, ToolOutcome, TurnStatus, capability_keys as keys, check_run_events,
+    fixtures,
 };
 use tokio::sync::watch;
 
@@ -432,24 +433,26 @@ async fn unsupported_controls_and_unknown_runs_are_explicit() {
     let adapter = adapter(FakeRuntime::new(Script::fixture("success.jsonl", 0)));
     assert!(matches!(
         adapter.send_input("run-1", "in-1", "more").await,
-        Err(AdapterError::UnsupportedCapability { .. })
+        Err(AdapterError::UnsupportedCapability { capability, .. }) if capability == keys::SEND_INPUT
     ));
     assert!(matches!(
         adapter
             .answer_approval("run-1", "req-1", ApprovalAnswer::Allow)
             .await,
-        Err(AdapterError::UnsupportedCapability { .. })
+        Err(AdapterError::UnsupportedCapability { capability, .. })
+            if capability == keys::ANSWER_APPROVAL
     ));
     let first = adapter.events("missing", 0).next().await.unwrap();
     assert!(matches!(first, Err(AdapterError::UnknownRun { .. })));
 
+    // REQ-024: 공통 키를 씁니다(이전 `start_run`).
     let undiscovered = ClaudeCodeAdapter::default();
     let task = fixtures::task_spec();
     assert!(matches!(
         undiscovered
             .start_run(&task, &fixtures::run_context(&task))
             .await,
-        Err(AdapterError::UnsupportedCapability { .. })
+        Err(AdapterError::UnsupportedCapability { capability, .. }) if capability == keys::MANAGED_RUN
     ));
     assert!(
         undiscovered
@@ -501,6 +504,23 @@ async fn native_fork_passes_resume_and_fork_flags() {
     let at = args.iter().position(|a| a == "--resume").unwrap();
     assert_eq!(args[at + 1], "parent-session");
     assert!(args.contains(&"--fork-session".to_owned()));
+
+    // 특정 Turn 기준 재개·분기는 CLI 수단이 없어 프로세스를 띄우기 전에 거부합니다 (Spec §2.1·§7.1).
+    for (mode, key) in [
+        (SessionMode::Resume, keys::NATIVE_RESUME),
+        (SessionMode::NativeFork, keys::NATIVE_FORK),
+    ] {
+        let mut at_turn = context.clone();
+        at_turn.run_id = format!("run-turn-{mode:?}");
+        at_turn.idempotency_key = format!("{}:start", at_turn.run_id);
+        at_turn.session.mode = mode;
+        at_turn.session.source_turn_id = Some("turn-1".into());
+        assert!(matches!(
+            adapter.start_run(&task, &at_turn).await,
+            Err(AdapterError::UnsupportedCapability { capability, .. }) if capability == key
+        ));
+    }
+    assert_eq!(runtime.spawned.lock().unwrap().len(), 1);
 
     context.run_id = "run-2".into();
     context.idempotency_key = "run-2:start".into();
@@ -622,11 +642,34 @@ async fn detect_reports_only_verified_versions_as_supported() {
     let host = fixtures::run_context(&fixtures::task_spec()).host_id;
     let verified = adapter(FakeRuntime::new(Script::default()));
     let caps = verified.detect(&host).await.unwrap();
-    assert_eq!(caps["managed_run"].state, CapabilityState::Supported);
-    assert_eq!(caps["answer_approval"].state, CapabilityState::Unsupported);
-    assert_eq!(caps["native_fork"].state, CapabilityState::Unverified);
+    // REQ-024: 보고하는 키는 공통 키 8개뿐입니다.
+    let mut names: Vec<_> = caps.keys().map(String::as_str).collect();
+    names.sort_unstable();
+    let mut common = keys::ALL.to_vec();
+    common.sort_unstable();
+    assert_eq!(names, common);
+    assert_eq!(caps[keys::MANAGED_RUN].state, CapabilityState::Supported);
+    // C4: CLI 수단은 실환경 확인, Adapter는 미구현이라 `unsupported`.
+    let approval = &caps[keys::ANSWER_APPROVAL];
+    assert_eq!(approval.state, CapabilityState::Unsupported);
+    assert_eq!(approval.evidence_level, EvidenceLevel::EnvironmentTested);
+    assert!(
+        approval
+            .reason
+            .as_deref()
+            .unwrap()
+            .contains("--permission-prompt-tool stdio")
+    );
+    // C2: Phase 0 실환경 통과, Phase 1 조건이 남아 `unverified`.
+    for key in [keys::NATIVE_RESUME, keys::NATIVE_FORK] {
+        let cap = &caps[key];
+        assert_eq!(cap.state, CapabilityState::Unverified);
+        assert_eq!(cap.evidence_level, EvidenceLevel::EnvironmentTested);
+        let reason = cap.reason.as_deref().unwrap();
+        assert!(reason.contains("Phase 0 environment tests passed") && !reason.contains("pending"));
+    }
 
-    assert_eq!(caps["vscode_listing"].state, CapabilityState::Supported);
+    assert_eq!(caps[keys::VSCODE_LISTING].state, CapabilityState::Supported);
 
     let newer = adapter_with(
         FakeRuntime::new(Script::default()),
@@ -634,20 +677,32 @@ async fn detect_reports_only_verified_versions_as_supported() {
         "9.9.9 (Claude Code)",
     );
     let newer_caps = newer.detect(&host).await.unwrap();
-    assert_eq!(newer_caps["managed_run"].state, CapabilityState::Unverified);
     assert_eq!(
-        newer_caps["vscode_listing"].state,
+        newer_caps[keys::MANAGED_RUN].state,
         CapabilityState::Unverified
+    );
+    assert_eq!(
+        newer_caps[keys::VSCODE_LISTING].state,
+        CapabilityState::Unverified
+    );
+    // 검증하지 않은 버전은 실환경 근거를 주장하지 않습니다.
+    assert_eq!(
+        newer_caps[keys::ANSWER_APPROVAL].evidence_level,
+        EvidenceLevel::Documented
+    );
+    assert_eq!(
+        newer_caps[keys::NATIVE_RESUME].evidence_level,
+        EvidenceLevel::Documented
     );
     // 숨김 설정이어도 Capability는 수단의 지원 여부입니다 (§7.6).
     let hidden =
         adapter(FakeRuntime::new(Script::default())).with_vscode_listing(VsCodeListing::Hidden);
     assert_eq!(
-        hidden.detect(&host).await.unwrap()["vscode_listing"].state,
+        hidden.detect(&host).await.unwrap()[keys::VSCODE_LISTING].state,
         CapabilityState::Supported
     );
     assert_eq!(
-        verified.detect("other-host").await.unwrap()["managed_run"].state,
+        verified.detect("other-host").await.unwrap()[keys::MANAGED_RUN].state,
         CapabilityState::Unsupported
     );
 }
