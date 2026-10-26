@@ -207,3 +207,41 @@ test("RN Health changes refresh its row while the Core connection and output sta
     CoreConnection.prototype.connect = original;
   }
 });
+
+test("non-connected views hide retained Health and identity and restore only fresh values", async () => {
+  const fixture = ui();
+  const original = CoreConnection.prototype.connect;
+  let connection;
+  CoreConnection.prototype.connect = async function (root) {
+    connection = this;
+    this.state = { phase: "connected", root, hello, health };
+    this.emit("state", this.state);
+  };
+  try {
+    fixture.vscode.workspace.isTrusted = true;
+    await fixture.commands.get("telosWeaver.connect")();
+    for (const phase of ["error", "connecting", "disconnected"]) {
+      // Exercise the View independently even if a stale Snapshot is supplied.
+      connection.state = { ...connection.state, phase, message: "fixture diagnostic" };
+      connection.emit("state", connection.state);
+      const rows = fixture.provider().getChildren();
+      for (const label of ["Core", "Project", "Host", ...health.components.map((c) => c.name)])
+        assert.ok(!rows.some((row) => row.label === label), `${phase} shows stale ${label}`);
+      assert.ok(rows.some((row) => row.label === "프로젝트 경로"));
+      assert.ok(rows.some((row) => row.label === "진단"));
+    }
+    connection.state = {
+      phase: "connected", root: connection.state.root,
+      hello: { ...hello, hostId: "fresh-host" },
+      health: { ...health, status: "ok", components: [{ name: "fresh", status: "ok" }] },
+    };
+    connection.emit("state", connection.state);
+    const rows = fixture.provider().getChildren();
+    assert.ok(rows.some((row) => row.label === "Host" && row.description === "fresh-host"));
+    assert.ok(rows.some((row) => row.label === "fresh" && row.description === "ok"));
+    assert.ok(!rows.some((row) => row.label === "persistence"));
+  } finally {
+    fixture.close();
+    CoreConnection.prototype.connect = original;
+  }
+});

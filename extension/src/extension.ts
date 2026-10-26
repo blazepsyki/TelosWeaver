@@ -30,14 +30,17 @@ class StatusProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     return [
       item("연결", phaseName(state)),
       ...(state.root ? [item("프로젝트 경로", state.root)] : []),
-      ...(state.hello
+      ...(state.phase === "connected" && state.hello
         ? [
             item("Core", state.hello.serverVersion),
             item("Project", state.hello.projectId),
             item("Host", state.hello.hostId),
           ]
         : []),
-      ...(state.health?.components.map((c) => item(c.name, c.status)) ?? []),
+      // Spec §2.1/§17, G3 finding 3: never render retained values as live status.
+      ...(state.phase === "connected"
+        ? (state.health?.components.map((c) => item(c.name, c.status)) ?? [])
+        : []),
       ...(state.message ? [item("진단", state.message)] : []),
     ];
   }
@@ -81,7 +84,11 @@ export function activate(context: vscode.ExtensionContext) {
   const update = () => {
     status.text = `$(plug) TelosWeaver: ${phaseName(connection.state)}`;
     status.tooltip =
-      connection.state.message || connection.state.hello?.hostId || "Core 연결";
+      connection.state.message ||
+      (connection.state.phase === "connected"
+        ? connection.state.hello?.hostId
+        : undefined) ||
+      "Core 연결";
     status.command = "telosWeaver.connect";
     status.show();
     tree.refresh();

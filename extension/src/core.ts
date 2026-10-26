@@ -129,7 +129,12 @@ export class CoreConnection extends EventEmitter {
       this.client = undefined;
       clearInterval(this.heartbeat);
       this.heartbeat = undefined;
-      this.update({ ...this.state, phase: "error", message: safeMessage(error) });
+      // Spec §2.1/§17, G3 finding 3: a closed connection has no current Health or identity.
+      this.update({
+        phase: "error",
+        root: this.state.root,
+        message: safeMessage(error),
+      });
       if (
         error instanceof ConnectionError &&
         ["unavailable", "timeout"].includes(error.code)
@@ -251,8 +256,8 @@ export class CoreConnection extends EventEmitter {
         } catch (error) {
           if (generation === this.generation) {
             this.update({
-              ...this.state,
               phase: "error",
+              root: this.state.root,
               message: safeMessage(error),
             });
             if (

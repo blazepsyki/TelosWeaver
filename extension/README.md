@@ -40,6 +40,8 @@ npm run build
 
 Explorer의 **TelosWeaver** 패널과 상태 표시줄에서 연결·Core 버전·Project·Host·컴포넌트 상태를 확인할 수 있습니다. Extension 활성화 자체는 Core를 시작하지 않습니다.
 
+Core 버전·Project·Host와 Health 구성 요소는 `연결됨` 상태에서만 표시합니다. 연결 오류가 나면 이전 Health와 Core 정보를 버리고 프로젝트 경로·진단을 표시하며, 재연결이 성공하면 새 응답으로 복원합니다. 인증 뒤 첫 Health를 기다리는 `연결 중`에도 해당 정보는 현재 상태로 표시하지 않습니다.
+
 다중 루트에서는 연결할 프로젝트를 선택합니다. 빈 창·가상 Workspace의 Core 시작과 신뢰하지 않은 Workspace의 연결·시작은 제한합니다. 실행 파일 경로와 Host ID는 machine 범위 설정입니다. projectId를 비우면 새 Core에 `project-<projectKey>`를 사용합니다. 기존 Core 연결은 반환된 ID를 표시하며, 명시적으로 지정한 ID와 다르면 거부합니다. 원격 Core 시작에는 명시적인 hostId가 필요합니다.
 
 API 토큰은 계약상 사용자 파일에서 읽어 인증에만 사용합니다. 설정·로그·UI에는 저장하지 않습니다. Core가 재시작되면 다시 읽습니다. 오류·원격 진단의 원문 대신 제한된 메시지를 표시합니다.
@@ -62,7 +64,7 @@ API 토큰은 계약상 사용자 파일에서 읽어 인증에만 사용합니�
 npm test
 ```
 
-생성·TypeScript 빌드와 로컬 Socket 시험 대역·UI 시험 18개입니다. 실제 Provider나 모델은 호출하지 않습니다.
+생성·TypeScript 빌드와 로컬 Socket 시험 대역·UI 시험 32개입니다. 실제 Provider나 모델은 호출하지 않습니다.
 
 실제 Core 및 설치된 VS Code를 사용하는 시험은 명시적으로 실행합니다.
 
