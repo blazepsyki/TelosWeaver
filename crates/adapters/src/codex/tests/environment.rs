@@ -269,7 +269,8 @@ async fn env_tool_denied() {
         )?;
         ensure(
             events.iter().any(|e| {
-                e.kind == ProviderEventKind::ToolCompleted && e.payload["outcome"] == "denied"
+                e.kind == ProviderEventKind::ToolCompleted
+                    && e.payload.get("outcome") == Some(&json!("denied"))
             }),
             "no actual tool denial was reported",
         )
@@ -452,4 +453,270 @@ async fn env_vscode_listing_fresh_resume_and_fork() {
     let cleaned = cleanup(&adapter, &cwd).await;
     result.unwrap();
     cleaned.unwrap();
+}
+
+// Spec §7.2/§7.3, C3-X3: steering must update this Turn, not create another one.
+#[tokio::test(flavor = "multi_thread")]
+#[cfg(windows)]
+#[ignore = "uses the approved Codex account to steer a disposable foreground wait"]
+async fn env_steering_updates_the_same_turn() {
+    let (adapter, cwd) = live();
+    let (task, context) = case(
+        "steering",
+        "Use exec_command once to run the PowerShell command `Start-Sleep -Seconds 10` in the current directory and wait for completion. Then reply only ORIGINAL. Do not write files or use any other tools.",
+    );
+    let result = async {
+        let started = adapter.start_run(&task, &context).await?;
+        eprintln!("steering thread={:?} turn={:?}", started.native_session_id, started.native_turn_id);
+        let mut events = adapter.events(&context.run_id, 0);
+        tokio::time::timeout(Duration::from_secs(35), async {
+            while let Some(event) = events.next().await {
+                let event = event?;
+                if event.kind == ProviderEventKind::ToolStarted { return Ok::<(), AdapterError>(()); }
+                ensure(event.kind != ProviderEventKind::TurnFinished, "Turn ended before the foreground wait")?;
+            }
+            Err(error(FailureKind::Provider, "no live tool event"))
+        }).await.map_err(|_| error(FailureKind::Timeout, "no foreground wait within deadline"))??;
+        adapter.send_input(&context.run_id, "steer-1", "After the pending command completes, disregard the previous final answer instruction and reply only C3_STEERED.").await?;
+        // start_run replays the same idempotency key; execute collects the full retained stream.
+        let (replayed, events, text) = execute(&adapter, &task, &context).await?;
+        ensure(replayed == started && completed(&events) && text.contains("C3_STEERED"), "steering was not reflected in the same completed Run")?;
+        ensure(events.iter().all(|e| e.native_turn_id == started.native_turn_id)
+            && events.iter().filter(|e| e.kind == ProviderEventKind::TurnFinished).count() == 1,
+            "steering created another Turn")?;
+        Ok::<(), AdapterError>(())
+    }.await;
+    let cleaned = cleanup(&adapter, &cwd).await;
+    result.unwrap();
+    cleaned.unwrap();
+}
+
+const APPROVAL_WRITE_COMMAND: &str = "Set-Content -LiteralPath approval.txt -Value C3_APPROVED";
+
+struct ApprovalResolver {
+    inner: LiveResolver,
+}
+impl CodexLaunchResolver for ApprovalResolver {
+    fn resolve(&self, task: &TaskSpec, context: &RunContext) -> Result<CodexLaunch, AdapterError> {
+        let mut launch = self.inner.resolve(task, context)?;
+        launch.approvals = CodexApprovals::Prompt;
+        Ok(launch)
+    }
+    fn authorize_approval(
+        &self,
+        _: &TaskSpec,
+        _: &RunContext,
+        request: &Value,
+    ) -> Result<(), AdapterError> {
+        let params = &request["params"];
+        let command = params["command"].as_str().unwrap_or("");
+        // Native command previews escape Windows path separators; normalize only this representation.
+        let normalized_command = command.replace("\\\\", "\\");
+        let cwd = params["cwd"]
+            .as_str()
+            .and_then(|p| std::path::Path::new(p).canonicalize().ok());
+        eprintln!(
+            "approval candidate: method={} cwd={} command={command:?}",
+            request["method"], params["cwd"]
+        );
+        let known_commands = [
+            APPROVAL_WRITE_COMMAND.to_owned(),
+            format!(
+                "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -Command '{APPROVAL_WRITE_COMMAND}'"
+            ),
+            format!(
+                "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoProfile -Command '{APPROVAL_WRITE_COMMAND}'"
+            ),
+        ];
+        if request["method"] == "item/commandExecution/requestApproval"
+            && cwd.as_deref() == Some(self.inner.cwd.as_path())
+            && params
+                .get("networkApprovalContext")
+                .is_none_or(Value::is_null)
+            && known_commands.contains(&normalized_command)
+        {
+            Ok(())
+        } else {
+            Err(error(
+                FailureKind::ToolDenied,
+                "live approval was outside the single disposable write action",
+            ))
+        }
+    }
+}
+
+#[test]
+fn live_approval_policy_rejects_other_actions_locations_and_network_requests() {
+    let cwd = std::env::temp_dir().canonicalize().unwrap();
+    let policy = ApprovalResolver {
+        inner: LiveResolver {
+            cwd: cwd.clone(),
+            model: "fixture".into(),
+        },
+    };
+    let (task, context) = case("approval-policy", "fixture");
+    let request = json!({"method":"item/commandExecution/requestApproval","params":{"cwd":cwd,"command":APPROVAL_WRITE_COMMAND}});
+    assert!(policy.authorize_approval(&task, &context, &request).is_ok());
+    let mut escaped = request.clone();
+    escaped["params"]["command"] = json!(format!(
+        "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command '{APPROVAL_WRITE_COMMAND}'"
+    ));
+    assert!(policy.authorize_approval(&task, &context, &escaped).is_ok());
+    for (field, value) in [
+        ("command", json!("Get-ChildItem")),
+        ("cwd", json!(cwd.parent().unwrap())),
+        ("networkApprovalContext", json!({"host":"invalid.example"})),
+    ] {
+        let mut invalid = request.clone();
+        invalid["params"][field] = value;
+        assert!(
+            policy
+                .authorize_approval(&task, &context, &invalid)
+                .is_err()
+        );
+    }
+    let mut invalid = request;
+    invalid["method"] = json!("item/fileChange/requestApproval");
+    assert!(
+        policy
+            .authorize_approval(&task, &context, &invalid)
+            .is_err()
+    );
+}
+
+// Spec §7.2, C3-X4: only the exact generated write action can pass the test policy.
+#[tokio::test(flavor = "multi_thread")]
+#[cfg(windows)]
+#[ignore = "uses the approved account to test Allow and Deny for a disposable file"]
+async fn env_approval_allow_and_deny_control_the_write() {
+    for answer in [ApprovalAnswer::Deny, ApprovalAnswer::Allow] {
+        let (mut adapter, cwd) = live();
+        Arc::get_mut(&mut adapter.inner)
+            .unwrap()
+            .config
+            .as_mut()
+            .unwrap()
+            .launcher = Arc::new(ApprovalResolver {
+            inner: LiveResolver {
+                cwd: cwd.clone(),
+                model: std::env::var("TELOS_CODEX_MODEL").unwrap(),
+            },
+        });
+        let label = if answer == ApprovalAnswer::Allow {
+            "allow"
+        } else {
+            "deny"
+        };
+        let (task, context) = case(
+            &format!("approval-{label}"),
+            &format!(
+                "Use exec_command to run exactly `{APPROVAL_WRITE_COMMAND}` in the current directory. Request sandbox_permissions=require_escalated so the host can approve this one write. Do not use another tool or a fallback. If permission is denied, stop and reply DENIED; otherwise reply DONE."
+            ),
+        );
+        let result = async {
+            let started = adapter.start_run(&task, &context).await?;
+            eprintln!(
+                "approval {label}: thread={:?} turn={:?}",
+                started.native_session_id, started.native_turn_id
+            );
+            let mut stream = adapter.events(&context.run_id, 0);
+            let mut events = vec![];
+            let mut answered = 0;
+            tokio::time::timeout(Duration::from_secs(55), async {
+                while let Some(event) = stream.next().await {
+                    let event = event?;
+                    if event.kind == ProviderEventKind::ApprovalRequired {
+                        ensure(
+                            event.payload["answerable"] == true,
+                            "approval request was not answerable",
+                        )?;
+                        adapter
+                            .answer_approval(
+                                &context.run_id,
+                                event.payload["requestId"].as_str().unwrap(),
+                                answer,
+                            )
+                            .await?;
+                        answered += 1;
+                    }
+                    events.push(event);
+                }
+                Ok::<(), AdapterError>(())
+            })
+            .await
+            .map_err(|_| error(FailureKind::Timeout, "approval stream timed out"))??;
+            ensure(
+                check_run_events(&events).is_ok() && answered == 1,
+                "expected one correlated approval and a valid event stream",
+            )?;
+            if answer == ApprovalAnswer::Allow {
+                ensure(
+                    completed(&events)
+                        && std::fs::read_to_string(cwd.join("approval.txt"))
+                            .is_ok_and(|s| s.trim() == "C3_APPROVED"),
+                    "Allow did not produce the approved file",
+                )?;
+            } else {
+                ensure(
+                    !cwd.join("approval.txt").exists()
+                        && events
+                            .iter()
+                            .any(|e| e.payload.get("outcome") == Some(&json!("denied"))),
+                    "Deny did not prevent and report the write",
+                )?;
+            }
+            eprintln!(
+                "approval {label}: answered={answered} events={} fileExists={}",
+                events.len(),
+                cwd.join("approval.txt").exists()
+            );
+            Ok::<(), AdapterError>(())
+        }
+        .await;
+        let cleaned = cleanup(&adapter, &cwd).await;
+        result.unwrap();
+        cleaned.unwrap();
+    }
+}
+
+#[tokio::test]
+#[ignore = "reads the explicitly selected local extension manifest; no model or App Server"]
+async fn env_capability_metadata_has_no_model_calls() -> Result<(), AdapterError> {
+    let (mut adapter, runtime) = configured(Mode::Good, CodexApprovals::Deny);
+    let config = Arc::get_mut(&mut adapter.inner)
+        .unwrap()
+        .config
+        .as_mut()
+        .unwrap();
+    config.executable = std::env::var_os("TELOS_CODEX_CLI")
+        .expect("select extension executable")
+        .into();
+    config.cli_version = std::env::var("TELOS_CODEX_VERSION").expect("select CLI version");
+    config.host_id = live_host_id();
+    let identity =
+        capabilities::extension_identity(&config.executable).expect("extension identity");
+    eprintln!(
+        "extension id={} version={} platform={}",
+        identity.id, identity.version, identity.platform
+    );
+    let caps = adapter.detect(&live_host_id()).await.unwrap();
+    for key in [
+        capability_keys::MANAGED_RUN,
+        capability_keys::EVENT_STREAM,
+        capability_keys::CANCEL,
+        capability_keys::NATIVE_RESUME,
+        capability_keys::NATIVE_FORK,
+        capability_keys::VSCODE_LISTING,
+    ] {
+        ensure(
+            caps[key].state == CapabilityState::Supported,
+            "known selected extension was not verified",
+        )?;
+        eprintln!(
+            "capability {key}: {:?} {:?} {:?}",
+            caps[key].state, caps[key].evidence_level, caps[key].reason
+        );
+    }
+    assert_eq!(runtime.spawns.load(Ordering::SeqCst), 0);
+    Ok::<(), AdapterError>(())
 }
