@@ -62,7 +62,7 @@
 
 후속: C1은 [REQ-024](REQ-024.md)(Codex), C3은 [CODEX 후속](CODEX_CAPABILITY_FOLLOWUP.md), C2·C4는 [CLAUDE 후속](CLAUDE_CAPABILITY_FOLLOWUP.md)(사용자 결정: C2는 `unverified` 유지·사유 정정, REQ-024 단계 B 뒤 처리).
 
-**처리 현황(2026-10-26):** C1 완료(계약 `6a4f58a`, Claude `ffdc70a`, Antigravity `c6f7383`, REQ-024 §7). C2·C4 완료(`ffdc70a`, [CLAUDE 기록](../PH0-CLAUDE/CAPABILITY.md)): Resume·Fork 사유 정정·근거 수준 `environment-tested`, `answer_approval` 사유 정정과 실시간 승인 실환경 시험(Windows·`psyki-nas` 통과), 함께 **Claude가 `source_turn_id`를 무시하고 최신 지점에서 재개·분기하던 동작을 거부로 수정**. C3 진행 중(PH0-CODEX). 후속 발견: Antigravity Resume도 `source_turn_id`를 무시함(REQ-024 §7, 별도 배정 필요).
+**처리 현황(2026-10-26):** C1 완료(계약 `6a4f58a`, Claude `ffdc70a`, Antigravity `c6f7383`, REQ-024 §7). C2·C4 완료(`ffdc70a`, [CLAUDE 기록](../PH0-CLAUDE/CAPABILITY.md)): Resume·Fork 사유 정정·근거 수준 `environment-tested`, `answer_approval` 사유 정정과 실시간 승인 실환경 시험(Windows·`psyki-nas` 통과), 함께 **Claude가 `source_turn_id`를 무시하고 최신 지점에서 재개·분기하던 동작을 거부로 수정**. C3 진행 중(PH0-CODEX). 후속 발견(Antigravity Resume의 `source_turn_id` 무시)은 `423b2a3`로 수정 완료(REQ-024 §7).
 
 Antigravity `native_resume`의 `unverified`는 사유(세션 소유권·잘못된 세션 복구가 P1)를 적은 의도적 판정이라 불일치로 보지 않습니다.
 
@@ -81,4 +81,4 @@ Antigravity `native_resume`의 `unverified`는 사유(세션 소유권·잘못�
 
 §19.1의 필수 항목 12개 모두 대상 환경 증거가 있고, 미지원 기능은 §2와 같이 판정했습니다. INTEGRATION은 **G3 통과**로 판정하며, 사용자 확인을 받으면 배정표 §3을 "통과 확정"으로 바꿉니다.
 
-**확정 조건(사용자 결정 2026-10-26):** 진행 중이거나 착수를 기다리는 작업(현재 PH0-CODEX C3, PH0-AGY Turn 지정 Resume 거부)이 모두 끝나고 추가 작업이 없을 때 확정을 검토합니다. 그때 이 대조표를 다시 점검해 사용자에게 보고합니다.
+**확정 조건(사용자 결정 2026-10-26):** 진행 중이거나 착수를 기다리는 작업(기록 시점 PH0-CODEX C3, PH0-AGY Turn 지정 Resume 거부. 후자는 `423b2a3`로 완료)이 모두 끝나고 추가 작업이 없을 때 확정을 검토합니다. 그때 이 대조표를 다시 점검해 사용자에게 보고합니다.
