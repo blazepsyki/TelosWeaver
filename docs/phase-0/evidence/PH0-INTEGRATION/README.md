@@ -504,6 +504,42 @@ Antigravity(`gemini-3.8-flash/session-f1b89d3a`, 독립 검토자, Spec §19.5.1
 
 두 건 모두 Worktree·Branch를 삭제했습니다.
 
+### 9.9 REQ-023 검토·통합: Core 비정상 종료 시 Managed 프로세스 트리 회수 (2026-10-26, HOST)
+
+HOST(`Codex / PH0-HOST-REQ023-01a17586`)가 `ph0/host-req023`에 제출(`41d019f`·`bcc44ae`·`28a2f38`·`19f8666`·`73abaf9`, [HOST 기록](../PH0-HOST/REQ-023.md), [요청서](REQ-023.md)). 병합 `33c2995`.
+
+**변경 요지.** Linux에서 `Command`의 자식이 실행별 감시 프로세스가 되어 `PR_SET_CHILD_SUBREAPER`를 설정한 뒤 실제 Provider를 fork·exec합니다. 감시 프로세스는 Provider Process Group에서 빠져 Core의 직접 자식으로 남고 `getppid()` 변화(10ms 간격)로 Core 유실을 감지합니다. Core 유실 또는 Provider 종료 시 Group을 끝내고 재부모화된 자손(`setsid` 포함)을 `ECHILD`까지 반복 회수한 뒤 확인 Receipt를 씁니다. Receipt가 없으면 Core는 정상 회수로 판정하지 않습니다. Windows 코드는 변경 없음(기존 Job Object `KILL_ON_JOB_CLOSE`가 같은 상황을 처리함을 재현으로 확인).
+
+**INTEGRATION 검토**
+
+| 항목 | 결과 |
+|---|---|
+| 소유 경로 | `runtime/**`, `tests/runtime_*`·`discovery_*`·`fixtures/runtime/**`, `core/tests/host_*`·`fixtures/host/**`, HOST 증거. 모두 HOST 경로(Spec §19.5.3). Core 소스·Adapter·계약·의존성 변경 없음 |
+| fork 뒤 경로 | 감시·Provider 쪽은 libc 호출과 스택 값만 사용(할당·Rust 잠금·로그 없음). Gate로 감시 준비·Group 분리 뒤에만 Provider exec, 실패 시 `ECANCELED`로 std 오류 Pipe를 통해 `spawn` 실패 |
+| PGID 재사용 방지 | 감시 PID가 Provider PGID를 예약. Core는 `WNOWAIT`로 감시 종료를 본 뒤 Receipt 확인·마지막 그룹 신호를 보내고 나서 회수. `signal()`과 `try_wait()`가 같은 `status` 잠금으로 직렬화되어 회수 뒤 `retired` 전에 신호가 나가지 않음. 잠금 순서 `status → child` 일관 |
+| 종료 상태 | 감시가 Provider의 종료 코드·신호를 그대로 재현(신호는 자기 자신에게 다시 보냄). 회수 미확인은 `125`와 오류로 구분 |
+| 의미 변화 | Provider가 자연 종료해도 남은 자손(세션 분리 포함)을 회수합니다. Managed 실행 트리의 소유 원칙(Spec §7.3, SAFE-03)과 일치 |
+| 한계(기록 확인) | 감시 프로세스와 Core가 함께 유실되는 장애, 종료할 수 없는 프로세스(권한·D 상태)에서는 감시가 끝나지 않을 수 있음, macOS·PID Namespace 미검증, `/proc` 준비 실패·`close_range` 대체 경로는 미실행. Spec §14.2의 재시작 대조·복구는 Phase 1 P0로 남음 |
+| Spec | §7.3의 "Windows Job Object, Unix Process Group 등의 실제 수단"과 §14.2 P0 행에 어긋나지 않아 Spec 변경 없음 |
+
+**검사(병합본)**
+
+| 검사 | Windows `windows-local` | `psyki-nas` |
+|---|---|---|
+| fmt·엄격 Clippy | 통과 | 통과 |
+| `cargo test --workspace --locked` | 169개 통과·38개 제외 | 171개 통과·40개 제외 |
+| `runtime_native` | (Workspace에 포함) | 18개 통과 |
+| `discovery_environment`(실환경, 모델 호출 없음) | — (Linux 전용) | 통과 71.6초. Claude·Codex 한 벌 설치를 "multi-version selection unverified"로 보고(§9.3 후속 1 해소) |
+| `host_crash`(실제 Core·Claude `haiku`·전경 도구 트리, release) | INTEGRATION 미재실행. Windows 런타임 코드 불변이라 HOST 결과(`bcc44ae`, 24ms·남은 프로세스 0)에 근거 | **최종 코드로 재실행 통과:** Core PID 429292, Run `run-badb53bc1b9dc3dbba57389a65800af3`, 세션 `104dbe7e-2593-4587-99e7-a153d8bf5a74`, 관측 PID 5개 → 강제 종료 67ms 뒤 0개. HOST 기록의 "실제 Core 시험은 `19f8666` 이전 Commit" 공백을 메움 |
+
+서버 검사는 `main`(`63cd24e`)을 서버로 보내 일회용 Worktree에서 Branch를 병합(미커밋)해 수행했습니다.
+
+**정리:** Claude 시험 세션 3개 삭제(Windows `a8324092-32f3-4895-8a16-1f5980f5e0b7`, `psyki-nas` `cca16522-1825-4c20-84ba-45a67b8eb4c1`·`104dbe7e-2593-4587-99e7-a153d8bf5a74`의 `~/.claude/projects/<시험 폴더>`), 시험 임시 폴더 4개·로그 삭제(첫 Linux 준비 실패 폴더 포함, 세션 없음), Windows·서버 Worktree와 Branch 삭제. 남은 시험 프로세스 없음.
+
+**운영 메모:** 병합을 미커밋으로 올려 둔 사이 다른 에이전트가 대표 저장소 작업 트리에서 배정표를 커밋해 병합 커밋 `33c2995`가 그 작업으로 확정됐습니다(부모·내용은 의도와 같음, 작성자 표기는 Codex). 이후 INTEGRATION은 병합 검사를 별도 Worktree에서 하고 대표 저장소에서는 바로 커밋합니다.
+
+판정: REQ-023 완료. G3 발견 1 해소.
+
 ## 10. DEC-08 VS Code 확장 목록 표시 통합 (2026-10-26)
 
 | 항목 | 값 |
