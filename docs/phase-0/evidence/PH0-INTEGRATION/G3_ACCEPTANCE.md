@@ -31,17 +31,38 @@
 
 ## 2. 미지원·미검증 판정 (지원으로 표시하지 않음)
 
-| 항목 | 판정 | 처리 |
+2026-10-26 재검토(사용자 요청): 설치 CLI의 `--help`와 각 Adapter의 `detect()` Capability를 다시 대조하고, 판정이 바뀔 수 있는 Claude 승인 경로는 직접 실험했습니다.
+
+| 항목 | 첫 판정 | 재검토 판정 | 근거 | 후속 |
+|---|---|---|---|---|
+| Antigravity Headless Native Fork | 미지원 | **미지원 유지** | `agy` 1.4.7 `--help`에 Fork 수단 없음(`--conversation`·`--continue`만), Headless `/fork` 거부(FORK-POC-01) | CLI 갱신 시 재확인 |
+| Antigravity 실행 중 승인 응답 | 미지원 | **미지원 유지** | `--help`의 권한 수단은 `--mode`(accept-edits·auto·plan)와 `--dangerously-skip-permissions`뿐. 실시간 응답 Protocol 없음 | — |
+| Claude·Antigravity `send_input` | 미지원 | **설계상 미지원**(CLI 수단은 있음) | 두 CLI 모두 `--input-format stream-json`으로 같은 프로세스에 메시지를 더 보낼 수 있으나 메시지마다 새 Turn을 실행합니다(`agy --help`: "runs a turn for each"). 공통 이벤트 규칙(REQ-006, Run당 Turn 1개, `turn_finished` 뒤 새 Turn 금지, Spec v1.5.6 §7.3)과 맞지 않아 후속 입력은 Resume Run으로 처리 | 진행 중 Turn 조정(steering)이 필요하면 Phase 1에서 계약과 함께 검토 |
+| **Claude `answer_approval`** | 미지원 | **미구현(CLI 수단 확인)**으로 정정 | Adapter 사유 "print mode has no live approval path"(근거 수준 `documented`)는 현재 CLI와 다릅니다. 2.1.310의 `--permission-prompt-tool stdio`(+ `initialize` 제어 요청)에서 Write 직전 `control_request`(`can_use_tool`)가 오고, Allow 응답이면 파일 생성·Deny 응답이면 미생성·`permission_denials` 1을 확인(2026-10-26 Windows, `haiku`, 일회용 폴더, 세션 3개 즉시 삭제). `--permission-prompts host`만 주고 응답자가 없으면 자동 거부 | Capability 사유 정정(CLAUDE). 구현은 Phase 1(승인 UI·정책과 함께) |
+| Codex `vscodeListing: hidden` | 미지원 | **미지원 유지** | REQ-021 실측: App Server는 출처 지정과 무관하게 `vscode`로 저장. 외부 `exec`은 Adapter 경로가 아님(REQ-022) | — |
+| Codex `send_input`(`turn/steer`)·승인 Allow | 미검증 | **미검증 유지** | 구현과 Mock 시험만 있고 실환경 시험이 없음. Phase 0 운영자 정책은 Codex 승인을 `Deny`로 고정해 Allow 경로가 Core에서 쓰이지 않음 | 실환경 시험 추가(CODEX), Phase 1 승인 정책 연결 때 |
+| Claude Fork의 부모 기준 Turn 지정(`source_turn_id`) | 미검증 | **미검증 유지** | 2.1.310 `--help`에 특정 메시지·Turn 기준 재개·분기 옵션이 없음(`--resume <id> --fork-session`은 새 세션 ID로 이어 씀) | 필요 시 미지원으로 확정 |
+| DEC-08 Linux·Remote SSH 화면 확인, 실시간 화면 반영 | 미검증 | 미검증 유지 | 사용자 VS Code 조작 필요. §19.1 필수 아님 | 선택 |
+| 확장 다중 버전 선택(서버) | 미검증(현 서버) | 유지 | 2026-10-25 두 벌 설치 시점 HOST H3 통과, 현재 한 벌 | 두 벌 환경이 생기면 재실행 |
+| **Windows 정상 종료 신호** | (누락) | **미구현** | Windows 취소는 stdin을 닫고 유예 뒤 Job 강제 종료. 정상 종료 신호를 보내지 않음(§7.4) | Phase 1 검토 |
+| **Linux Local API의 다른 사용자 접근 거부·`XDG_RUNTIME_DIR` 없는 대체 경로** | (누락) | **미검증** | Socket·토큰 권한(0600/0700)은 확인, 실제 다른 사용자 접근 시도와 대체 경로는 미실행(§9.3) | 선택 |
+| Core·감시 프로세스 동시 유실, 종료할 수 없는 프로세스, macOS, PID Namespace | 범위 밖 | 유지 | §9.9 한계 | — |
+| RN 팀 가입·중계 사용 중 외부 통신, Linux 바이너리 문자열 검사 | 범위 밖 | 유지 | §9.7 한계 | — |
+
+### 2.1 Capability 보고의 불일치 (재검토에서 발견)
+
+판정 결과와 Adapter가 `detect()`로 보고하는 Capability가 어긋납니다. Core가 아직 Capability로 집행하지 않아 Phase 0 동작에는 영향이 없지만, Phase 1에서 Core가 이 값으로 판단하기 전에 맞춰야 합니다.
+
+| # | 내용 | 영향 |
 |---|---|---|
-| Antigravity Headless Native Fork | 미지원 | `UnsupportedCapability`로 거부 |
-| Antigravity·Claude `send_input`, Antigravity 실행 중 승인 응답 | 미지원 | Capability `unsupported`, 후속 입력은 Resume Run |
-| Codex `vscodeListing: hidden` | 미지원 | 운영자 정책 로드에서 거부(사용자 결정, REQ-021) |
-| Codex `send_input`·승인 Allow 실환경 | 미검증 | 구현·Mock만. Phase 1에서 검증 |
-| Claude Fork의 부모 기준 Turn 지정(`source_turn_id`) | 미검증 | 사용하지 않음 |
-| DEC-08 Linux·Remote SSH 화면 확인, 실시간 화면 반영 | 미검증 | §19.1 필수 아님(Windows 기준 판정) |
-| 확장 다중 버전 선택(서버) | 미검증(현 서버) | 2026-10-25 두 벌 설치 시점 HOST H3 통과 기록. 현재 한 벌이라 시험이 전제 미충족으로 보고 |
-| Core·감시 프로세스 동시 유실, 종료할 수 없는 프로세스, macOS, PID Namespace | 범위 밖 | §9.9 한계 |
-| RN 팀 가입·중계 사용 중 외부 통신, Linux 바이너리 문자열 검사 | 범위 밖 | §9.7 한계 |
+| C1 | **키 이름이 Adapter마다 다름.** Claude·Antigravity는 `managed_run`·`event_stream`·`native_resume`·`answer_approval`, Codex는 `managed`·`stream`·`resume`·`approval`. Spec에 키 목록이 없음 | Core·Extension이 Provider 공통으로 조회할 수 없음. 공통 계약(`telos-schema`)에 키를 정해야 함 |
+| C2 | **Claude `native_resume`·`native_fork`가 `unverified`**(사유 "Phase 0 experiment pending"). 실제로는 Windows·Linux 실환경 Resume/Fork 통과 | 지원 기능을 낮게 보고(안전 쪽이지만 부정확) |
+| C3 | **Codex가 `win32-x64`만 검증으로 보고.** Linux에서 실환경 7개가 통과했는데 모든 항목이 `unverified`·`mock-tested` | Linux 지원을 낮게 보고 |
+| C4 | **Claude `answer_approval` 사유가 사실과 다름**(위 표) | 미구현을 CLI 한계로 잘못 설명 |
+
+Antigravity `native_resume`의 `unverified`는 사유(세션 소유권·잘못된 세션 복구가 P1)를 적은 의도적 판정이라 불일치로 보지 않습니다.
+
+**G3 판정에 미치는 영향:** 없습니다. 위 항목은 모두 §19.1 필수 조건이 아니며, §19.1 1번의 "같은 상위 계약으로 실행·성공·실패·취소 보고"는 공통 이벤트 계약으로 충족합니다. C1~C4는 지원을 과장하지 않고(낮게 보고하거나 미구현) Spec §2.1 원칙("지원하는 것처럼 표시하지 않음")에도 어긋나지 않습니다.
 
 ## 3. Phase 0 범위 밖으로 남는 것 (Phase 1 P0)
 
