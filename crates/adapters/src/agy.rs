@@ -7,6 +7,7 @@
 //!   명령줄 인용·길이 문제와 `-p` 인자 파싱 모호성을 피합니다.
 //! - 후속 Turn은 같은 Run의 추가 입력이 아니라 다음 Run의 `SessionMode::Resume`(`--conversation <id>`)으로 직렬화해 실행합니다 (§7.4, §8.1).
 //!   공통 이벤트 계약(`telos_schema::check_run_events`)에서 전용 프로세스 Run은 `turn_finished` 뒤에 새 Turn 이벤트를 허용하지 않기 때문입니다.
+//! - 특정 Turn 기준 재개(`SessionMode::Resume`의 `source_turn_id`)는 CLI 수단이 없으므로 최신 지점으로 대체하지 않고 `UnsupportedCapability`로 거부합니다 (Spec §2.1, §7.1).
 //! - Headless Print 모드에는 실행 중 승인 응답(`control_request`/`control_response`) 경로가 없습니다 (§7.4).
 //!   권한 확인이 필요한 동작은 소프트 거부되고 `result.denied_actions` 및 `step_update` 오류로 보고됩니다.
 //!   따라서 `answer_approval`은 `UnsupportedCapability`를 반환하고, 시작 전 모드·권한 설정을 사용합니다.
@@ -540,6 +541,13 @@ fn command_args(
     match context.session.mode {
         SessionMode::Fresh | SessionMode::Capsule => {}
         SessionMode::Resume => {
+            // 특정 Turn 기준 재개는 CLI 수단이 없어 프로세스를 띄우기 전에 거부합니다 (Spec §2.1·§7.1).
+            if context.session.source_turn_id.is_some() {
+                return Err(unsupported(
+                    capability_keys::NATIVE_RESUME,
+                    "resume at a specific turn is not supported by this CLI (only --conversation, which continues from the latest point)",
+                ));
+            }
             let source = context
                 .session
                 .source_session_id
@@ -754,7 +762,7 @@ impl AgentAdapter for AgyAdapter {
                     EvidenceLevel::ContractTested
                 },
                 Some(
-                    "Phase 0 --conversation experiment passed (PROV-05); P1 session ownership and invalid-session recovery pending",
+                    "Phase 0 --conversation experiment passed (PROV-05); resuming at a specific turn is unsupported, and P1 session ownership and invalid-session recovery pending",
                 ),
             ),
         );
