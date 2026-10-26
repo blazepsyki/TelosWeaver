@@ -676,6 +676,21 @@ async fn resume_builds_conversation_flag_and_native_fork_is_unsupported() {
         })
     ));
 
+    // 특정 Turn 기준 재개는 CLI 수단이 없어 프로세스를 띄우기 전에 거부합니다 (Spec §2.1·§7.1).
+    let mut at_turn = fixtures::run_context(&task);
+    at_turn.run_id = "run-turn-resume".into();
+    at_turn.idempotency_key = "run-turn-resume:start".into();
+    at_turn.session.mode = SessionMode::Resume;
+    at_turn.session.source_session_id = Some("session-parent".into());
+    at_turn.session.source_turn_id = Some("turn-1".into());
+    assert!(matches!(
+        adapter.start_run(&task, &at_turn).await,
+        Err(AdapterError::UnsupportedCapability {
+            ref capability,
+            ..
+        }) if capability == capability_keys::NATIVE_RESUME
+    ));
+
     let spawned = runtime.spawned.lock().unwrap();
     assert_eq!(spawned.len(), 1);
     let resume_args: Vec<_> = spawned[0]
@@ -863,6 +878,13 @@ async fn detect_reports_only_verified_capabilities_and_host_mismatch() {
     assert_eq!(
         caps[capability_keys::NATIVE_RESUME].evidence_level,
         EvidenceLevel::EnvironmentTested
+    );
+    assert!(
+        caps[capability_keys::NATIVE_RESUME]
+            .reason
+            .as_deref()
+            .unwrap()
+            .contains("resuming at a specific turn is unsupported")
     );
     assert_eq!(
         caps[capability_keys::SEND_INPUT].state,
