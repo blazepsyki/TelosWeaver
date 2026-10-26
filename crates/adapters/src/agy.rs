@@ -28,7 +28,7 @@ use async_trait::async_trait;
 use futures::{StreamExt, stream::BoxStream};
 use telos_schema::{
     ApprovalAnswer, Capability, CapabilityState, EvidenceLevel, FailureKind, ProviderEvent,
-    RunContext, RunInspection, RunStarted, SessionMode, TaskSpec,
+    RunContext, RunInspection, RunStarted, SessionMode, TaskSpec, capability_keys,
 };
 
 use crate::{
@@ -418,7 +418,7 @@ impl AgyAdapter {
             Ok(version)
         } else {
             Err(unsupported(
-                "managed_run",
+                capability_keys::MANAGED_RUN,
                 "--app_data_dir option was rejected by the CLI; refusing to fall back to another data directory (§7.5)",
             ))
         }
@@ -434,9 +434,12 @@ impl AgyAdapter {
     }
 
     fn config(&self) -> Result<&AgyConfig, AdapterError> {
-        self.config
-            .as_ref()
-            .ok_or_else(|| unsupported("start_run", "Antigravity CLI was not discovered"))
+        self.config.as_ref().ok_or_else(|| {
+            unsupported(
+                capability_keys::MANAGED_RUN,
+                "Antigravity CLI was not discovered",
+            )
+        })
     }
 
     fn run(&self, run_id: &str) -> Result<Arc<RunEntry>, AdapterError> {
@@ -484,7 +487,7 @@ fn command_args(
 ) -> Result<Vec<OsString>, AdapterError> {
     if config.data_dir_mode.cli_arg().is_some() && !config.data_dir_option_supported {
         return Err(unsupported(
-            "managed_run",
+            capability_keys::MANAGED_RUN,
             "--app_data_dir option is not supported by this Antigravity CLI version; refusing to fall back to another data directory (§7.5)",
         ));
     }
@@ -547,7 +550,7 @@ fn command_args(
         }
         SessionMode::NativeFork => {
             return Err(unsupported(
-                "native_fork",
+                capability_keys::NATIVE_FORK,
                 "Antigravity CLI headless print mode does not support conversation forking (/fork is rejected in print mode and --fork is absent)",
             ));
         }
@@ -637,7 +640,7 @@ impl AgentAdapter for AgyAdapter {
         let mut caps = HashMap::new();
         if host_id != config.host_id {
             caps.insert(
-                "managed_run".into(),
+                capability_keys::MANAGED_RUN.into(),
                 capability(
                     CapabilityState::Unsupported,
                     EvidenceLevel::Documented,
@@ -649,11 +652,11 @@ impl AgentAdapter for AgyAdapter {
 
         if config.data_dir_mode.cli_arg().is_some() && !config.data_dir_option_supported {
             for name in [
-                "managed_run",
-                "event_stream",
-                "cancel",
-                "native_resume",
-                "vscode_listing",
+                capability_keys::MANAGED_RUN,
+                capability_keys::EVENT_STREAM,
+                capability_keys::CANCEL,
+                capability_keys::NATIVE_RESUME,
+                capability_keys::VSCODE_LISTING,
             ] {
                 caps.insert(
                     name.into(),
@@ -667,7 +670,7 @@ impl AgentAdapter for AgyAdapter {
                 );
             }
             caps.insert(
-                "send_input".into(),
+                capability_keys::SEND_INPUT.into(),
                 capability(
                     CapabilityState::Unsupported,
                     EvidenceLevel::ContractTested,
@@ -675,7 +678,7 @@ impl AgentAdapter for AgyAdapter {
                 ),
             );
             caps.insert(
-                "answer_approval".into(),
+                capability_keys::ANSWER_APPROVAL.into(),
                 capability(
                     CapabilityState::Unsupported,
                     EvidenceLevel::Documented,
@@ -683,7 +686,7 @@ impl AgentAdapter for AgyAdapter {
                 ),
             );
             caps.insert(
-                "native_fork".into(),
+                capability_keys::NATIVE_FORK.into(),
                 capability(
                     CapabilityState::Unsupported,
                     EvidenceLevel::EnvironmentTested,
@@ -706,7 +709,11 @@ impl AgentAdapter for AgyAdapter {
                 Some("this CLI version has not been environment-tested"),
             )
         };
-        for name in ["managed_run", "event_stream", "cancel"] {
+        for name in [
+            capability_keys::MANAGED_RUN,
+            capability_keys::EVENT_STREAM,
+            capability_keys::CANCEL,
+        ] {
             caps.insert(name.into(), capability(state, evidence, reason));
         }
         // Spec §7.6 (DEC-08, AGENT-05): 운영자 설정이 `hidden`(`DefaultCli`)이어도 Capability는
@@ -736,9 +743,9 @@ impl AgentAdapter for AgyAdapter {
                 ),
             )
         };
-        caps.insert("vscode_listing".into(), vscode_listing);
+        caps.insert(capability_keys::VSCODE_LISTING.into(), vscode_listing);
         caps.insert(
-            "native_resume".into(),
+            capability_keys::NATIVE_RESUME.into(),
             capability(
                 CapabilityState::Unverified,
                 if self.verified() {
@@ -752,7 +759,7 @@ impl AgentAdapter for AgyAdapter {
             ),
         );
         caps.insert(
-            "send_input".into(),
+            capability_keys::SEND_INPUT.into(),
             capability(
                 CapabilityState::Unsupported,
                 EvidenceLevel::ContractTested,
@@ -760,7 +767,7 @@ impl AgentAdapter for AgyAdapter {
             ),
         );
         caps.insert(
-            "answer_approval".into(),
+            capability_keys::ANSWER_APPROVAL.into(),
             capability(
                 CapabilityState::Unsupported,
                 EvidenceLevel::Documented,
@@ -768,7 +775,7 @@ impl AgentAdapter for AgyAdapter {
             ),
         );
         caps.insert(
-            "native_fork".into(),
+            capability_keys::NATIVE_FORK.into(),
             capability(
                 CapabilityState::Unsupported,
                 EvidenceLevel::EnvironmentTested,
@@ -860,7 +867,7 @@ impl AgentAdapter for AgyAdapter {
         _text: &str,
     ) -> Result<(), AdapterError> {
         Err(unsupported(
-            "send_input",
+            capability_keys::SEND_INPUT,
             "follow-up turns are serialized as resumed runs after result consumption (§7.4)",
         ))
     }
@@ -872,7 +879,7 @@ impl AgentAdapter for AgyAdapter {
         _decision: ApprovalAnswer,
     ) -> Result<(), AdapterError> {
         Err(unsupported(
-            "answer_approval",
+            capability_keys::ANSWER_APPROVAL,
             "headless print mode has no live approval response path (§7.4)",
         ))
     }

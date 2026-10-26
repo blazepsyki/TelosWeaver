@@ -19,7 +19,7 @@ use telos_adapters::{
 use telos_schema::{
     ApprovalAnswer, CapabilityState, EvidenceLevel, FailureKind, ProviderEvent, ProviderEventKind,
     ProviderEventPayload, RunInspection, RunTermination, SessionMode, ToolOutcome, TurnStatus,
-    check_run_events, fixtures,
+    capability_keys, check_run_events, fixtures,
 };
 use tokio::sync::watch;
 
@@ -551,13 +551,13 @@ async fn unsupported_controls_and_unknown_runs_are_explicit() {
     let adapter = adapter(FakeRuntime::new(Script::fixture("success.jsonl", 0)));
     assert!(matches!(
         adapter.send_input("run-1", "in-1", "more").await,
-        Err(AdapterError::UnsupportedCapability { .. })
+        Err(AdapterError::UnsupportedCapability { ref capability, .. }) if capability == capability_keys::SEND_INPUT
     ));
     assert!(matches!(
         adapter
             .answer_approval("run-1", "req-1", ApprovalAnswer::Allow)
             .await,
-        Err(AdapterError::UnsupportedCapability { .. })
+        Err(AdapterError::UnsupportedCapability { ref capability, .. }) if capability == capability_keys::ANSWER_APPROVAL
     ));
     let first = adapter.events("missing", 0).next().await.unwrap();
     assert!(matches!(first, Err(AdapterError::UnknownRun { .. })));
@@ -568,7 +568,7 @@ async fn unsupported_controls_and_unknown_runs_are_explicit() {
         undiscovered
             .start_run(&task, &fixtures::run_context(&task))
             .await,
-        Err(AdapterError::UnsupportedCapability { .. })
+        Err(AdapterError::UnsupportedCapability { ref capability, .. }) if capability == capability_keys::MANAGED_RUN
     ));
     assert!(
         undiscovered
@@ -660,7 +660,7 @@ async fn resume_builds_conversation_flag_and_native_fork_is_unsupported() {
         Err(AdapterError::UnsupportedCapability {
             ref capability,
             ..
-        }) if capability == "native_fork"
+        }) if capability == capability_keys::NATIVE_FORK
     ));
 
     let mut missing = fixtures::run_context(&task);
@@ -711,14 +711,20 @@ async fn data_dir_modes_and_option_rejection_follow_spec_7_5() {
     let rejected_adapter =
         adapter(runtime_unsupported.clone()).with_data_dir_option_supported(false);
     let caps = rejected_adapter.detect(&context.host_id).await.unwrap();
-    assert_eq!(caps["managed_run"].state, CapabilityState::Unsupported);
-    assert_eq!(caps["vscode_listing"].state, CapabilityState::Unsupported);
+    assert_eq!(
+        caps[capability_keys::MANAGED_RUN].state,
+        CapabilityState::Unsupported
+    );
+    assert_eq!(
+        caps[capability_keys::VSCODE_LISTING].state,
+        CapabilityState::Unsupported
+    );
     assert!(matches!(
         rejected_adapter.start_run(&task, &context).await,
         Err(AdapterError::UnsupportedCapability {
             ref capability,
             ..
-        }) if capability == "managed_run"
+        }) if capability == capability_keys::MANAGED_RUN
     ));
     assert!(runtime_unsupported.spawned.lock().unwrap().is_empty());
 
@@ -812,14 +818,14 @@ async fn vscode_listing_modes_and_capability_follow_spec_7_6() {
     // 3. 운영자 설정이 Hidden이어도 Capability는 수단의 지원 여부를 나타내므로 Supported입니다 (§7.6).
     let hidden_caps = hidden_adapter.detect(&host_id).await.unwrap();
     assert_eq!(
-        hidden_caps["vscode_listing"].state,
+        hidden_caps[capability_keys::VSCODE_LISTING].state,
         CapabilityState::Supported
     );
     assert_eq!(
-        hidden_caps["vscode_listing"].evidence_level,
+        hidden_caps[capability_keys::VSCODE_LISTING].evidence_level,
         EvidenceLevel::EnvironmentTested
     );
-    let reason = hidden_caps["vscode_listing"]
+    let reason = hidden_caps[capability_keys::VSCODE_LISTING]
         .reason
         .as_deref()
         .expect("vscode_listing reason");
@@ -830,7 +836,7 @@ async fn vscode_listing_modes_and_capability_follow_spec_7_6() {
     let hidden_unsupported = hidden_adapter.with_data_dir_option_supported(false);
     let hidden_unsupported_caps = hidden_unsupported.detect(&host_id).await.unwrap();
     assert_eq!(
-        hidden_unsupported_caps["vscode_listing"].state,
+        hidden_unsupported_caps[capability_keys::VSCODE_LISTING].state,
         CapabilityState::Unsupported
     );
 }
@@ -841,33 +847,62 @@ async fn detect_reports_only_verified_capabilities_and_host_mismatch() {
     let runtime = FakeRuntime::new(Script::default());
     let verified = adapter(runtime.clone());
     let caps = verified.detect(&host_id).await.unwrap();
-    for name in ["managed_run", "event_stream", "cancel", "vscode_listing"] {
+    for name in [
+        capability_keys::MANAGED_RUN,
+        capability_keys::EVENT_STREAM,
+        capability_keys::CANCEL,
+        capability_keys::VSCODE_LISTING,
+    ] {
         assert_eq!(caps[name].state, CapabilityState::Supported);
         assert_eq!(caps[name].evidence_level, EvidenceLevel::EnvironmentTested);
     }
-    assert_eq!(caps["native_resume"].state, CapabilityState::Unverified);
     assert_eq!(
-        caps["native_resume"].evidence_level,
+        caps[capability_keys::NATIVE_RESUME].state,
+        CapabilityState::Unverified
+    );
+    assert_eq!(
+        caps[capability_keys::NATIVE_RESUME].evidence_level,
         EvidenceLevel::EnvironmentTested
     );
-    assert_eq!(caps["send_input"].state, CapabilityState::Unsupported);
-    assert_eq!(caps["answer_approval"].state, CapabilityState::Unsupported);
-    assert_eq!(caps["native_fork"].state, CapabilityState::Unsupported);
+    assert_eq!(
+        caps[capability_keys::SEND_INPUT].state,
+        CapabilityState::Unsupported
+    );
+    assert_eq!(
+        caps[capability_keys::ANSWER_APPROVAL].state,
+        CapabilityState::Unsupported
+    );
+    assert_eq!(
+        caps[capability_keys::NATIVE_FORK].state,
+        CapabilityState::Unsupported
+    );
 
     let unverified = adapter_with_version(runtime, "9.9.9");
     let caps = unverified.detect(&host_id).await.unwrap();
-    assert_eq!(caps["managed_run"].state, CapabilityState::Unverified);
-    assert_eq!(caps["vscode_listing"].state, CapabilityState::Unverified);
     assert_eq!(
-        caps["vscode_listing"].evidence_level,
+        caps[capability_keys::MANAGED_RUN].state,
+        CapabilityState::Unverified
+    );
+    assert_eq!(
+        caps[capability_keys::VSCODE_LISTING].state,
+        CapabilityState::Unverified
+    );
+    assert_eq!(
+        caps[capability_keys::VSCODE_LISTING].evidence_level,
         EvidenceLevel::ContractTested
     );
-    assert_eq!(caps["native_resume"].state, CapabilityState::Unverified);
-    assert_eq!(caps["native_fork"].state, CapabilityState::Unsupported);
+    assert_eq!(
+        caps[capability_keys::NATIVE_RESUME].state,
+        CapabilityState::Unverified
+    );
+    assert_eq!(
+        caps[capability_keys::NATIVE_FORK].state,
+        CapabilityState::Unsupported
+    );
 
     let other_host = verified.detect("ssh-linux").await.unwrap();
     assert_eq!(
-        other_host["managed_run"].state,
+        other_host[capability_keys::MANAGED_RUN].state,
         CapabilityState::Unsupported
     );
 }

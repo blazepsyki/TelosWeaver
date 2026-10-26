@@ -20,7 +20,8 @@ use telos_adapters::{
 };
 use telos_schema::{
     FailureKind, ProcessTermination, ProviderEvent, ProviderEventKind, ProviderEventPayload,
-    RunContext, RunTermination, SessionMode, ToolOutcome, TurnStatus, check_run_events, fixtures,
+    RunContext, RunTermination, SessionMode, ToolOutcome, TurnStatus, capability_keys,
+    check_run_events, fixtures,
 };
 
 fn home_dir() -> PathBuf {
@@ -558,7 +559,7 @@ async fn env_resume_and_fork_rejection() {
         Err(AdapterError::UnsupportedCapability {
             ref capability,
             ..
-        }) if capability == "native_fork"
+        }) if capability == capability_keys::NATIVE_FORK
     ));
 }
 
