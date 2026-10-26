@@ -314,33 +314,162 @@ async fn detect_reports_common_keys_and_preserves_fixture_judgements() {
     }
 }
 
-// REQ-024 only renames keys; platform/version judgement changes belong to C3.
+// Spec §7.1, C3-X1/X2: evidence is scoped to an exact platform/CLI/extension tuple.
 #[tokio::test]
-async fn common_keys_keep_existing_verified_version_judgements() {
+async fn capability_evidence_matrix_distinguishes_platform_version_and_listing_identity() {
     let (mut adapter, _) = configured(Mode::Good, CodexApprovals::Deny);
-    let config = Arc::get_mut(&mut adapter.inner)
+    Arc::get_mut(&mut adapter.inner)
         .unwrap()
         .config
         .as_mut()
-        .unwrap();
-    config.cli_version = "codex-cli 0.164.0-alpha.11.1".into();
-    config.executable = PathBuf::from("openai.chatgpt-26.1021.22027-win32-x64").join("codex.exe");
-    let capabilities = adapter.detect(fixtures::HOST_ID).await.unwrap();
-    for (key, capability) in capabilities {
-        let verified = cfg!(all(target_os = "windows", target_arch = "x86_64"))
-            && key != capability_keys::SEND_INPUT
-            && key != capability_keys::ANSWER_APPROVAL;
-        let (state, evidence) = if verified {
-            (CapabilityState::Supported, EvidenceLevel::EnvironmentTested)
-        } else {
-            (CapabilityState::Unverified, EvidenceLevel::MockTested)
+        .unwrap()
+        .cli_version = "codex-cli 0.164.0-alpha.11.1".into();
+    let config = adapter.config().unwrap();
+    for platform in ["win32-x64", "linux-x64", "darwin-arm64"] {
+        let extension = capabilities::ExtensionIdentity {
+            id: "openai.chatgpt".into(),
+            version: "26.1021.22027".into(),
+            platform: platform.into(),
         };
-        assert_eq!(
-            (capability.state, capability.evidence_level),
-            (state, evidence),
-            "{key}"
+        let reported = capabilities::with_evidence(
+            config,
+            fixtures::HOST_ID,
+            platform,
+            CodexVscodeListing::Listed,
+            Some(&extension),
         );
+        let known = matches!(platform, "win32-x64" | "linux-x64");
+        for key in [
+            capability_keys::MANAGED_RUN,
+            capability_keys::EVENT_STREAM,
+            capability_keys::CANCEL,
+            capability_keys::NATIVE_RESUME,
+            capability_keys::NATIVE_FORK,
+            capability_keys::VSCODE_LISTING,
+        ] {
+            assert_eq!(
+                reported[key].state,
+                if known {
+                    CapabilityState::Supported
+                } else {
+                    CapabilityState::Unverified
+                },
+                "{platform} {key}"
+            );
+            assert_eq!(
+                reported[key].evidence_level,
+                if known {
+                    EvidenceLevel::EnvironmentTested
+                } else {
+                    EvidenceLevel::MockTested
+                }
+            );
+        }
+        if known {
+            let reason = reported[capability_keys::VSCODE_LISTING]
+                .reason
+                .as_deref()
+                .unwrap();
+            assert!(reason.contains(if platform == "win32-x64" {
+                "user-confirmed"
+            } else {
+                "UI listing/opening and live refresh unverified"
+            }));
+        }
+        for key in [
+            capability_keys::SEND_INPUT,
+            capability_keys::ANSWER_APPROVAL,
+        ] {
+            assert_eq!(
+                reported[key].state,
+                if platform == "win32-x64" {
+                    CapabilityState::Supported
+                } else {
+                    CapabilityState::Unverified
+                }
+            );
+        }
+        for invalid in [
+            None,
+            Some(capabilities::ExtensionIdentity {
+                id: "other.extension".into(),
+                ..extension.clone()
+            }),
+            Some(capabilities::ExtensionIdentity {
+                version: "unknown-version".into(),
+                ..extension.clone()
+            }),
+            Some(capabilities::ExtensionIdentity {
+                platform: "wrong-platform".into(),
+                ..extension.clone()
+            }),
+        ] {
+            let caps = capabilities::with_evidence(
+                config,
+                fixtures::HOST_ID,
+                platform,
+                CodexVscodeListing::Listed,
+                invalid.as_ref(),
+            );
+            assert_eq!(
+                caps[capability_keys::VSCODE_LISTING].state,
+                CapabilityState::Unverified
+            );
+        }
     }
+    let (adapter, _) = configured(Mode::Good, CodexApprovals::Deny);
+    let unknown = capabilities::with_evidence(
+        adapter.config().unwrap(),
+        fixtures::HOST_ID,
+        "win32-x64",
+        CodexVscodeListing::Listed,
+        None,
+    );
+    assert!(
+        unknown
+            .values()
+            .all(|cap| cap.state == CapabilityState::Unverified)
+    );
+}
+
+#[test]
+fn listing_extension_identity_uses_manifest_instead_of_directory_spelling() {
+    struct Temporary(PathBuf);
+    impl Drop for Temporary {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    let root = Temporary(std::env::temp_dir().join(format!(
+            "telos-codex-manifest-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        )));
+    let binary = root.0.join("renamed-extension/bin/native/codex.exe");
+    std::fs::create_dir_all(binary.parent().unwrap()).unwrap();
+    std::fs::write(&binary, []).unwrap();
+    let package = root.0.join("renamed-extension/package.json");
+    std::fs::write(&package, json!({"publisher":"openai","name":"chatgpt","version":"26.1021.22027","__metadata":{"targetPlatform":"win32-x64"}}).to_string()).unwrap();
+    let identity = capabilities::extension_identity(&binary).unwrap();
+    assert_eq!(
+        (
+            identity.id.as_str(),
+            identity.version.as_str(),
+            identity.platform.as_str()
+        ),
+        ("openai.chatgpt", "26.1021.22027", "win32-x64")
+    );
+    std::fs::write(&package, json!({"publisher":"other","name":"chatgpt","version":"26.1021.22027","__metadata":{"targetPlatform":"win32-x64"}}).to_string()).unwrap();
+    assert!(capabilities::extension_identity(&binary).is_none());
+    std::fs::write(
+        &package,
+        json!({"publisher":"openai","name":"chatgpt","version":"26.1021.22027"}).to_string(),
+    )
+    .unwrap();
+    assert!(capabilities::extension_identity(&binary).is_none());
 }
 
 #[tokio::test]

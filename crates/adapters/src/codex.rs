@@ -15,6 +15,7 @@ use std::{
 use telos_schema::*;
 use tokio::sync::watch;
 
+mod capabilities;
 mod protocol;
 mod rpc;
 mod run;
@@ -264,50 +265,12 @@ impl AgentAdapter for CodexAdapter {
                 "Codex belongs to another Host",
             ));
         }
-        let mut capabilities: HashMap<String, Capability> = [
-            capability_keys::MANAGED_RUN,
-            capability_keys::EVENT_STREAM,
-            capability_keys::CANCEL,
-            capability_keys::NATIVE_RESUME,
-            capability_keys::NATIVE_FORK,
-            capability_keys::SEND_INPUT,
-            capability_keys::ANSWER_APPROVAL,
-        ]
-        .into_iter()
-        .map(|name| {
-            (
-                name.into(),
-                Capability {
-                    state: if target=="win32-x64"&&config.cli_version=="codex-cli 0.164.0-alpha.11.1"&&matches!(name,capability_keys::MANAGED_RUN|capability_keys::EVENT_STREAM|capability_keys::CANCEL|capability_keys::NATIVE_RESUME|capability_keys::NATIVE_FORK){CapabilityState::Supported}else{CapabilityState::Unverified},
-                    provider_version: config.cli_version.clone(),
-                    host_id: host_id.into(),
-                    checked_at: timestamp(),
-                    evidence_level: if target=="win32-x64"&&config.cli_version=="codex-cli 0.164.0-alpha.11.1"&&matches!(name,capability_keys::MANAGED_RUN|capability_keys::EVENT_STREAM|capability_keys::CANCEL|capability_keys::NATIVE_RESUME|capability_keys::NATIVE_FORK){EvidenceLevel::EnvironmentTested}else{EvidenceLevel::MockTested},
-                    reason: Some("Windows x64 0.164.0-alpha.11.1 basic execution/resume/fork/cancel have local evidence; other versions, steering and approval need environment checks".into()),
-                },
-            )
-        })
-        .collect();
-        // §7.6, DEC-08: source/list checks are version/Host-specific; UI opening is separate evidence.
-        let listing_verified = target == "win32-x64"
-            && config.cli_version == "codex-cli 0.164.0-alpha.11.1"
-            && config
-                .executable
-                .components()
-                .any(|part| part.as_os_str() == "openai.chatgpt-26.1021.22027-win32-x64");
-        capabilities.insert(capability_keys::VSCODE_LISTING.into(), Capability {
-            state: match self.inner.vscode_listing {
-                CodexVscodeListing::Hidden => CapabilityState::Unsupported,
-                CodexVscodeListing::Listed if listing_verified => CapabilityState::Supported,
-                CodexVscodeListing::Listed => CapabilityState::Unverified,
-            },
-            provider_version: config.cli_version.clone(),
-            host_id: host_id.into(),
-            checked_at: timestamp(),
-            evidence_level: if listing_verified { EvidenceLevel::EnvironmentTested } else { EvidenceLevel::MockTested },
-            reason: Some("Windows x64 extension 26.1021.22027 / CLI 0.164.0-alpha.11.1: persisted vscode threads are in the default DB list; hidden has no verified native creation mechanism and is rejected; UI listing/opening user-confirmed on 2026-10-25, live refresh unverified".into()),
-        });
-        Ok(capabilities)
+        Ok(capabilities::report(
+            config,
+            host_id,
+            target,
+            self.inner.vscode_listing,
+        ))
     }
     async fn start_run(
         &self,
