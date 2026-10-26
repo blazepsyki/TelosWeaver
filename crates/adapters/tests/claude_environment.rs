@@ -496,3 +496,136 @@ async fn env_discovery_finds_extension_cli() {
     assert_eq!(extension.extension_id, "anthropic.claude-code");
     assert_eq!(extension.resolution, ExtensionResolution::Metadata);
 }
+
+/// 승인 실험 한 번의 관찰 결과입니다.
+struct ApprovalProbe {
+    session_id: String,
+    asked_tool: Option<String>,
+    denials: usize,
+    file_written: bool,
+    exit_ok: bool,
+}
+
+/// CLI를 직접 실행해 `--permission-prompt-tool stdio`의 실시간 승인 요청에 `behavior`로 답합니다.
+/// Adapter는 이 경로를 구현하지 않으므로(Phase 1) CLI 수단의 존재만 확인합니다 (G3 재검토 C4).
+fn probe_live_approval(name: &str, behavior: &str) -> ApprovalProbe {
+    use serde_json::{Value, json};
+    use std::io::{BufRead, BufReader, Write};
+    use std::process::{Command, Stdio};
+
+    let dir = workdir(name);
+    let _ = std::fs::remove_file(dir.join("probe.txt"));
+    let mut command = Command::new(executable());
+    command
+        .args([
+            "-p",
+            "--input-format",
+            "stream-json",
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--model",
+            "haiku",
+            "--permission-mode",
+            "default",
+            "--permission-prompt-tool",
+            "stdio",
+            "--tools",
+            "Write",
+            "--setting-sources",
+            "user",
+        ])
+        .current_dir(&dir)
+        // Adapter와 같이 부모 세션 변수를 지우고 목록 밖 출처로 둡니다(§7.6).
+        .env("CLAUDE_CODE_ENTRYPOINT", "sdk-cli")
+        .env("CLAUDE_CODE_DISABLE_BACKGROUND_TASKS", "1")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
+    for (key, _) in std::env::vars_os() {
+        let key = key.to_string_lossy().into_owned();
+        let parent = key == "CLAUDECODE" || key == "CLAUDE_PID" || key.starts_with("CLAUDE_CODE_");
+        if parent
+            && key != "CLAUDE_CODE_ENTRYPOINT"
+            && key != "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"
+        {
+            command.env_remove(key);
+        }
+    }
+    let mut child = command.spawn().unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    let mut send = |value: Value| {
+        writeln!(stdin, "{value}").unwrap();
+        stdin.flush().unwrap();
+    };
+    send(
+        json!({"type":"control_request","request_id":"init-1","request":{"subtype":"initialize"}}),
+    );
+    send(json!({"type":"user","message":{"role":"user",
+        "content":"Use the Write tool to create probe.txt containing OK. Do nothing else."}}));
+
+    let stdout = child.stdout.take().unwrap();
+    // 출력이 멈춰도 끝나도록 시간 제한이 지나면 이 시험의 프로세스만 종료합니다.
+    let child = std::sync::Arc::new(std::sync::Mutex::new(child));
+    let (done, finished) = std::sync::mpsc::channel::<()>();
+    let killer = {
+        let child = child.clone();
+        std::thread::spawn(move || {
+            if finished.recv_timeout(Duration::from_secs(120)).is_err() {
+                let _ = child.lock().unwrap().kill();
+            }
+        })
+    };
+    let mut probe = ApprovalProbe {
+        session_id: String::new(),
+        asked_tool: None,
+        denials: 0,
+        file_written: false,
+        exit_ok: false,
+    };
+    for line in BufReader::new(stdout).lines() {
+        let event: Value = serde_json::from_str(&line.unwrap()).unwrap();
+        if let Some(id) = event["session_id"].as_str() {
+            probe.session_id = id.to_owned();
+        }
+        match event["type"].as_str() {
+            Some("control_request") if event["request"]["subtype"] == "can_use_tool" => {
+                probe.asked_tool = event["request"]["tool_name"].as_str().map(str::to_owned);
+                let response = if behavior == "allow" {
+                    json!({"behavior":"allow","updatedInput":event["request"]["input"]})
+                } else {
+                    json!({"behavior":"deny","message":"denied by TelosWeaver test"})
+                };
+                send(
+                    json!({"type":"control_response","response":{"subtype":"success",
+                    "request_id":event["request_id"],"response":response}}),
+                );
+            }
+            Some("result") => {
+                probe.denials = event["permission_denials"].as_array().map_or(0, Vec::len);
+                break;
+            }
+            _ => {}
+        }
+    }
+    drop(send);
+    drop(stdin);
+    let _ = done.send(());
+    killer.join().unwrap();
+    probe.exit_ok = child.lock().unwrap().wait().unwrap().success();
+    probe.file_written = dir.join("probe.txt").is_file();
+    println!("claude-session: {}", probe.session_id);
+    probe
+}
+
+#[test]
+#[ignore = "runs the real Claude Code CLI"]
+fn env_permission_prompt_tool_offers_live_approval() {
+    let allowed = probe_live_approval("approval-allow", "allow");
+    assert_eq!(allowed.asked_tool.as_deref(), Some("Write"));
+    assert!(allowed.file_written && allowed.denials == 0 && allowed.exit_ok);
+
+    let denied = probe_live_approval("approval-deny", "deny");
+    assert_eq!(denied.asked_tool.as_deref(), Some("Write"));
+    assert!(!denied.file_written && denied.denials == 1 && denied.exit_ok);
+}
