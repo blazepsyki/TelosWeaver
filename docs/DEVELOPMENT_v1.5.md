@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.6)  
+> **문서 버전:** 1.5 (개정 1.5.7)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-10-26  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -39,6 +39,7 @@
 | v1.5.4 | 2026-10-26 | §7.6을 Phase 0 판정 결과로 보정(REQ-021): Codex App Server는 `threadSource`(analytics 분류)·초기화 이름과 관계없이 저장된 Thread를 `vscode` 출처로 기록하므로 `hidden` 수단이 없고 운영자 정책에서 거부(사용자 결정). Antigravity `hidden`은 확장 인덱스에 CLI 출처로 색인되지만 확장 화면에서는 숨겨짐. 세 Provider `listed`·Claude/Agy `hidden`의 자동 판정과 사용자 화면 확인 결과, 운영자 정책 `vscodeListing`(Agy `dataDir`과의 관계)과 승인 Snapshot 기록, Agy 요약 인덱스 잔여 행 처리 |
 | v1.5.5 | 2026-10-26 | Antigravity 인증의 Host별 차이(§7.5 AGY-DATA-02·Host별 규칙, §7.6): Linux Remote SSH 세션의 `agy`는 데이터 디렉터리 안의 파일 토큰을 쓰고 원격 확장은 확장 디렉터리에 토큰 파일을 두지 않아, `--app_data_dir=antigravity`가 그 Host에서는 별도 로그인 없이 동작하지 않음. Phase 0의 `psyki-nas`는 이미 로그인된 CLI 기본 디렉터리(`hidden`)를 운영자 정책으로 명시해 씀(사용자 결정). 그 Host의 Antigravity Managed Run은 원격 확장 목록에 보이지 않음 |
 | v1.5.6 | 2026-10-26 | §7.3 Provider가 스스로 이어가는 Turn: 전용 프로세스 Run은 Turn 하나이므로 Provider의 백그라운드 작업처럼 첫 Turn 뒤에 이어지는 Turn을 막고(Claude `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`), 그래도 이어지면 기록하지 않고 프로세스를 끝내 성공으로 판정하지 않음(G3 발견 2) |
+| v1.5.7 | 2026-10-26 | 공통 Capability 키 계약(REQ-024, §7.1): `detect()`와 `UnsupportedCapability.capability`가 쓰는 공통 키 8개(`managed_run`·`event_stream`·`cancel`·`native_resume`·`native_fork`·`send_input`·`answer_approval`·`vscode_listing`)와 의미·필수 범위, 문자열 상수와 같은 원본에서 생성하는 `CommonCapabilityKey` Schema, 세부 제한은 키가 아니라 `reason`, 한 요청의 거부가 영구 미지원을 뜻하지 않음, Provider 고유 키 `provider.<provider_id>.<feature>`, 생략·알 수 없는 키는 지원 근거가 아님(§7.2) |
 
 ## 목차
 
@@ -438,6 +439,26 @@ Workspace 전체를 무조건 모델 입력에 넣지 않습니다. 관련 파�
 
 Capability는 `supported`·`unsupported`·`unverified`와 Provider 버전·Host·확인 시각·증거·제한 사유를 가집니다. 필수 기능이 미검증이면 실행 전 탐지 또는 제한된 PoC를 거치며, 선택 기능의 미지원은 이유와 대체 경로를 표시합니다.
 
+**공통 Capability 키(REQ-024).** `detect()`가 돌려주는 Map의 키와 `AdapterError::UnsupportedCapability.capability`는 모든 Adapter가 아래 이름을 씁니다. `telos-schema`가 문자열 상수와 알려진 키 목록을 정의하고, 같은 목록에서 `CommonCapabilityKey` Schema를 생성해 Extension 타입으로 씁니다. 이 Schema는 공통 키 카탈로그이며 Map의 허용 키를 닫지 않습니다.
+
+| 키 | 의미·대응 | Phase 0 (§19.1) | Phase 1 / P0 (§19.2) |
+|---|---|---|---|
+| `managed_run` | `start_run`, 기본 `fresh` 모드의 Core 소유 실행 | 필수 검증 대상 | 실행할 Provider의 기본 필수 기능 |
+| `event_stream` | `events`, 정규화 이벤트·순서·재생·종료 규칙 | 필수 검증 대상 | 기본 필수 기능 |
+| `cancel` | `cancel_run`, 취소 접수와 실제 프로세스·자식 종료 확인의 구분 | 필수 검증 대상 | 기본 필수 기능 |
+| `native_resume` | `start_run` + `resume`·`source_session_id` | 실험·제한 기록 필수, 지원 성공은 별도 판정 | 선택. 해당 모드를 요청할 때 확인 |
+| `native_fork` | `start_run` + `native-fork`·부모 세션 | 실험·제한 기록 필수(Agy 성공은 필수 아님) | 선택. 새 Native ID·계보·기준 범위 확인 |
+| `send_input` | `send_input`, 기존 Run·Turn의 진행 중 조정. 새 Turn은 기존 Run에 추가하지 않음(§7.3) | 선택 | 그 제어를 쓰는 경로에서 조건부 필수 |
+| `answer_approval` | `answer_approval`, 요청 ID에 대응하는 실행 중 승인 응답. 시작 전 권한 설정과 다름 | 선택(도구 거부 검증과 별개) | 실시간 승인 경로를 쓰는 경우 조건부 필수 |
+| `vscode_listing` | 세션을 확장 목록 대상으로 만드는 수단(§7.6) | Windows에서 수단 판정과 화면 확인을 따로 기록 | 목록 표시가 필요한 설정·Host에서 확인 |
+
+- 키가 없거나 `unverified`·`unsupported`이면 지원으로 보지 않습니다. 키 하나의 `supported`가 특정 Turn 기준 재개·분기, `hidden` 모드, 화면 실시간 반영, 세션 소유권 같은 세부 조건까지 보장하지 않으며, 그런 제한은 `reason`과 실행 전 검사로 표현합니다.
+- 설정값·세부 인자·권한 Port 이름을 키 뒤에 붙이지 않습니다(예: `hidden` 거부는 `vscode_listing` + 사유, 특정 Turn Resume 거부는 `native_resume` + 사유, 승인 정책 미구성은 `answer_approval` + 사유).
+- 한 요청의 `UnsupportedCapability`는 인자·설정·정책을 포함한 그 요청의 거부이며 기능 전체의 영구 미지원을 뜻하지 않습니다. Core는 거부 하나로 `Capability.state`를 덮어쓰지 않습니다.
+- Capability가 `supported`라는 이유로 승인·파일·실행 권한을 부여하지 않습니다(권한은 정책이 정함).
+- Provider 고유 키는 `provider.<provider_id>.<feature>`(`snake_case`)를 씁니다. 공통 8개는 접두어 없는 예약 이름입니다. 알 수 없는 키를 공통 기능의 별칭으로 추측하지 않고, 공통 소비자는 이를 필수 기능 지원 근거로 삼지 않습니다. 공통 키의 추가·의미 변경은 CONTRACT 변경 요청과 이 절의 개정으로만 합니다.
+- RN의 `RnSessionCapabilities`와 실패 분류 `unsupported_capability`는 이 키 목록과 별개입니다.
+
 ### 7.2 공통 실행·제어 계약
 
 ```rust
@@ -539,7 +560,7 @@ pub trait AgentAdapter: Send + Sync {
 
 Core는 여러 Provider를 `Arc<dyn AgentAdapter>`로 다루므로 Trait은 객체 안전해야 합니다. 위 표기는 `async-trait` 방식을 가정하며, 비동기 Trait 구현 방식은 상세 설계에서 확정합니다.
 
-메서드가 존재한다는 것이 기능 지원을 뜻하지는 않습니다. 미지원 제어는 `AdapterError::UnsupportedCapability`를 반환합니다. Run ID는 Core가 발급하며 Adapter가 임의의 다른 Run을 만들지 않습니다. 동일 실행 키의 재요청으로 프로세스를 중복 생성하지 않습니다.
+메서드가 존재한다는 것이 기능 지원을 뜻하지는 않습니다. 미지원 제어는 `AdapterError::UnsupportedCapability`를 반환하며 `capability`에는 §7.1의 공통 키를 씁니다. Run ID는 Core가 발급하며 Adapter가 임의의 다른 Run을 만들지 않습니다. 동일 실행 키의 재요청으로 프로세스를 중복 생성하지 않습니다.
 
 `none` Profile도 논리 Workspace ID를 발급하되 별도 파일 디렉터리는 만들지 않습니다. Adapter에 전달하는 입력은 Snapshot에 바인딩된 Version이며, 사용자 임의 경로를 검증 없이 실행 cwd로 사용하지 않습니다.
 
