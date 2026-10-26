@@ -593,6 +593,16 @@ HOST(`Codex / PH0-HOST-REQ023-01a17586`)가 `ph0/host-req023`에 제출(`41d019f
 | Codex | DEC-08 시험 Thread는 CODEX가 모두 공식 Archive(증거 §6). G2 통합 시험 Thread `01a17393…`도 Archive |
 | Antigravity | 대화 파일은 AGY·G2 정리로 삭제됨. 남은 `33339a4c-298f-4432-ab36-f22d4d30c013`(Codex 화면 확인 폴더의 시험 대화)의 `brain`·`conversations/*.db`를 삭제. 요약 인덱스(`conversation_summaries.db`)의 시험 행(확장 쪽 12개, CLI 쪽 12개)은 확장 내부 DB라 수정하지 않음(§7.6). 확장 쪽 `listed` 행은 확장 목록에 빈 항목으로 보일 수 있어 사용자 결정 필요 |
 
+**요약 인덱스 시험 행 삭제(2026-10-26 12:21, 사용자 결정):** 대화 파일(`brain/<id>`·`conversations/<id>.db`)이 이미 없고 작업 폴더가 시험 임시 폴더(`telos-*`)이거나 증거에 시험으로 기록된 행만 지웠습니다. 사전 점검 뒤 SQLite 백업 API로 백업하고 한 Transaction에서 `conversation_summaries`와 `conversations_fts`의 같은 ID를 삭제, `integrity_check` `ok`.
+
+| Host·DB | 삭제 | 남김 |
+|---|---|---|
+| Windows `~/.gemini/antigravity`(확장) | 20행(FTS 4행) | 29행: 사용자 대화, 2026-06 `rust-multi-CLI-harness` CLI 출처 행(대화 파일은 CLI 쪽에 있음), G3 Linux 위임 세션 `4fa80c33…` |
+| Windows `~/.gemini/antigravity-cli` | 13행 | 18행: 대화 파일이 있는 행 |
+| `psyki-nas` `~/.gemini/antigravity-cli` | 9행(전부 `/tmp/telos-*` 시험) | 0행 |
+
+확장 쪽 20행이 §10.5 집계(12행)보다 많은 것은 §8.5의 G2 시험 행 등 그 전 시험분을 함께 정리했기 때문입니다. 백업: Windows는 INTEGRATION 세션 임시 폴더(저장소 밖), 서버는 `~/.gemini/antigravity-cli/conversation_summaries.backup-20261026.db`.
+
 ## 11. 발견 3 통합과 G3 판정 (2026-10-26)
 
 ### 11.1 PH0-EXT 발견 3 검토·통합 (`96e61b8`)

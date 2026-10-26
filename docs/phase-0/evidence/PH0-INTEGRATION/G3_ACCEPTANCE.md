@@ -49,7 +49,7 @@
 
 ## 4. 남은 운영 결정
 
-- Antigravity 확장 요약 인덱스(`conversation_summaries.db`)의 시험 행 24개: 확장 내부 DB라 수정하지 않았으며 사용자 결정 대기(§10.5). G3 판정과 무관합니다.
+- Antigravity 요약 인덱스(`conversation_summaries.db`)의 시험 행: 사용자 결정으로 삭제 완료(Windows 33행·`psyki-nas` 9행, [통합 증거](README.md) §10.5).
 - CI 없음: 통합 검사는 수동입니다(§4, 사용자 결정으로 보류).
 
 ## 5. 판정
