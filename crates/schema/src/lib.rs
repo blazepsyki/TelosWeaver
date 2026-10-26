@@ -6,6 +6,7 @@
 
 pub mod api;
 mod artifact;
+pub mod capability_keys;
 mod decision;
 mod discovery;
 mod events;
@@ -48,6 +49,7 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
         ("TaskResult", schema_for!(TaskResult)),
         ("ArtifactVersion", schema_for!(ArtifactVersion)),
         ("Capability", schema_for!(Capability)),
+        ("CommonCapabilityKey", capability_keys::schema()),
         ("RunContext", schema_for!(RunContext)),
         ("RunStarted", schema_for!(RunStarted)),
         ("ProviderEvent", schema_for!(ProviderEvent)),

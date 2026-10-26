@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommonCapabilityKey",
+  "type": "string",
+  "enum": [
+    "managed_run",
+    "event_stream",
+    "cancel",
+    "native_resume",
+    "native_fork",
+    "send_input",
+    "answer_approval",
+    "vscode_listing"
+  ]
+}

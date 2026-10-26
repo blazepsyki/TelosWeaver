@@ -29,6 +29,8 @@ pub use unimplemented::UnsupportedAdapter;
 #[non_exhaustive]
 pub enum AdapterError {
     /// 이 Provider·버전·Host에서 지원하지 않거나 아직 구현하지 않은 제어입니다.
+    /// Spec §7.1, REQ-024: use capability_keys for common names and reason for request restrictions.
+    /// One rejected request does not replace the Provider's reported Capability state.
     UnsupportedCapability { capability: String, reason: String },
     /// §7.3 분류에 따른 실행 실패입니다. Provider 원본 오류는 `message`에 요약합니다.
     Failure { kind: FailureKind, message: String },
@@ -153,6 +155,8 @@ pub trait AgentAdapter: Send + Sync {
     fn id(&self) -> &str;
 
     /// 확인한 Capability만 보고합니다. 확인하지 못한 기능은 `unverified`로 두거나 생략합니다.
+    /// Common names come from telos_schema::capability_keys (Spec §7.1, REQ-024).
+    /// A missing or unknown key is not evidence of support; the String map remains extensible.
     async fn detect(&self, host_id: &str) -> Result<HashMap<String, Capability>, AdapterError>;
 
     /// - Run ID는 Core가 `context.run_id`로 발급합니다. 반환하는 `RunStarted::run_id`는 같은 값입니다.

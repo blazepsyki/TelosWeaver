@@ -238,7 +238,7 @@ impl RunEntry {
     ) -> Result<(), AdapterError> {
         if self.launch.approvals != CodexApprovals::Prompt {
             return Err(AdapterError::UnsupportedCapability {
-                capability: "approval".into(),
+                capability: capability_keys::ANSWER_APPROVAL.into(),
                 reason: "this Run does not permit interactive approval".into(),
             });
         }

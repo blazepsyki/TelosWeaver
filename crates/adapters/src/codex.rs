@@ -90,7 +90,7 @@ pub trait CodexLaunchResolver: Send + Sync {
         _request: &Value,
     ) -> Result<(), AdapterError> {
         Err(AdapterError::UnsupportedCapability {
-            capability: "approval_authorization".into(),
+            capability: capability_keys::ANSWER_APPROVAL.into(),
             reason: "a trusted native approval policy is not configured".into(),
         })
     }
@@ -161,7 +161,7 @@ impl CodexAdapter {
             .config
             .as_ref()
             .ok_or_else(|| AdapterError::UnsupportedCapability {
-                capability: "managed".into(),
+                capability: capability_keys::MANAGED_RUN.into(),
                 reason: "Codex executable and trusted launch resolver are not configured".into(),
             })
     }
@@ -254,7 +254,7 @@ impl AgentAdapter for CodexAdapter {
         };
         if cli_rule(target).is_none() {
             return Err(AdapterError::UnsupportedCapability {
-                capability: "managed".into(),
+                capability: capability_keys::MANAGED_RUN.into(),
                 reason: "no Codex CLI rule for this execution platform".into(),
             });
         }
@@ -265,24 +265,24 @@ impl AgentAdapter for CodexAdapter {
             ));
         }
         let mut capabilities: HashMap<String, Capability> = [
-            "managed",
-            "stream",
-            "cancel",
-            "resume",
-            "native_fork",
-            "send_input",
-            "approval",
+            capability_keys::MANAGED_RUN,
+            capability_keys::EVENT_STREAM,
+            capability_keys::CANCEL,
+            capability_keys::NATIVE_RESUME,
+            capability_keys::NATIVE_FORK,
+            capability_keys::SEND_INPUT,
+            capability_keys::ANSWER_APPROVAL,
         ]
         .into_iter()
         .map(|name| {
             (
                 name.into(),
                 Capability {
-                    state: if target=="win32-x64"&&config.cli_version=="codex-cli 0.164.0-alpha.11.1"&&matches!(name,"managed"|"stream"|"cancel"|"resume"|"native_fork"){CapabilityState::Supported}else{CapabilityState::Unverified},
+                    state: if target=="win32-x64"&&config.cli_version=="codex-cli 0.164.0-alpha.11.1"&&matches!(name,capability_keys::MANAGED_RUN|capability_keys::EVENT_STREAM|capability_keys::CANCEL|capability_keys::NATIVE_RESUME|capability_keys::NATIVE_FORK){CapabilityState::Supported}else{CapabilityState::Unverified},
                     provider_version: config.cli_version.clone(),
                     host_id: host_id.into(),
                     checked_at: timestamp(),
-                    evidence_level: if target=="win32-x64"&&config.cli_version=="codex-cli 0.164.0-alpha.11.1"&&matches!(name,"managed"|"stream"|"cancel"|"resume"|"native_fork"){EvidenceLevel::EnvironmentTested}else{EvidenceLevel::MockTested},
+                    evidence_level: if target=="win32-x64"&&config.cli_version=="codex-cli 0.164.0-alpha.11.1"&&matches!(name,capability_keys::MANAGED_RUN|capability_keys::EVENT_STREAM|capability_keys::CANCEL|capability_keys::NATIVE_RESUME|capability_keys::NATIVE_FORK){EvidenceLevel::EnvironmentTested}else{EvidenceLevel::MockTested},
                     reason: Some("Windows x64 0.164.0-alpha.11.1 basic execution/resume/fork/cancel have local evidence; other versions, steering and approval need environment checks".into()),
                 },
             )
@@ -295,7 +295,7 @@ impl AgentAdapter for CodexAdapter {
                 .executable
                 .components()
                 .any(|part| part.as_os_str() == "openai.chatgpt-26.1021.22027-win32-x64");
-        capabilities.insert("vscode_listing".into(), Capability {
+        capabilities.insert(capability_keys::VSCODE_LISTING.into(), Capability {
             state: match self.inner.vscode_listing {
                 CodexVscodeListing::Hidden => CapabilityState::Unsupported,
                 CodexVscodeListing::Listed if listing_verified => CapabilityState::Supported,
@@ -468,7 +468,7 @@ async fn start_once(
     let config = inner.config.as_ref().unwrap();
     if inner.vscode_listing == CodexVscodeListing::Hidden {
         return Err(AdapterError::UnsupportedCapability {
-            capability: "vscode_listing:hidden".into(),
+            capability: capability_keys::VSCODE_LISTING.into(),
             reason: "this App Server classifies threads as vscode even when threadSource is omitted; hidden creation has no verified native mechanism".into(),
         });
     }
@@ -498,7 +498,7 @@ async fn start_once(
             SessionMode::Fresh|SessionMode::Capsule=>{params["allowProviderModelFallback"]=json!(false);params["historyMode"]=json!("legacy");"thread/start"},
             SessionMode::Resume|SessionMode::NativeFork=>{
                 let source=context.session.source_session_id.as_ref().filter(|id|!id.is_empty()&&id.len()<=256).ok_or_else(||error(FailureKind::Configuration,"source thread ID is required"))?;
-                if context.session.mode==SessionMode::Resume&&context.session.source_turn_id.is_some(){return Err(AdapterError::UnsupportedCapability {capability:"resume_at_turn".into(),reason:"resume at a specific turn is not implemented".into()});}
+                if context.session.mode==SessionMode::Resume&&context.session.source_turn_id.is_some(){return Err(AdapterError::UnsupportedCapability {capability:capability_keys::NATIVE_RESUME.into(),reason:"resume at a specific turn is not implemented".into()});}
                 params["threadId"]=json!(source);params["excludeTurns"]=json!(true);
                 params.as_object_mut().unwrap().remove("runtimeWorkspaceRoots");
                 if context.session.mode==SessionMode::NativeFork {if let Some(turn)=&context.session.source_turn_id {params["lastTurnId"]=json!(turn);} "thread/fork"}else{"thread/resume"}
@@ -516,7 +516,7 @@ async fn start_once(
         if context.session.mode!=SessionMode::Resume {inner.registry.lock().unwrap().owned_threads.insert(thread.clone(),false);created_thread=Some(thread.clone());}
         if !matches!(response.pointer("/thread/source").and_then(Value::as_str), Some("cli" | "vscode")) {
             return Err(AdapterError::UnsupportedCapability {
-                capability: "vscode_listing".into(),
+                capability: capability_keys::VSCODE_LISTING.into(),
                 reason: "App Server did not return a thread source included in the default interactive list".into(),
             });
         }
