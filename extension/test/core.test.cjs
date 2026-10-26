@@ -216,3 +216,68 @@ test("disconnect during reconnect Health prevents a late success from restoring 
   assert.equal(connection.state.phase, "disconnected");
   assert.equal(connection.client, undefined);
 });
+
+// Spec §2.1/§17, G3 finding 3: stale values must not survive either failure path.
+test("socket loss and a failed reconnect clear Health and identity before fresh recovery", async (t) => {
+  const env = await environment();
+  t.after(env.close);
+  let identity = hello;
+  let currentHealth = health;
+  const handler = (r, s) => reply(s, r, r.method === "core.hello" ? identity : currentHealth);
+  let fixture = await server(handler, env.location.endpoint);
+  t.after(() => fixture.close());
+  const connection = new CoreConnection();
+  t.after(() => connection.disconnect());
+  const errors = [];
+  connection.on("state", (state) => {
+    if (state.phase === "error") errors.push(state);
+  });
+  await connection.connect(env.root, { executable: "", env: env.env });
+  await fixture.close();
+  await waitFor(() => errors.length >= 2);
+  for (const state of errors) {
+    assert.equal(state.health, undefined);
+    assert.equal(state.hello, undefined);
+    assert.equal(state.root, env.location.root);
+    assert.ok(state.message);
+  }
+  identity = { ...hello, serverVersion: "0.0.1", hostId: "replacement-host" };
+  currentHealth = { ...health, status: "ok", components: [{ name: "fresh", status: "ok" }] };
+  fixture = await server(handler, env.location.endpoint);
+  await waitFor(() => connection.state.phase === "connected");
+  assert.deepEqual(connection.state.hello, identity);
+  assert.deepEqual(connection.state.health, currentHealth);
+});
+
+test("Heartbeat failure and reconnect Health failure discard old values and recover", async (t) => {
+  const env = await environment();
+  t.after(env.close);
+  let failHealth = false;
+  let currentHealth = health;
+  const fixture = await server((r, s) => {
+    if (r.method === "core.hello") reply(s, r, hello);
+    else if (failHealth) s.destroy();
+    else reply(s, r, currentHealth);
+  }, env.location.endpoint);
+  t.after(fixture.close);
+  const connection = new CoreConnection();
+  t.after(() => connection.disconnect());
+  const errors = [];
+  connection.on("state", (state) => {
+    if (state.phase === "error") errors.push(state);
+  });
+  await connection.connect(env.root, { executable: "", env: env.env });
+  failHealth = true;
+  // Heartbeat invokes this same refresh path without changing reconnect policy.
+  await assert.rejects(connection.refresh());
+  await waitFor(() => errors.length >= 2);
+  for (const state of errors) {
+    assert.equal(state.health, undefined);
+    assert.equal(state.hello, undefined);
+  }
+  currentHealth = { ...health, status: "ok", components: [{ name: "replacement", status: "ok" }] };
+  failHealth = false;
+  await waitFor(() => connection.state.phase === "connected");
+  assert.deepEqual(connection.state.health, currentHealth);
+  assert.deepEqual(connection.state.hello, hello);
+});

@@ -115,5 +115,16 @@ test(
     console.log(
       `Core PID ${pid}: authenticated, degraded, Run denied, retained after detach, reused`,
     );
+    // G3 finding 3: actual IPC loss must invalidate current Health and identity.
+    process.kill(pid);
+    pids.splice(pids.indexOf(pid), 1);
+    const deadline = Date.now() + 5000;
+    while (second.state.phase !== "error" && Date.now() < deadline)
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(second.state.phase, "error");
+    assert.equal(second.state.health, undefined);
+    assert.equal(second.state.hello, undefined);
+    assert.equal(second.state.root, env.location.root);
+    console.log(`Core PID ${pid}: connection loss removed stale Health and identity`);
   },
 );

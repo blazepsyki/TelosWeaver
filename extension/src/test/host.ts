@@ -54,9 +54,14 @@ export async function run(): Promise<void> {
     const pid = pids[0]!;
     await vscode.commands.executeCommand("telosWeaver.disconnect");
     assert.equal(api.state().phase, "disconnected");
+    assert.equal(api.state().health, undefined);
+    assert.equal(api.state().hello, undefined);
+    results.push("Disconnected public state has no current Health or Core identity");
     process.kill(pid, 0);
     await vscode.commands.executeCommand("telosWeaver.connect");
     assert.equal(api.state().phase, "connected");
+    assert.ok(api.state().hello);
+    assert.ok(api.state().health);
     assert.equal(pids.length, 1);
     results.push("Disconnect keeps Core alive; Connect reuses its PID");
     await vscode.commands.executeCommand("telosWeaver.refresh");
