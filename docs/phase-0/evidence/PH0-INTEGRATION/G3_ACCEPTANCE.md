@@ -40,7 +40,7 @@
 | Claude·Antigravity `send_input` | 미지원 | **설계상 미지원**(CLI 수단은 있음) | 두 CLI 모두 `--input-format stream-json`으로 같은 프로세스에 메시지를 더 보낼 수 있으나 메시지마다 새 Turn을 실행합니다(`agy --help`: "runs a turn for each"). 공통 이벤트 규칙(REQ-006, Run당 Turn 1개, `turn_finished` 뒤 새 Turn 금지, Spec v1.5.6 §7.3)과 맞지 않아 후속 입력은 Resume Run으로 처리 | 진행 중 Turn 조정(steering)이 필요하면 Phase 1에서 계약과 함께 검토 |
 | **Claude `answer_approval`** | 미지원 | **미구현(CLI 수단 확인)**으로 정정 | Adapter 사유 "print mode has no live approval path"(근거 수준 `documented`)는 현재 CLI와 다릅니다. 2.1.310의 `--permission-prompt-tool stdio`(+ `initialize` 제어 요청)에서 Write 직전 `control_request`(`can_use_tool`)가 오고, Allow 응답이면 파일 생성·Deny 응답이면 미생성·`permission_denials` 1을 확인(2026-10-26 Windows, `haiku`, 일회용 폴더, 세션 3개 즉시 삭제). `--permission-prompts host`만 주고 응답자가 없으면 자동 거부 | 사용자 결정: `unsupported` 유지·사유 정정·근거 시험 추가, 구현은 Phase 1([CLAUDE 후속](CLAUDE_CAPABILITY_FOLLOWUP.md), REQ-024 단계 B 뒤) |
 | Codex `vscodeListing: hidden` | 미지원 | **미지원 유지** | REQ-021 실측: App Server는 출처 지정과 무관하게 `vscode`로 저장. 외부 `exec`은 Adapter 경로가 아님(REQ-022) | — |
-| Codex `send_input`(`turn/steer`)·승인 Allow | 미검증 | **미검증 유지** | 구현과 Mock 시험만 있고 실환경 시험이 없음. Phase 0 운영자 정책은 Codex 승인을 `Deny`로 고정해 Allow 경로가 Core에서 쓰이지 않음 | 실환경 시험 추가(CODEX), Phase 1 승인 정책 연결 때 |
+| Codex `send_input`(`turn/steer`)·승인 Allow | 미검증 | **Windows 통과(C3)**, Linux 미검증 | C3(`9db02ff`, [CODEX 기록](../PH0-CODEX/CAPABILITY.md)): Windows에서 같은 Turn steering(응답 `C3_STEERED`, `turn_finished` 1개)과 명령 실행 승인 Allow/Deny(파일 생성/미생성)를 실환경 통과. `fileChange`·권한 확장·MCP 승인과 Linux 제어는 미검증. Core 정책은 여전히 승인 `Deny` 고정 | Linux 제어 시험은 선택 |
 | Claude Fork의 부모 기준 Turn 지정(`source_turn_id`) | 미검증 | **미검증 유지** | 2.1.310 `--help`에 특정 메시지·Turn 기준 재개·분기 옵션이 없음(`--resume <id> --fork-session`은 새 세션 ID로 이어 씀) | 필요 시 미지원으로 확정 |
 | DEC-08 Linux·Remote SSH 화면 확인, 실시간 화면 반영 | 미검증 | 미검증 유지 | 사용자 VS Code 조작 필요. §19.1 필수 아님 | 선택 |
 | 확장 다중 버전 선택(서버) | 미검증(현 서버) | 유지 | 2026-10-25 두 벌 설치 시점 HOST H3 통과, 현재 한 벌 | 두 벌 환경이 생기면 재실행 |
@@ -62,7 +62,9 @@
 
 후속: C1은 [REQ-024](REQ-024.md)(Codex), C3은 [CODEX 후속](CODEX_CAPABILITY_FOLLOWUP.md), C2·C4는 [CLAUDE 후속](CLAUDE_CAPABILITY_FOLLOWUP.md)(사용자 결정: C2는 `unverified` 유지·사유 정정, REQ-024 단계 B 뒤 처리).
 
-**처리 현황(2026-10-26):** C1 완료(계약 `6a4f58a`, Claude `ffdc70a`, Antigravity `c6f7383`, REQ-024 §7). C2·C4 완료(`ffdc70a`, [CLAUDE 기록](../PH0-CLAUDE/CAPABILITY.md)): Resume·Fork 사유 정정·근거 수준 `environment-tested`, `answer_approval` 사유 정정과 실시간 승인 실환경 시험(Windows·`psyki-nas` 통과), 함께 **Claude가 `source_turn_id`를 무시하고 최신 지점에서 재개·분기하던 동작을 거부로 수정**. C3 진행 중(PH0-CODEX). 후속 발견(Antigravity Resume의 `source_turn_id` 무시)은 `423b2a3`로 수정 완료(REQ-024 §7).
+**처리 현황(2026-10-26):** C1 완료(계약 `6a4f58a`, Claude `ffdc70a`, Antigravity `c6f7383`, REQ-024 §7). C2·C4 완료(`ffdc70a`, [CLAUDE 기록](../PH0-CLAUDE/CAPABILITY.md)): Resume·Fork 사유 정정·근거 수준 `environment-tested`, `answer_approval` 사유 정정과 실시간 승인 실환경 시험(Windows·`psyki-nas` 통과), 함께 **Claude가 `source_turn_id`를 무시하고 최신 지점에서 재개·분기하던 동작을 거부로 수정**. C3 완료(`9db02ff`): Codex 판정이 (플랫폼, CLI 버전) 증거 목록과 설치 manifest(확장 ID·버전·플랫폼) 기준이 되어 Linux 기본 기능·목록 표시가 `supported`로 보고되고, Windows `send_input`·`answer_approval`이 실환경 근거로 `supported`. 후속 발견(Antigravity Resume의 `source_turn_id` 무시)은 `423b2a3`로 수정 완료(REQ-024 §7).
+
+**C5(판정 기준 차이, C3 검토에서 발견):** `native_resume`·`native_fork`를 Codex는 `supported`(세부 제한은 사유), Claude·Antigravity는 `unverified`(Phase 0 실환경 통과, 세션 소유권 등 Phase 1 조건이 남았다는 이유, Claude는 사용자 결정 1-B)로 보고합니다. 셋 다 Phase 0 실환경을 통과했으므로 같은 근거에 다른 상태입니다. Spec §7.1은 "키 하나의 `supported`가 세부 조건까지 보장하지 않는다"고 정해 두 방식 모두 규칙 위반은 아니지만, Phase 1에서 Core가 이 값으로 판단하기 전에 기준을 하나로 정해야 합니다(사용자 결정 필요).
 
 Antigravity `native_resume`의 `unverified`는 사유(세션 소유권·잘못된 세션 복구가 P1)를 적은 의도적 판정이라 불일치로 보지 않습니다.
 
