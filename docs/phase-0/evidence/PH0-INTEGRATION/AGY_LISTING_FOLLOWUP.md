@@ -4,7 +4,7 @@
 |---|---|
 | 작성 | PH0-INTEGRATION (`claude-opus-5.5/session-c9336d2c`), 2026-10-26 사용자 지시 |
 | 처리 | **PH0-AGY (Gemini)**, 기존 Adapter 담당 |
-| 기준 | 이 지시서를 기록한 `main` Commit, Spec v1.5.6, 계약 `7497877`(변경 없음) |
+| 기준 | 이 지시서를 기록한 `master` Commit, Spec v1.5.6, 계약 `7497877`(변경 없음) |
 | 근거 | DEC-08 통합 기록 [README.md](README.md) §10, AGY 증거 [VSCODE_LISTING.md](../PH0-AGY/VSCODE_LISTING.md) §3.3·§4(사용자 화면 확인 `07b7210`), Spec §7.6 Phase 0 판정 |
 | 우선순위 | 비차단. G3 판정 조건이 아님 |
 
@@ -31,8 +31,8 @@ DEC-08 제출(`17cb846`) 시점에는 `hidden` 대화가 확장 인덱스(`~/.ge
 
 ## 4. 작업 방식
 
-1. 최신 `main`에서 Branch `ph0/agy-hidden-doc`, Worktree `D:\worktree\TelosWeaver\ph0-agy-hidden-doc`를 만듭니다.
-2. 착수 전 배정표 PH0-AGY 행(`integrated → in-progress`, Branch·Worktree·기준 Commit)과 §7에 `main` 단독 커밋으로 기록합니다(§7 표 행 사이 빈 줄 금지).
+1. 최신 `master`에서 Branch `ph0/agy-hidden-doc`, Worktree `D:\worktree\TelosWeaver\ph0-agy-hidden-doc`를 만듭니다.
+2. 착수 전 배정표 PH0-AGY 행(`integrated → in-progress`, Branch·Worktree·기준 Commit)과 §7에 `master` 단독 커밋으로 기록합니다(§7 표 행 사이 빈 줄 금지).
 3. 검사: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p telos-adapters --test agy_adapter`, `cargo test --workspace`(실환경 제외 기본 실행). 결과 숫자를 기록합니다.
 4. 완료하면 PH0-AGY 행을 `review`로 바꾸고 결과 Commit과 함께 INTEGRATION 검토·통합을 요청합니다.
 

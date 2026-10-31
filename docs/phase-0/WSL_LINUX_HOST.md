@@ -140,7 +140,7 @@ ls ~/.vscode-server/extensions | grep -E 'openai\.chatgpt|anthropic\.claude-code
 
 ## 3. 코드 동기화
 
-공개 원격(GitHub `blazepsyki/TelosWeaver`)에는 `main`만 올라갑니다. 작업 Branch까지 다루려면 대표 저장소를 Git 원격으로 씁니다. `main`만 검증할 때는 `git clone https://github.com/blazepsyki/TelosWeaver ~/src/TelosWeaver`도 됩니다.
+공개 원격(GitHub `blazepsyki/TelosWeaver`)에는 `master`만 올라갑니다. 작업 Branch까지 다루려면 대표 저장소를 Git 원격으로 씁니다. `master`만 검증할 때는 `git clone https://github.com/blazepsyki/TelosWeaver ~/src/TelosWeaver`도 됩니다.
 
 ```bash
 git config --global --add safe.directory /mnt/d/Downloads/Vibe_dev/TelosWeaver
@@ -155,7 +155,7 @@ cd ~/src/TelosWeaver && git fetch origin && git checkout --detach <대상 Commit
 
 - Linux에서만 필요한 수정은 WSL Clone에서 해당 작업의 Branch(예: `ph0/host-linux`)에 커밋합니다. 담당자는 자기 작업의 독점 경로만 수정합니다.
 - Windows에서 가져올 때: `git fetch \\wsl.localhost\Ubuntu-26.04\home\<user>\src\TelosWeaver <Branch>` (필요하면 Windows에서도 `safe.directory`에 이 경로를 추가합니다).
-- WSL Clone에서 `main`에 직접 통합하지 않습니다. 통합은 대표 저장소의 PH0-INTEGRATION이 합니다.
+- WSL Clone에서 `master`에 직접 통합하지 않습니다. 통합은 대표 저장소의 PH0-INTEGRATION이 합니다.
 
 ## 4. 검증 실행
 

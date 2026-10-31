@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | 담당 | `claude-opus-5.5/session-c9336d2c` (PH0-CLAUDE, 독립 검토자 없이 진행: 사용자 지시 2026-10-26) |
-| 기준 | `main` `a4d544c`(착수 기록 `fc038d7`), Spec v1.5.7, 계약 `6a4f58a` |
+| 기준 | `master` `a4d544c`(착수 기록 `fc038d7`), Spec v1.5.7, 계약 `6a4f58a` |
 | Branch / Worktree | `ph0/claude-capability` / `D:\worktree\TelosWeaver\ph0-claude-capability` |
 | 지시서 | [CLAUDE_CAPABILITY_FOLLOWUP.md](../PH0-INTEGRATION/CLAUDE_CAPABILITY_FOLLOWUP.md) |
 | 코드 Commit | `36c5379` |

@@ -1,19 +1,19 @@
 # PH0-CODEX 통합 인계
 
-작성일: 2026-10-24. 담당: `Codex / PH0-CODEX-20261024`. 코드: `a498976`, `0dcc1ca`. 통합 기준: main `04cc2c3`를 반영한 `83cf156`, 계약 `3a37919`. 검증·실제 버전·시험 세션 정리는 [README](README.md)를 따릅니다.
+작성일: 2026-10-24. 담당: `Codex / PH0-CODEX-20261024`. 코드: `a498976`, `0dcc1ca`. 통합 기준: master `04cc2c3`를 반영한 `83cf156`, 계약 `3a37919`. 검증·실제 버전·시험 세션 정리는 [README](README.md)를 따릅니다.
 
-현재 상태: main 통합 `64f9674`, 배정표 integrated `86f580e`. REQ-012·REQ-014는 완료됐습니다. 이번 현황 재확인에서도 Workspace 118개·엄격 Clippy·fmt가 통과했습니다. 아래에서 Core 연결·추가 환경 검증만 남은 작업으로 구분합니다.
+현재 상태: master 통합 `64f9674`, 배정표 integrated `86f580e`. REQ-012·REQ-014는 완료됐습니다. 이번 현황 재확인에서도 Workspace 118개·엄격 Clippy·fmt가 통과했습니다. 아래에서 Core 연결·추가 환경 검증만 남은 작업으로 구분합니다.
 
 ## 1. 공통 등록·정리 결과
 
-배정표의 REQ-012·REQ-014는 CONTRACT·INTEGRATION이 `64f9674`에서 적용했습니다. [COMMON_CHANGES.patch](COMMON_CHANGES.patch)는 다음 두 변경을 제출했던 이력이며 현재 main에 재적용하지 않습니다.
+배정표의 REQ-012·REQ-014는 CONTRACT·INTEGRATION이 `64f9674`에서 적용했습니다. [COMMON_CHANGES.patch](COMMON_CHANGES.patch)는 다음 두 변경을 제출했던 이력이며 현재 master에 재적용하지 않습니다.
 
 1. `crates/adapters/src/lib.rs`: `pub mod codex;`로 구성·Resolver·탐색 규칙 공개.
 2. `crates/adapters/src/unimplemented.rs`: 미사용 `unimplemented_adapter!` 매크로와 재수출 제거. `UnsupportedAdapter` 구현은 그대로 유지.
 
 제출 시 패치의 `git apply --check`를 확인했고 실제 공통 적용은 담당자가 수행했습니다. 두 번째 변경으로 unused-macros·unused-imports가 해소됐습니다. 현재 엄격 Clippy는 경고 예외 없이 통과하며 공통 시험 대역·계약 시험도 유지됩니다.
 
-공통 Cargo 의존성·Lock·Schema·AgentAdapter Trait 변경은 없었습니다. 기존 통합 담당이 integrated로 기록하고 구현 Branch·Worktree를 정리했습니다. 현황 문서 갱신은 최신 main의 별도 Branch·Worktree에서 진행하며 기존 게이트 판정을 변경하지 않습니다.
+공통 Cargo 의존성·Lock·Schema·AgentAdapter Trait 변경은 없었습니다. 기존 통합 담당이 integrated로 기록하고 구현 Branch·Worktree를 정리했습니다. 현황 문서 갱신은 최신 master의 별도 Branch·Worktree에서 진행하며 기존 게이트 판정을 변경하지 않습니다.
 
 ## 2. Core 연결 순서
 

@@ -4,7 +4,7 @@
 |---|---|
 | 작성 | PH0-INTEGRATION (`claude-opus-5.5/session-c9336d2c`), 2026-10-26 사용자 지시 |
 | 처리 | **PH0-EXT (Codex)**, 기존 Extension 담당 |
-| 기준 | 이 지시서를 기록한 `main` Commit, Spec v1.5.6, 계약 `7497877`(변경 없음) |
+| 기준 | 이 지시서를 기록한 `master` Commit, Spec v1.5.6, 계약 `7497877`(변경 없음) |
 | 근거 | [통합 증거](README.md) §9.5 발견 3(Remote SSH Host 유실 재현, 사용자 VS Code), Spec §2.1(미검증·불명 상태를 정상처럼 표시하지 않음)·§17 |
 | 우선순위 | 비차단. G3 판정 조건이 아니며 G3 대조표에는 "처리됨" 또는 "비차단 후속"으로 기록 |
 
@@ -35,8 +35,8 @@
 
 ## 5. 작업 방식
 
-1. 최신 `main`에서 Branch `ph0/ext-health`, Worktree `D:\worktree\TelosWeaver\ph0-ext-health`를 만듭니다.
-2. 착수 전 배정표 PH0-EXT 행(`integrated → in-progress`, 담당자 ID·Branch·Worktree·기준 Commit)과 §7에 `main` 단독 커밋으로 기록합니다(§7 표 행 사이 빈 줄 금지).
+1. 최신 `master`에서 Branch `ph0/ext-health`, Worktree `D:\worktree\TelosWeaver\ph0-ext-health`를 만듭니다.
+2. 착수 전 배정표 PH0-EXT 행(`integrated → in-progress`, 담당자 ID·Branch·Worktree·기준 Commit)과 §7에 `master` 단독 커밋으로 기록합니다(§7 표 행 사이 빈 줄 금지).
 3. 수정 전 빌드에서 새 시험이 실패하는 것을 먼저 확인합니다(REQ-016과 같은 방식).
 4. 검사: `cd extension && npm test`, `npm run test:core`(실제 DenyRuns Core), `npm run test:host`(격리 VS Code Host). Rust는 바꾸지 않으므로 Workspace 시험은 필요 없습니다. 결과 숫자를 기록합니다.
 5. 결과는 `docs/phase-0/evidence/PH0-EXT/HEALTH_STALE.md`에 적고, PH0-EXT 행을 `review`로 바꿔 결과 Commit과 함께 INTEGRATION 검토·통합을 요청합니다.

@@ -4,11 +4,11 @@
 |---|---|
 | 작업 ID·담당 | PH0-CODEX · Codex / `PH0-CODEX-20261024` |
 | 작성일 | 2026-10-24 |
-| 상태 | main 통합 완료(`64f9674`), 배정표 integrated(`86f580e`). REQ-012·REQ-014 완료. Core 연결은 후속 통합 범위 |
-| 구현 Branch / Worktree | `ph0/codex` / `D:\worktree\TelosWeaver\ph0-codex` — 통합 후 정리됨. 현황 문서 갱신을 위해 최신 main에서 같은 이름으로 새로 생성 |
-| 기준 | 착수 `7a9d4b3`, 공통 계약 `3a37919`, 최신 main 반영 `83cf156`(main `04cc2c3`, Spec 개정 1.4.3 포함) |
+| 상태 | master 통합 완료(`64f9674`), 배정표 integrated(`86f580e`). REQ-012·REQ-014 완료. Core 연결은 후속 통합 범위 |
+| 구현 Branch / Worktree | `ph0/codex` / `D:\worktree\TelosWeaver\ph0-codex` — 통합 후 정리됨. 현황 문서 갱신을 위해 최신 master에서 같은 이름으로 새로 생성 |
+| 기준 | 착수 `7a9d4b3`, 공통 계약 `3a37919`, 최신 master 반영 `83cf156`(master `04cc2c3`, Spec 개정 1.4.3 포함) |
 | 구현 Commit | 초기 `a498976`, 실환경 시험·사용량 보정·승인 경계 `0dcc1ca`, 통합 `64f9674` |
-| 배정·승인 | 대표 main `31369f6`(예약), `796e3ce`(사용자 권장안 승인 후 착수·REQ-012) |
+| 배정·승인 | 대표 master `31369f6`(예약), `796e3ce`(사용자 권장안 승인 후 착수·REQ-012) |
 | 기준 문서 | [Spec](../../../DEVELOPMENT_v1.5.md), [대표 배정표](../../WORK_ALLOCATION.md) |
 
 사용자가 기존 Codex 인증, 저장소 밖 일회용 폴더, 사용 가능한 경량 모델·low, 신규 시험 세션의 Resume/Fork 및 Archive를 승인했습니다. 기존 대화·프로젝트를 시험 대상으로 삼지 않았습니다. G1 대표 Provider는 기존 결정대로 Claude입니다. Linux·Remote SSH 검증은 사용자 지시로 대기하며 이 제출로 G2·G3를 판정하지 않습니다.
@@ -139,16 +139,16 @@ git worktree add D:/worktree/TelosWeaver/ph0-codex ph0/codex
 
 - **REQ-012 완료(`64f9674`):** CONTRACT·INTEGRATION이 `lib.rs`를 `pub mod codex;`로 변경했습니다. 소비자가 `CodexConfig`·`CodexLaunchResolver`·`cli_rule()`을 사용할 수 있습니다. 공통 DTO·Trait·Cargo 변경은 없습니다.
 - **REQ-014 완료(`64f9674`):** 미사용 `unimplemented_adapter!` 매크로와 재수출을 제거했습니다. `UnsupportedAdapter`·공통 계약 시험은 유지됐고 엄격 Clippy의 차단 원인이 해소됐습니다.
-- [COMMON_CHANGES.patch](COMMON_CHANGES.patch)는 위 두 요청의 **통합 전 제안 이력**입니다. 이미 반영된 현재 main에 다시 적용하는 패치가 아닙니다.
+- [COMMON_CHANGES.patch](COMMON_CHANGES.patch)는 위 두 요청의 **통합 전 제안 이력**입니다. 이미 반영된 현재 master에 다시 적용하는 패치가 아닙니다.
 - Core의 신뢰된 실행 승인·Workspace/Snapshot 해석·Codex Resolver 연결, 공통 탐색 결과 주입, Daemon 종료 시 활성 Run 정리는 INTEGRATION·MASTER 범위에 남아 있습니다. 현재 `Phase0Execution`에는 Claude만 연결되어 있습니다. [인계](HANDOFF.md)를 참고하십시오.
 - `send_input`과 대화형 승인 전달은 Mock 수준입니다. Allow에는 신뢰된 native action 검사 구현이 필요하며 실제 대화형 Allow 성공은 검증하지 않았습니다.
 - Linux·Remote SSH·macOS·다른 CLI 버전, 공식 IDE Attached·동시 세션 사용, 파일 Worktree 격리, 전역 스케줄링·지속 DB·재시작 복구는 이번 검증에 포함하지 않았습니다.
 
 ## 7. 통합 후 현황 재확인
 
-2026-10-24 사용자 현황 최신화 요청으로 대표 main `86f580e`를 확인했습니다. 통합 담당은 `64f9674`에서 Codex 구현과 REQ-012·REQ-014를 반영하고 `86f580e`에서 PH0-CODEX를 integrated로 기록했습니다. 통합 커밋에는 병합본 Codex 탐지 실환경 재확인 결과도 기록되어 있습니다. 이 탐지 재확인은 통합 담당의 실행 기록이며, 이번 현황 갱신에서 실계정 생성 시험을 다시 실행한 것은 아닙니다.
+2026-10-24 사용자 현황 최신화 요청으로 대표 master `86f580e`를 확인했습니다. 통합 담당은 `64f9674`에서 Codex 구현과 REQ-012·REQ-014를 반영하고 `86f580e`에서 PH0-CODEX를 integrated로 기록했습니다. 통합 커밋에는 병합본 Codex 탐지 실환경 재확인 결과도 기록되어 있습니다. 이 탐지 재확인은 통합 담당의 실행 기록이며, 이번 현황 갱신에서 실계정 생성 시험을 다시 실행한 것은 아닙니다.
 
-현재 main에서 다음을 직접 다시 실행했습니다.
+현재 master에서 다음을 직접 다시 실행했습니다.
 
 | 명령 | 결과 |
 |---|---|
@@ -158,4 +158,4 @@ git worktree add D:/worktree/TelosWeaver/ph0-codex ph0/codex
 
 테스트 로그는 `%TEMP%/telos-status-latest-test.log`에 있습니다. §3·§4의 Mock 12개와 Windows 실환경 7개는 기존 검증 증거이며, 위 기본 Workspace 실행이 제외된 실환경 24개를 실행했다는 의미는 아닙니다.
 
-구현 Branch·Worktree 삭제는 Spec §19.5.5의 통합 후 정리 규칙에 따른 정상 처리입니다. 현황 문서 갱신은 배정표 `7619a17`을 기록한 뒤 최신 main에서 `ph0/codex`·`D:\worktree\TelosWeaver\ph0-codex`를 새로 만들어 진행했습니다. 구현의 integrated 상태를 유지하며 코드·공통 계약·게이트 판정은 변경하지 않습니다. 문서 갱신 결과는 대표 배정표의 PH0-CODEX 행에 기록합니다.
+구현 Branch·Worktree 삭제는 Spec §19.5.5의 통합 후 정리 규칙에 따른 정상 처리입니다. 현황 문서 갱신은 배정표 `7619a17`을 기록한 뒤 최신 master에서 `ph0/codex`·`D:\worktree\TelosWeaver\ph0-codex`를 새로 만들어 진행했습니다. 구현의 integrated 상태를 유지하며 코드·공통 계약·게이트 판정은 변경하지 않습니다. 문서 갱신 결과는 대표 배정표의 PH0-CODEX 행에 기록합니다.

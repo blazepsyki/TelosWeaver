@@ -81,7 +81,7 @@
 
 ## 3. 처리 순서
 
-1. INTEGRATION(`main`): 판정 기록, `sha2` 의존성 추가, 공용 런타임 인터페이스 개정(REQ-002·003).
+1. INTEGRATION(`master`): 판정 기록, `sha2` 의존성 추가, 공용 런타임 인터페이스 개정(REQ-002·003).
 2. CONTRACT(`ph0/contract` Worktree): REQ-004~009.
 3. INTEGRATION: 통합·재검증, 새 계약 기준 Commit 기록. G0 판정은 유지하되 기준을 개정합니다.
 

@@ -4,7 +4,7 @@
 |---|---|
 | 작성 | PH0-INTEGRATION (`claude-opus-5.5/session-c9336d2c`), 2026-10-26 사용자 지시 |
 | 처리 | **PH0-AGY**, 기존 Adapter 담당 |
-| 기준 | 이 지시서를 기록한 `main` Commit, Spec v1.5.7, 계약 `6a4f58a` |
+| 기준 | 이 지시서를 기록한 `master` Commit, Spec v1.5.7, 계약 `6a4f58a` |
 | 근거 | [REQ-024](REQ-024.md) §7 발견, Spec §2.1 원칙 7("미지원·미검증 Capability를 지원하는 것처럼 대체하지 않음")·§7.1("세부 조건은 `reason`과 실행 전 검사로 표현"), 같은 결함의 Claude 수정 [`ffdc70a`](../PH0-CLAUDE/CAPABILITY.md) |
 | 우선순위 | 비차단(G3 조건 아님) |
 
@@ -32,7 +32,7 @@
 
 ## 4. 작업 방식
 
-1. 최신 `main`에서 Branch `ph0/agy-source-turn`, Worktree `D:\worktree\TelosWeaver\ph0-agy-source-turn`.
-2. 착수·완료를 배정표 PH0-AGY 행과 §7에 `main` 단독 커밋으로 기록합니다(§7 표 행 사이 빈 줄 금지). 담당 Worktree에 커밋하지 않은 변경을 남기지 않습니다.
+1. 최신 `master`에서 Branch `ph0/agy-source-turn`, Worktree `D:\worktree\TelosWeaver\ph0-agy-source-turn`.
+2. 착수·완료를 배정표 PH0-AGY 행과 §7에 `master` 단독 커밋으로 기록합니다(§7 표 행 사이 빈 줄 금지). 담당 Worktree에 커밋하지 않은 변경을 남기지 않습니다.
 3. 검사: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p telos-adapters --test agy_adapter`, `cargo test --workspace`.
 4. 결과를 `docs/phase-0/evidence/PH0-AGY/SOURCE_TURN.md`에 적고 INTEGRATION 검토·통합을 요청합니다.

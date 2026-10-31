@@ -38,7 +38,7 @@
 
 ## 4. 작업 방식
 
-1. REQ-024 단계 B 통합을 확인한 뒤 최신 `main`에서 Branch `ph0/claude-capability`, Worktree `D:\worktree\TelosWeaver\ph0-claude-capability`.
-2. 착수·완료를 배정표 PH0-CLAUDE 행과 §7에 `main` 단독 커밋으로 기록합니다.
+1. REQ-024 단계 B 통합을 확인한 뒤 최신 `master`에서 Branch `ph0/claude-capability`, Worktree `D:\worktree\TelosWeaver\ph0-claude-capability`.
+2. 착수·완료를 배정표 PH0-CLAUDE 행과 §7에 `master` 단독 커밋으로 기록합니다.
 3. 검사: `cargo test --workspace`, 엄격 Clippy, fmt, `claude_adapter`, L4 실환경.
 4. 독립 검토자 배정은 착수 시 사용자에게 확인합니다(PH0-CLAUDE와 INTEGRATION 담당이 같은 세션).

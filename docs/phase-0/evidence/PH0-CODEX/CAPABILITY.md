@@ -4,7 +4,7 @@
 |---|---|
 | 담당 | `Codex / PH0-CODEX-CAPABILITY-01a17586` |
 | 날짜 | 2026-10-26 (KST) |
-| 기준 | main `9da1d40`, 착수 배정 `249fe60`, Spec v1.5.7, 계약 `6a4f58a` |
+| 기준 | master `9da1d40`, 착수 배정 `249fe60`, Spec v1.5.7, 계약 `6a4f58a` |
 | Branch / Worktree | `ph0/codex-capability` / `D:\worktree\TelosWeaver\ph0-codex-capability` |
 | Linux Worktree | `psyki-nas`: `~/TelosWeaver-wt/codex-capability` (detached HEAD) |
 | 작업 원본 | [C3 지시서](../PH0-INTEGRATION/CODEX_CAPABILITY_FOLLOWUP.md) X1~X5 |

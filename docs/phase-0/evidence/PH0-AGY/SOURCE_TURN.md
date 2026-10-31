@@ -4,7 +4,7 @@
 |---|---|
 | 작업 | PH0-AGY 후속: Turn 지정 Resume 거부 (`source_turn_id`) |
 | 담당 | `gemini-3.8-flash/session-c2e931ec` (PH0-AGY) |
-| 기준 | `main` `9f062bf` (착수 기록 `a164b79`), Spec v1.5.7, 계약 `6a4f58a` |
+| 기준 | `master` `9f062bf` (착수 기록 `a164b79`), Spec v1.5.7, 계약 `6a4f58a` |
 | Branch / Worktree | `ph0/agy-source-turn` / `D:\worktree\TelosWeaver\ph0-agy-source-turn` |
 | 지시서 | [AGY_SOURCE_TURN_FOLLOWUP.md](../PH0-INTEGRATION/AGY_SOURCE_TURN_FOLLOWUP.md) |
 | 날짜 | 2026-10-26 |

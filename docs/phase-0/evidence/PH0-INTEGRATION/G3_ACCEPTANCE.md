@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | 작성 | PH0-INTEGRATION (`claude-opus-5.5/session-c9336d2c`), 2026-10-26 |
-| 기준 | 첫 판정 `main` `96e61b8`(Spec v1.5.6, 계약 `7497877`). **최종 재검토 `main` `1249bba`**(Spec v1.5.7, 계약 `6a4f58a`, 2026-10-26) |
+| 기준 | 첫 판정 `master` `96e61b8`(Spec v1.5.6, 계약 `7497877`). **최종 재검토 `master` `1249bba`**(Spec v1.5.7, 계약 `6a4f58a`, 2026-10-26) |
 | 근거 규칙 | Spec §19.1(체크리스트·통과 조건), §19.5.6 G3("§19.1의 모든 필수 조건과 Windows/Linux·Remote SSH 해당 환경 증거, 미지원 기능 판정 확보, INTEGRATION이 근거를 모아 보고") |
 | 대상 환경 | Windows 11 로컬 `windows-local`, Linux `psyki-nas`(Ubuntu 26.04.1 LTS), 단일 Remote SSH(Windows VS Code → `psyki-nas`) |
 | 판정 | **통과 확정(2026-10-26, 사용자 확인).** INTEGRATION 판정·최종 재검토 `c58b3c6` |

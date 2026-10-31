@@ -4,10 +4,10 @@
 |---|---|
 | 작업·담당 | PH0-HOST · `Codex / PH0-HOST-20261024` |
 | 날짜·환경 | 2026-10-24, Windows 11 x64 로컬 |
-| 기준 | main `3fe9153`, 착수 기록 `66e9cb9`, Spec 개정 1.4.3, 공통 계약 `3a37919` |
+| 기준 | master `3fe9153`, 착수 기록 `66e9cb9`, Spec 개정 1.4.3, 공통 계약 `3a37919` |
 | 구현 Commit | `4791c5d` |
 | Branch / Worktree | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` |
-| 확인 대상 | INTEGRATION의 [G1 증거 §7](../PH0-INTEGRATION/README.md#7-g1-대표-실행), 통합 `cfe1b19` 및 현 main |
+| 확인 대상 | INTEGRATION의 [G1 증거 §7](../PH0-INTEGRATION/README.md#7-g1-대표-실행), 통합 `cfe1b19` 및 현 master |
 
 ## 1. HOST 확인
 

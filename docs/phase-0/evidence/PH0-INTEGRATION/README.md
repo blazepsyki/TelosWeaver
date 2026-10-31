@@ -4,7 +4,7 @@
 |---|---|
 | 작업 ID | PH0-INTEGRATION |
 | 담당 | `claude-opus-5.5/session-c9336d2c` |
-| Branch / Worktree | `main` / `D:\Downloads\Vibe_dev\TelosWeaver` |
+| Branch / Worktree | `master` / `D:\Downloads\Vibe_dev\TelosWeaver` |
 | 기준 Commit | `3f050e9` |
 | G0 기준 Commit | `9710402` |
 | 상태 | G0·G1·G2 통과 확정. G3 통과 판정(사용자 확인 대기, §11) |
@@ -154,7 +154,7 @@ HOST가 지적한 대로 기존 시험은 미종료·취소 미재현도 통과�
 
 ## 8. 현재 다음 단계: G2 구성 통합
 
-> 2026-10-24 갱신 · 기준 `main` `e55c0b2`
+> 2026-10-24 갱신 · 기준 `master` `e55c0b2`
 
 ### 8.1 현황
 
@@ -230,7 +230,7 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 
 ### 8.7 PH0-EXT 검토·통합 (`43ce639`)
 
-`ph0/ext`(`a5c5397`, 코드 `4ad8dcf`, 인계 `7118a69`)를 검토해 통합했습니다. 변경은 소유 경로인 `extension/**`와 `docs/phase-0/evidence/PH0-EXT/`뿐이며 Rust·Cargo·공통 Schema·RN은 바뀌지 않았습니다. 배정표 커밋 `c3f246d`·`ef25b1d`는 담당 에이전트가 `main`에 직접 기록했습니다(§1의 담당자 갱신 규칙 범위).
+`ph0/ext`(`a5c5397`, 코드 `4ad8dcf`, 인계 `7118a69`)를 검토해 통합했습니다. 변경은 소유 경로인 `extension/**`와 `docs/phase-0/evidence/PH0-EXT/`뿐이며 Rust·Cargo·공통 Schema·RN은 바뀌지 않았습니다. 배정표 커밋 `c3f246d`·`ef25b1d`는 담당 에이전트가 `master`에 직접 기록했습니다(§1의 담당자 갱신 규칙 범위).
 
 **계약 대조**
 
@@ -243,15 +243,15 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 | 프로토콜 | API `0.2`, 프레임 1 MiB, UTF-8 엄격 디코딩, 요청 ID 상관·시간 초과·대기 32개 상한 |
 | 설정 보안 | `corePath`·`hostId`는 `machine` 범위라 Workspace 설정이 덮어쓸 수 없음. Untrusted Workspace에서는 세 설정 모두 제한되고 연결 명령이 비활성 |
 
-**재검증 (Windows 11, `ph0/ext`와 병합본 `main` 각각)**
+**재검증 (Windows 11, `ph0/ext`와 병합본 `master` 각각)**
 
 | 명령 | 결과 |
 |---|---|
 | `npm ci --ignore-scripts` | 통과, 취약점 0 |
 | `npm test` | 18개 통과 |
-| `npm run test:core` (Worktree·`main`에서 각각 빌드한 Core) | 1개 통과(인증·Degraded·DenyRuns 거부·연결 해제 후 생존·PID 재사용) |
+| `npm run test:core` (Worktree·`master`에서 각각 빌드한 Core) | 1개 통과(인증·Degraded·DenyRuns 거부·연결 해제 후 생존·PID 재사용) |
 | `npm run test:host` (VS Code 1.143.1, 격리 프로필) | 통과, 확인 항목 5개, `coreSurvivedHostExit=true`, 결과 `%TEMP%\telos-ext-host-GUnhJj` |
-| Rust Workspace `cargo test --workspace` (`main`) | 142개 통과 |
+| Rust Workspace `cargo test --workspace` (`master`) | 142개 통과 |
 | 시험 후 프로세스 | `telos-weaver` 프로세스 없음. Provider·모델 호출 없음 |
 
 **비차단 발견 → REQ-016** (배정표 §4)
@@ -264,7 +264,7 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 
 ### 8.8 REQ-016 검토·통합 (`2331c7c`)
 
-`ph0/ext-req016`(`44a4df3`, Codex `PH0-EXT-REQ016-01a17034`)를 검토했습니다. 기준 `e899789` 이후 `main`의 PH0-RN-05 변경과 경로가 겹치지 않고, 변경은 EXT 소유 경로(`extension/**`, `evidence/PH0-EXT/REQ-016.md`)뿐입니다. Rust·공통 계약·Schema 변경은 없습니다.
+`ph0/ext-req016`(`44a4df3`, Codex `PH0-EXT-REQ016-01a17034`)를 검토했습니다. 기준 `e899789` 이후 `master`의 PH0-RN-05 변경과 경로가 겹치지 않고, 변경은 EXT 소유 경로(`extension/**`, `evidence/PH0-EXT/REQ-016.md`)뿐입니다. Rust·공통 계약·Schema 변경은 없습니다.
 
 | 요청 항목 | 확인 |
 |---|---|
@@ -277,9 +277,9 @@ Claude 연결(§7.2)과 같은 구조로 넓힙니다. 정책·탐지·종료 �
 | 명령 | 결과 |
 |---|---|
 | 수정 전 소스(`e899789`) + 새 시험 3개(`six separate outages`·`foreign traffic while opening`·`repeated Health refreshes`) | 3개 모두 실패(제출 기록과 같음). 임시 Worktree는 삭제 |
-| `npm ci --ignore-scripts`, `npm test` (Worktree·병합본 `main` 각각) | 취약점 0, 28개 통과 |
-| `node --test test/live-core.cjs` (`main` 빌드 Core) | 1개 통과 (Worktree·`main` 각각) |
-| `node scripts/test-host.cjs` (격리 프로필) | 통과, 5항목, `coreSurvivedHostExit=true` (Worktree `%TEMP%\telos-ext-host-5ubupF`, `main` `%TEMP%\telos-ext-host-WfYiAh`) |
+| `npm ci --ignore-scripts`, `npm test` (Worktree·병합본 `master` 각각) | 취약점 0, 28개 통과 |
+| `node --test test/live-core.cjs` (`master` 빌드 Core) | 1개 통과 (Worktree·`master` 각각) |
+| `node scripts/test-host.cjs` (격리 프로필) | 통과, 5항목, `coreSurvivedHostExit=true` (Worktree `%TEMP%\telos-ext-host-5ubupF`, `master` `%TEMP%\telos-ext-host-WfYiAh`) |
 | 시험 후 프로세스 | `telos-weaver` 없음. Provider·모델 호출 없음 |
 
 **비차단 발견 → REQ-017**: 공통 계약 `telos_schema::api` 모듈 문서에는 "구독 이벤트는 응답과 섞여 도착할 수 있습니다"라고만 적혀 있습니다. **한 구독의 알림은 그 구독의 응답 뒤에만 온다**는 보장은 Core 구현과 HOST 시험에만 있습니다. Extension이 이제 이 순서에 기대므로 계약 문서에 이 보장을 명시해야 합니다(문서만 바뀌고 JSON Schema 변화 없음). 판정: **통합**, REQ-016 완료.
@@ -532,7 +532,7 @@ HOST(`Codex / PH0-HOST-REQ023-01a17586`)가 `ph0/host-req023`에 제출(`41d019f
 | `discovery_environment`(실환경, 모델 호출 없음) | — (Linux 전용) | 통과 71.6초. Claude·Codex 한 벌 설치를 "multi-version selection unverified"로 보고(§9.3 후속 1 해소) |
 | `host_crash`(실제 Core·Claude `haiku`·전경 도구 트리, release) | INTEGRATION 미재실행. Windows 런타임 코드 불변이라 HOST 결과(`bcc44ae`, 24ms·남은 프로세스 0)에 근거 | **최종 코드로 재실행 통과:** Core PID 429292, Run `run-badb53bc1b9dc3dbba57389a65800af3`, 세션 `104dbe7e-2593-4587-99e7-a153d8bf5a74`, 관측 PID 5개 → 강제 종료 67ms 뒤 0개. HOST 기록의 "실제 Core 시험은 `19f8666` 이전 Commit" 공백을 메움 |
 
-서버 검사는 `main`(`63cd24e`)을 서버로 보내 일회용 Worktree에서 Branch를 병합(미커밋)해 수행했습니다.
+서버 검사는 `master`(`63cd24e`)을 서버로 보내 일회용 Worktree에서 Branch를 병합(미커밋)해 수행했습니다.
 
 **정리:** Claude 시험 세션 3개 삭제(Windows `a8324092-32f3-4895-8a16-1f5980f5e0b7`, `psyki-nas` `cca16522-1825-4c20-84ba-45a67b8eb4c1`·`104dbe7e-2593-4587-99e7-a153d8bf5a74`의 `~/.claude/projects/<시험 폴더>`), 시험 임시 폴더 4개·로그 삭제(첫 Linux 준비 실패 폴더 포함, 세션 없음), Windows·서버 Worktree와 Branch 삭제. 남은 시험 프로세스 없음.
 
@@ -545,7 +545,7 @@ HOST(`Codex / PH0-HOST-REQ023-01a17586`)가 `ph0/host-req023`에 제출(`41d019f
 | 항목 | 값 |
 |---|---|
 | 수행 | PH0-INTEGRATION 몫을 사용자 지시로 `claude-opus-5.5/session-be1c1774`가 수행 |
-| 기준 | `main` `f91108a`, Spec v1.5.3 → v1.5.4, 계약 `7497877`(변경 없음) |
+| 기준 | `master` `f91108a`, Spec v1.5.3 → v1.5.4, 계약 `7497877`(변경 없음) |
 | Branch | `ph0/listing-int` / `D:\worktree\TelosWeaver\ph0-listing-int` |
 | 병합 | `ph0/claude-listing`(`21da117`), `ph0/codex-listing`(`5449185`), `ph0/agy-listing`(`07b7210`). 충돌 없음 |
 | 지시 | [VSCODE_LISTING_ASSIGNMENTS.md](VSCODE_LISTING_ASSIGNMENTS.md) §5 I1~I4, REQ-021 |

@@ -45,7 +45,7 @@ CLI 경로 패턴은 2026-10-24 Windows 관찰(Spec §7.5)과 같은 구조이�
 | Node | 완료: 서버 기본 v24.22.1에 Windows를 맞춤 | 완료 |
 | `pkg-config` | 불필요: RN Fork Linux 빌드가 시스템 `pkg-config` 없이 성공 | — |
 
-작업 Branch를 서버로 옮길 때는 Windows 대표 저장소에서 `git push Psyki-NAS:TelosWeaver <Branch>`로 보내고, 서버의 Linux 전용 수정은 해당 작업 Branch에 커밋한 뒤 Windows에서 `git fetch Psyki-NAS:TelosWeaver <Branch>`로 가져옵니다. 서버 Clone에서 `main`에 통합하지 않습니다.
+작업 Branch를 서버로 옮길 때는 Windows 대표 저장소에서 `git push Psyki-NAS:TelosWeaver <Branch>`로 보내고, 서버의 Linux 전용 수정은 해당 작업 Branch에 커밋한 뒤 Windows에서 `git fetch Psyki-NAS:TelosWeaver <Branch>`로 가져옵니다. 서버 Clone에서 `master`에 통합하지 않습니다.
 
 ## 4. 검증 실행
 

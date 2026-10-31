@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | 담당·날짜 | `Codex / G2-REVIEW-01a17034` · 2026-10-25 |
-| 기준 | main `08a4a13`, Spec v1.5.1, 계약 `7497877`, 착수 배정 `ef3d2f1` |
+| 기준 | master `08a4a13`, Spec v1.5.1, 계약 `7497877`, 착수 배정 `ef3d2f1` |
 | Branch / Worktree | `ph0/host-g2-review` / `D:\worktree\TelosWeaver\ph0-host-g2-review` |
 | 결과 | **CODEX 범위에서 INTEGRATION의 G2 통과 판정에 동의합니다.** |
 

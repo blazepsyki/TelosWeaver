@@ -4,7 +4,7 @@
 |---|---|
 | 작성 | PH0-INTEGRATION (`claude-opus-5.5/session-c9336d2c`), 2026-10-26 |
 | 처리 | **PH0-AGY**, 기존 Adapter 담당 |
-| 기준 | 이 지시서를 기록한 `main` Commit, Spec v1.5.7 §7.1·§7.2, 계약 기준 `6a4f58a` |
+| 기준 | 이 지시서를 기록한 `master` Commit, Spec v1.5.7 §7.1·§7.2, 계약 기준 `6a4f58a` |
 | 근거 | [REQ-024](REQ-024.md) §5·§6, [Codex 조사](../PH0-CODEX/REQ-024.md) §2 |
 | 우선순위 | 비차단. REQ-024 완료 조건 |
 
@@ -27,7 +27,7 @@ rg -n '"(managed_run|event_stream|cancel|native_resume|native_fork|send_input|an
 
 ## 3. 작업 방식
 
-1. 최신 `main`에서 Branch `ph0/agy-capability-keys`, Worktree `D:\worktree\TelosWeaver\ph0-agy-capability-keys`.
-2. 착수·완료를 배정표 PH0-AGY 행과 §7에 `main` 단독 커밋으로 기록합니다(§7 표 행 사이 빈 줄 금지).
+1. 최신 `master`에서 Branch `ph0/agy-capability-keys`, Worktree `D:\worktree\TelosWeaver\ph0-agy-capability-keys`.
+2. 착수·완료를 배정표 PH0-AGY 행과 §7에 `master` 단독 커밋으로 기록합니다(§7 표 행 사이 빈 줄 금지).
 3. 검사: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p telos-adapters --test agy_adapter`, `cargo test --workspace`.
 4. 결과를 `docs/phase-0/evidence/PH0-AGY/CAPABILITY_KEYS.md`에 적고 INTEGRATION 검토·통합을 요청합니다.

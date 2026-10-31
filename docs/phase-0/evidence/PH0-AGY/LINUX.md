@@ -5,7 +5,7 @@
 | 작업 ID·담당 | PH0-AGY (Linux G3) · `Antigravity (Gemini) / PH0-AGY-LINUX-cli` |
 | 작성·검증일 | 2026-10-25, Linux Remote SSH 호스트 (`psyki-nas`) |
 | Branch / Worktree | Windows: `ph0/agy-linux` / `D:\worktree\TelosWeaver\ph0-agy-linux`<br>Linux (`psyki-nas`): `ph0/agy-linux` / `/home/gth1919/TelosWeaver-wt/agy-linux` |
-| 기준 커밋 | `94e1369` (`main`: Phase 0 배정표 G3 Linux 실환경 배정 요청) |
+| 기준 커밋 | `94e1369` (`master`: Phase 0 배정표 G3 Linux 실환경 배정 요청) |
 | 대상 호스트 | `psyki-nas` (`ssh Psyki-NAS`, Ubuntu 26.04.1 LTS, Kernel `7.0.0-38-generic`, `x86_64`) |
 | 대상 CLI | 원격 VS Code 서버 확장 `google.google-antigravity` `1.9.0` (`/home/gth1919/.vscode-server/extensions/google.google-antigravity-1.9.0`)이 관리하는 `/home/gth1919/.gemini/bin/agy`, 버전 `1.4.7` (SHA-256 `40349135371a8ed1f1af1e9f8b741de99174ae9fce6380b96c2d1f543480af7a`) |
 | 시험 조건 | [G3_LINUX_ASSIGNMENTS.md](../PH0-INTEGRATION/G3_LINUX_ASSIGNMENTS.md) §1·§5: 모델 `gemini-3.8-flash-low`, `--effort low`, 저장소 밖 일회용 폴더(`/tmp/telos-agy-env/*`), `--dangerously-skip-permissions` 미사용, 생성된 모든 시험 세션(`brain/<id>` 및 `conversations/<id>.db*`) 즉시 삭제 및 ID 기록 |

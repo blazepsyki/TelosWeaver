@@ -6,7 +6,7 @@
 | 구현·검증일 | 2026-10-25, Windows 로컬 |
 | 상태 | 자체 구현·검증 완료, INTEGRATION 검토·통합 요청. 배정표의 integrated/verified·게이트 판정은 통합 담당이 수행 |
 | Branch / Worktree | `ph0/ext` / `D:\worktree\TelosWeaver\ph0-ext` |
-| 구현 기준 | main `c1bbabc`, 착수 기록 `c3f246d`, Spec v1.5, 공통 계약 `3a37919` |
+| 구현 기준 | master `c1bbabc`, 착수 기록 `c3f246d`, Spec v1.5, 공통 계약 `3a37919` |
 | 구현 Commit | `4ad8dcf` |
 | 준비 이력 | 예약 `1102d52`, 사전 준비 `1c328fc`. 사용자가 2026-10-25 권장안 세 가지를 승인해 착수 |
 | 기준 문서 | [Spec](../../../DEVELOPMENT_v1.5.md), [대표 배정표](../../WORK_ALLOCATION.md) |

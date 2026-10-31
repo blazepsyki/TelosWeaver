@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | 작성 | `claude-opus-5.5/session-be1c1774` (사용자 지시로 Spec 개정·배정 작성), 2026-10-25 |
-| 기준 | `main` (Spec v1.5.3 반영 Commit), 계약 `7497877` (변경 없음) |
+| 기준 | `master` (Spec v1.5.3 반영 Commit), 계약 `7497877` (변경 없음) |
 | 근거 | Spec DEC-08·[§7.6](../../../DEVELOPMENT_v1.5.md#76-vs-code-확장-대화-목록-표시)·AGENT-05·§19.1, 조사·수동 절차 [AGENT_CLI_VSCODE_SESSIONS.md](../../../AGENT_CLI_VSCODE_SESSIONS.md) |
 | 배정 | PH0-CLAUDE = `claude-opus-5.5/session-c9336d2c`, PH0-CODEX = Codex, PH0-AGY = Gemini (각 Adapter 기존 담당). 설정 연결·기록 = PH0-INTEGRATION |
 | 목표 | Adapter가 시작한 Run의 세션이 각 Provider의 VS Code 확장 대화 목록에 기본으로 나타나고, 운영자가 숨길 수 있으며, 지원 여부가 Capability `vscode_listing`으로 정직하게 표시됨 |
@@ -17,7 +17,7 @@
 5. **시험:** Mock·Contract 시험으로 인자·환경·Protocol 필드를 확인하고, 실환경은 가벼운 모델·저장소 밖 임시 폴더에서 수행합니다(배정표 §6 "Claude 실환경 시험 조건"과 Provider별 기존 조건). 자동 판정 시험은 `#[ignore]` 실환경 시험으로 둡니다.
 6. **화면 확인:** 확장 화면에서 보이고 열리는지는 사용자 VS Code 조작이 필요합니다. 필요하면 사용자에게 **열 폴더·세션 ID·확인할 화면**을 단계별로 요청하고, 하지 못했으면 미검증으로 기록합니다. 자동 판정과 화면 확인을 증거에서 다른 행으로 적습니다.
 7. **시험 세션 정리:** 세션 ID를 증거에 남기고 병합 시점에 정리합니다(배정표 §6 "시험 세션 정리"). 화면 확인용으로 사용자 Workspace에서 만든 세션도 같은 규칙입니다.
-8. **Branch·Worktree:** 최신 `main`에서 `D:\worktree\TelosWeaver\<작업>-listing`, Branch `ph0/<작업>-listing`. 배정표는 자기 행과 §7에 `main` 단독 커밋으로 착수·완료를 기록합니다(§7 표 행 사이에 빈 줄 금지).
+8. **Branch·Worktree:** 최신 `master`에서 `D:\worktree\TelosWeaver\<작업>-listing`, Branch `ph0/<작업>-listing`. 배정표는 자기 행과 §7에 `master` 단독 커밋으로 착수·완료를 기록합니다(§7 표 행 사이에 빈 줄 금지).
 9. **끝나면:** 검사(`cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all --check`) 결과와 함께 INTEGRATION에 통합을 요청합니다. Linux(`psyki-nas`)는 이번 필수 범위가 아니며, 하면 Host 열을 나눠 기록합니다.
 
 ## 2. PH0-CLAUDE — `ph0/claude-listing`

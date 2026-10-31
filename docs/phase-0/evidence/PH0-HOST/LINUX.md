@@ -56,7 +56,7 @@ XDG_RUNTIME_DIR=/run/user/1000
 1000
 ```
 
-Windows에서 처음 `git status --short`는 비어 있었고 Branch는 `ph0/host-linux`였습니다. 서버 공용 Clone `~/TelosWeaver`는 마지막 읽기 전용 확인에서도 `main`, 작업 트리 변경 없음이었습니다. 서버·Windows의 사용자 설정과 Provider 인증 정보는 변경하지 않았습니다.
+Windows에서 처음 `git status --short`는 비어 있었고 Branch는 `ph0/host-linux`였습니다. 서버 공용 Clone `~/TelosWeaver`는 마지막 읽기 전용 확인에서도 `master`, 작업 트리 변경 없음이었습니다. 서버·Windows의 사용자 설정과 Provider 인증 정보는 변경하지 않았습니다.
 
 ## 3. 실행 명령과 결과
 
@@ -205,4 +205,4 @@ ssh Psyki-NAS 'git -C ~/TelosWeaver-wt/host-linux switch ph0/host-linux'
 - 확인된 Health 자체가 명시하듯 Phase 0의 실행 Registry는 메모리 내 상태이며, Scheduler·Persistence·Crash Recovery의 제품 완료 증거가 아닙니다.
 - 확장 내부 실행 파일 경로는 비공개 구조이므로 업데이트 후 다시 검증해야 합니다. H3의 버전·해시는 위 일자의 실제 서버 상태입니다.
 
-INTEGRATION에 `ph0/host-linux`의 시험·증거 검토와 통합, 배정표 완료 기록을 요청합니다. 서버 공용 Clone의 `main`, `origin`, 다른 에이전트의 Branch·Worktree는 수정하지 않았습니다.
+INTEGRATION에 `ph0/host-linux`의 시험·증거 검토와 통합, 배정표 완료 기록을 요청합니다. 서버 공용 Clone의 `master`, `origin`, 다른 에이전트의 Branch·Worktree는 수정하지 않았습니다.

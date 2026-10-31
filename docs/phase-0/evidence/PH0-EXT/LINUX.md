@@ -16,7 +16,7 @@
 
 E1은 Linux에서 Extension의 `CoreConnection`·`CoreClient` 구현과 실제 Rust Core를 연결하는 시험입니다. VS Code API와 Remote-SSH Extension Host는 사용하지 않습니다. E2는 이번 비대화형 실행에서 사용자에게 조작을 요청할 수 없으므로 **미실행: 사용자 VS Code 필요 (`not run: needs the user`)**입니다. E1 결과로 E2나 G3 전체 통과를 선언하지 않습니다.
 
-배정표 착수·완료 기록은 이번 사용자 지시에 따라 INTEGRATION이 담당합니다. `WORK_ALLOCATION.md`는 수정하지 않았습니다. 공용 서버 Clone의 `main` checkout·파일, 다른 작업자의 Worktree, GitHub `origin`, 사용자 설정·로그인 상태는 수정하지 않았습니다. 서버 공유 Git 저장소에 이번 작업 Branch를 전달하고 전용 Worktree를 추가했습니다.
+배정표 착수·완료 기록은 이번 사용자 지시에 따라 INTEGRATION이 담당합니다. `WORK_ALLOCATION.md`는 수정하지 않았습니다. 공용 서버 Clone의 `master` checkout·파일, 다른 작업자의 Worktree, GitHub `origin`, 사용자 설정·로그인 상태는 수정하지 않았습니다. 서버 공유 Git 저장소에 이번 작업 Branch를 전달하고 전용 Worktree를 추가했습니다.
 
 ## 2. 확인한 실행 환경
 

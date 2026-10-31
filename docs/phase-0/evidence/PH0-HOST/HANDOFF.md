@@ -4,14 +4,14 @@
 
 > 2026-10-24 · Codex / PH0-HOST-20261024 · `ph0/host` · 코드 `a3f196a` · 기준 `eb642fd` · 계약 `3a37919`
 
-사용자 요청 1~3을 수행했습니다. 최신 main을 반영하고 REQ-010 탐색 엔진을 공개 계약에 연결했으며 내부 소스 포함 시험을 공개 API 시험으로 바꿨습니다. 사용자 요청 4의 Linux·Remote SSH 검증은 대기입니다. PH0-HOST 전체 verified와 G1~G3 판정은 하지 않습니다.
+사용자 요청 1~3을 수행했습니다. 최신 master을 반영하고 REQ-010 탐색 엔진을 공개 계약에 연결했으며 내부 소스 포함 시험을 공개 API 시험으로 바꿨습니다. 사용자 요청 4의 Linux·Remote SSH 검증은 대기입니다. PH0-HOST 전체 verified와 G1~G3 판정은 하지 않습니다.
 
 ## 1. 이번 제출과 통합
 
 - 1차 HOST 구현과 REQ-011은 이미 `1d8734f`로 통합되어 있습니다. 기존 REQ-011 패치를 재적용하지 마십시오.
 - 이번 코드 변경은 `git diff eb642fd..a3f196a`로 확인합니다. 공개 `NativeCliDiscoverer`가 `CliDiscoverer`를 구현하고 공통 DTO를 반환합니다.
 - lib.rs는 CONTRACT 인계 §6.3의 예외에 따라 모듈 등록·구현 타입 재노출 두 줄만 추가했습니다. Schema·Trait·Cargo·Provider별 모듈은 변경하지 않았습니다.
-- INTEGRATION은 후속 Branch를 통합한 뒤 §3의 공식 명령으로 재검증하고 REQ-010의 엔진 연결 상태를 갱신해 주십시오. 대표 배정표의 자기 행·변경 기록은 HOST가 main의 별도 Commit으로 갱신합니다.
+- INTEGRATION은 후속 Branch를 통합한 뒤 §3의 공식 명령으로 재검증하고 REQ-010의 엔진 연결 상태를 갱신해 주십시오. 대표 배정표의 자기 행·변경 기록은 HOST가 master의 별도 Commit으로 갱신합니다.
 
 ## 2. Provider 담당 사용 경계
 

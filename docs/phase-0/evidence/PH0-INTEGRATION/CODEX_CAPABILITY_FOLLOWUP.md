@@ -4,7 +4,7 @@
 |---|---|
 | 작성 | PH0-INTEGRATION (`claude-opus-5.5/session-c9336d2c`), 2026-10-26 사용자 지시 |
 | 처리 | **PH0-CODEX (Codex)**, 기존 Adapter 담당 |
-| 기준 | 이 지시서를 기록한 `main` Commit, Spec v1.5.6, 계약 `7497877`(변경 없음) |
+| 기준 | 이 지시서를 기록한 `master` Commit, Spec v1.5.6, 계약 `7497877`(변경 없음) |
 | 근거 | [G3 대조표](G3_ACCEPTANCE.md) §2·§2.1 C3, [Codex Linux 기록](../PH0-CODEX/LINUX.md), [통합 증거](README.md) §9.3·§9.4 |
 | 우선순위 | 비차단(G3 조건 아님) |
 
@@ -35,7 +35,7 @@
 
 ## 4. 작업 방식
 
-1. 최신 `main`에서 Branch `ph0/codex-capability`, Worktree `D:\worktree\TelosWeaver\ph0-codex-capability`.
-2. 착수 전 배정표 PH0-CODEX 행(`integrated → in-progress`)과 §7에 `main` 단독 커밋으로 기록합니다(§7 표 행 사이 빈 줄 금지).
+1. 최신 `master`에서 Branch `ph0/codex-capability`, Worktree `D:\worktree\TelosWeaver\ph0-codex-capability`.
+2. 착수 전 배정표 PH0-CODEX 행(`integrated → in-progress`)과 §7에 `master` 단독 커밋으로 기록합니다(§7 표 행 사이 빈 줄 금지).
 3. 검사: `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all --check`, X3·X4 실환경 시험. Linux를 실행했다면 Host 열을 나눠 적습니다.
 4. 결과는 `docs/phase-0/evidence/PH0-CODEX/CAPABILITY.md`에 기록하고, PH0-CODEX 행을 `review`로 바꿔 INTEGRATION 검토·통합을 요청합니다.

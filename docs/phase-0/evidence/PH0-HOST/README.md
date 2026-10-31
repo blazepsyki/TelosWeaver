@@ -4,16 +4,16 @@
 |---|---|
 | 작업 ID·담당 | PH0-HOST · Codex / `PH0-HOST-20261024` |
 | 갱신·검증일 | 2026-10-24, Windows 로컬 |
-| 현재 상태 | in-progress. 기존 요청 1~3은 main 통합 완료(`685bd96`). 후속 G1 HOST 확인·REQ-013 ③ 구현·검증 완료 제출. Linux·Remote SSH는 사용자 지시로 대기 |
+| 현재 상태 | in-progress. 기존 요청 1~3은 master 통합 완료(`685bd96`). 후속 G1 HOST 확인·REQ-013 ③ 구현·검증 완료 제출. Linux·Remote SSH는 사용자 지시로 대기 |
 | Branch / Worktree | `ph0/host` / `D:\worktree\TelosWeaver\ph0-host` |
 | 이번 기준 | `3fe9153` 및 착수 `66e9cb9`, Spec 개정 1.4.3, 공통 계약 `3a37919`. §1~§6은 이전 `eb642fd` 기준 REQ-010 연결 이력 |
 | 이번 코드 Commit | `4791c5d` (G1 검토·REQ-013 ③), 이전 REQ-010 연결 `a3f196a`(통합 `685bd96`) |
-| 이전 결과 | 구현 `366d524`·`d1d818f`, 인계 `29295c9`, main 1차 통합·REQ-011 `1d8734f` |
+| 이전 결과 | 구현 `366d524`·`d1d818f`, 인계 `29295c9`, master 1차 통합·REQ-011 `1d8734f` |
 | 기준 문서 | [Spec](../../../DEVELOPMENT_v1.5.md), [대표 배정표](../../WORK_ALLOCATION.md), [CONTRACT 인계 §6.3](../PH0-CONTRACT/README.md#63-host-인계-엔진-연결) |
 
 현재 제출은 [G1 HOST 확인·REQ-013 ③ 처리 결과](G1_HOST_REVIEW.md)를 따릅니다. 아래 §1~§6은 이전 REQ-010 연결 당시의 기록이며, 당시 테스트 수와 미완료 표기를 현재 상태로 사용하지 않습니다.
 
-이전 제출은 기존 탐색 엔진을 확정된 REQ-010 계약에 연결한 결과입니다. 대표 저장소의 의존성·진입점 통합과 계약 확정을 반영해 HOST Branch를 `main`까지 fast-forward한 뒤 작업했습니다. G1~G3 판정이나 PH0-HOST 전체 verified 전환은 하지 않습니다.
+이전 제출은 기존 탐색 엔진을 확정된 REQ-010 계약에 연결한 결과입니다. 대표 저장소의 의존성·진입점 통합과 계약 확정을 반영해 HOST Branch를 `master`까지 fast-forward한 뒤 작업했습니다. G1~G3 판정이나 PH0-HOST 전체 verified 전환은 하지 않습니다.
 
 ## 1. 이번 수정 파일과 소유권
 
@@ -29,7 +29,7 @@
 | `crates/adapters/tests/fixtures/runtime/fixture.rs` | 로컬 실제 프로세스 시험용 `--version` 응답 추가 |
 | 이 증거 디렉터리 | 현재 검증 기록과 [인계 문서](HANDOFF.md) 갱신 |
 
-Cargo.toml·Cargo.lock·Schema·Provider별 모듈·Core 진입점은 이번에 변경하지 않았습니다. 배정표는 대표 저장소 main에서 자기 행·변경 기록만 별도 Commit으로 갱신합니다.
+Cargo.toml·Cargo.lock·Schema·Provider별 모듈·Core 진입점은 이번에 변경하지 않았습니다. 배정표는 대표 저장소 master에서 자기 행·변경 기록만 별도 Commit으로 갱신합니다.
 
 ## 2. 연결한 공개 계약
 
@@ -82,7 +82,7 @@ Cargo.toml·Cargo.lock·Schema·Provider별 모듈·Core 진입점은 이번에 
 
 | 영역 | 현재 상태 |
 |---|---|
-| 공용 런타임·Local API·실행 감독 | 1차 구현이 `1d8734f`로 main에 통합됨. 이번에 전체 회귀 시험 통과 |
+| 공용 런타임·Local API·실행 감독 | 1차 구현이 `1d8734f`로 master에 통합됨. 이번에 전체 회귀 시험 통과 |
 | REQ-011 | 완료. 공식 Workspace 의존성과 최소 Daemon 진입점이 반영됨 |
 | REQ-010 계약 | `3a37919`로 확정·통합됨 |
 | REQ-010 엔진 연결·공개 시험 | 이번 Branch에서 구현·검증 완료. INTEGRATION의 후속 통합·판정 대기 |
@@ -91,13 +91,13 @@ Cargo.toml·Cargo.lock·Schema·Provider별 모듈·Core 진입점은 이번에 
 | Linux·Remote SSH 검증 | 사용자 지시로 대기. 이번에는 WSL 설치·접속·Linux 실행·교차 검사를 수행하지 않음 |
 | 영속화·Snapshot·Workspace·Scheduler·RN·UI | 이번 연결 범위 밖. 기존 구현/미구현 상태를 확대해 판정하지 않음 |
 
-공식 Workspace 시험 통과는 실제 Provider G1이나 Phase 0 수용 통과를 뜻하지 않습니다. 통합 담당자는 이 제출물을 main에 반영한 뒤 다시 검증하고 배정표의 판정을 갱신해야 합니다.
+공식 Workspace 시험 통과는 실제 Provider G1이나 Phase 0 수용 통과를 뜻하지 않습니다. 통합 담당자는 이 제출물을 master에 반영한 뒤 다시 검증하고 배정표의 판정을 갱신해야 합니다.
 
 ## 5. 이전 증거와 Artifact
 
 1차 구현의 Windows 로컬 30개 시험과 독립 Manifest·Linux 대상 정적 검사 결과는 `29295c9`의 이 문서에 있습니다. 당시에는 REQ-010·011이 대기였으며 현재 상태의 판정에 그대로 쓰지 않습니다.
 
-`REQ-011-INTEGRATION.patch`, `daemon_entrypoint.rs`, `Validate-Host.ps1`, `VALIDATION-Cargo.lock`은 당시 제출·검증 Artifact로 보존합니다. REQ-011은 이미 main에 반영되었으므로 패치를 다시 적용하지 않습니다. 현재 검증의 기준은 §3의 공식 Workspace 명령과 루트 Cargo.lock입니다.
+`REQ-011-INTEGRATION.patch`, `daemon_entrypoint.rs`, `Validate-Host.ps1`, `VALIDATION-Cargo.lock`은 당시 제출·검증 Artifact로 보존합니다. REQ-011은 이미 master에 반영되었으므로 패치를 다시 적용하지 않습니다. 현재 검증의 기준은 §3의 공식 Workspace 명령과 루트 Cargo.lock입니다.
 
 ## 6. 변경 요청과 인계
 

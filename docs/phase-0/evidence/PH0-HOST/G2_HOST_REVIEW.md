@@ -4,14 +4,14 @@
 |---|---|
 | 담당 | `Codex / G2-REVIEW-01a17034` · PH0-HOST |
 | 날짜 | 2026-10-25 |
-| 검토 기준 | main `08a4a13`, 착수 배정 `ef3d2f1`, Spec v1.5.1, 공통 계약 `7497877` |
+| 검토 기준 | master `08a4a13`, 착수 배정 `ef3d2f1`, Spec v1.5.1, 공통 계약 `7497877` |
 | Branch / Worktree | `ph0/host-g2-review` / `D:\worktree\TelosWeaver\ph0-host-g2-review` |
 | 대상 | G2 통과 판정의 HOST 확인, REQ-019(`aff3c52`, 통합 `8fdc8a9`) 사후 확인 |
 | 결과 | **HOST 범위 G2 통과 판정에 동의하며 REQ-019 사후 확인 완료. 검증 범위에서 차단 결함 없음.** |
 
 ## 1. 최신 구현 상태
 
-RN-06의 RPC(`cfba833`)와 RN-07의 Client·Core 연결(`8fdc8a9`)이 main에 통합되었습니다. Spec은 v1.5.1이며 REQ-018을 포함한 계약 기준은 `7497877`입니다. Core는 운영자 정책의 `rn.executable`로 프로젝트별 상태 폴더 아래 RN을 시작·감시·제한 재시작·정지합니다. Core 밖에는 `core.health`의 `rn`만 노출하며 메시지는 내부 Rust API로 사용합니다.
+RN-06의 RPC(`cfba833`)와 RN-07의 Client·Core 연결(`8fdc8a9`)이 master에 통합되었습니다. Spec은 v1.5.1이며 REQ-018을 포함한 계약 기준은 `7497877`입니다. Core는 운영자 정책의 `rn.executable`로 프로젝트별 상태 폴더 아래 RN을 시작·감시·제한 재시작·정지합니다. Core 밖에는 `core.health`의 `rn`만 노출하며 메시지는 내부 Rust API로 사용합니다.
 
 INTEGRATION은 G2를 통과 판정하고 CODEX·HOST·EXT·AGY의 확인을 요청했습니다. 이 문서는 HOST의 확인 결과이며 다른 담당의 확인이나 게이트의 최종 상태를 대신하지 않습니다. G3·PH0-RN-08의 Linux·Remote SSH·제거 수용 검증은 남아 있습니다.
 
@@ -71,4 +71,4 @@ INTEGRATION은 G2를 통과 판정하고 CODEX·HOST·EXT·AGY의 확인을 요�
 - 실제 Claude Run 중 RN 장애에도 추적·취소가 유지된 증거는 [RN-07 기록](../PH0-RN/RN-07/README.md) §3.2를 검토했습니다. 이번에는 유료 Provider 시험을 재실행하지 않았으며 대역 시험과 구분합니다.
 - RN 장애 중 Provider 출력 이벤트가 계속 수집됐다는 주장은 하지 않습니다. 기존 실환경 기록도 추적·취소·실제 종료·자식 회수 확인으로 한정합니다.
 - 기존 RN에 연결만 하는 경로, 재시작 상한의 실제 연속 실패, 재시작 도중 Core 정지, Linux·Remote SSH는 이번 재검증에 포함하지 않았습니다. 이 경로까지 검증 완료했다는 의미가 아닙니다.
-- 작업 중 main `2fff559`에 PH0-AGY의 G2 확인 완료 기록이 추가됐음을 확인했습니다. 이 변경은 배정표뿐이며 이번 검증 대상 제품 코드와 겹치지 않습니다. 이 문서와 CODEX·EXT 확인을 합치면 요청된 각 담당 확인이 갖춰집니다. G2 최종 상태·REQ-019 확인 상태 반영은 기존 INTEGRATION 담당에게 인계합니다. Linux 대기·G3·RN-08의 조건은 변경하지 않습니다.
+- 작업 중 master `2fff559`에 PH0-AGY의 G2 확인 완료 기록이 추가됐음을 확인했습니다. 이 변경은 배정표뿐이며 이번 검증 대상 제품 코드와 겹치지 않습니다. 이 문서와 CODEX·EXT 확인을 합치면 요청된 각 담당 확인이 갖춰집니다. G2 최종 상태·REQ-019 확인 상태 반영은 기존 INTEGRATION 담당에게 인계합니다. Linux 대기·G3·RN-08의 조건은 변경하지 않습니다.

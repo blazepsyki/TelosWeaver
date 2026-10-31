@@ -22,7 +22,7 @@
 
 ## 3. 현재 항목
 
-기준: `main` `fa8e69b`, Spec v1.5.7, Claude Code 2.1.310, Codex CLI 0.164.0-alpha.11.1(확장 26.1021.22027), Antigravity `agy` 1.4.7(확장 1.9.0).
+기준: `master` `fa8e69b`, Spec v1.5.7, Claude Code 2.1.310, Codex CLI 0.164.0-alpha.11.1(확장 26.1021.22027), Antigravity `agy` 1.4.7(확장 1.9.0).
 
 ### 3.1 Provider 기능
 

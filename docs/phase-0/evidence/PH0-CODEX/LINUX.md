@@ -13,7 +13,7 @@
 | Linux | `/home/gth1919/TelosWeaver-wt/codex-linux`, `ph0/codex-linux` |
 | 결과 | C1 7개 통과, C2 활성 CLI 확인, C3 신규 Thread 7개 Archive·과거 Windows 상태 재확인, C4 이 문서 |
 
-배정표의 착수·완료 기록은 이번 직접 지시에 따라 PH0-INTEGRATION이 담당합니다. 이 작업에서는 배정표를 수정하지 않았습니다. 공용 Clone의 `main`, 다른 담당 Worktree, GitHub `origin`, 시스템·사용자 설정, Provider 로그인·설정은 변경하지 않았습니다. 같은 LAN의 실제 계정을 사용했으며, 모델 호출은 이 작업이 만든 `/tmp/telos-codex-live-*` 폴더에서만 했습니다.
+배정표의 착수·완료 기록은 이번 직접 지시에 따라 PH0-INTEGRATION이 담당합니다. 이 작업에서는 배정표를 수정하지 않았습니다. 공용 Clone의 `master`, 다른 담당 Worktree, GitHub `origin`, 시스템·사용자 설정, Provider 로그인·설정은 변경하지 않았습니다. 같은 LAN의 실제 계정을 사용했으며, 모델 호출은 이 작업이 만든 `/tmp/telos-codex-live-*` 폴더에서만 했습니다.
 
 확인된 사실과 해석을 아래에서 구분합니다. 이 결과는 Codex Adapter의 Linux 실환경 증거이며, G3 전체나 Remote-SSH Extension Host의 통과 판정은 아닙니다.
 
