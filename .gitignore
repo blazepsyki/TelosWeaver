@@ -12,3 +12,5 @@ extension/src/generated/
 
 # 로컬 보관 문서 — 원격 저장소에 올리지 않음
 /docs/archive/
+/docs/reason-network-review/dependency-excerpts/
+/docs/reason-network-review/dependency-sources/
