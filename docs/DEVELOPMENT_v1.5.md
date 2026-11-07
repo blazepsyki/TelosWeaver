@@ -1,9 +1,9 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.10)\
+> **문서 버전:** 1.5 (개정 1.5.10)  
 > **작성일:** 2026-10-23  
-> **수정일:** 2026-11-07\
+> **수정일:** 2026-11-07  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
 > **상태:** 구현 기준 설계안. 사용자 확정 결정과 이를 구체화한 설계를 포함하며 구현 완료를 뜻하지 않습니다.  
 > **초기 UI:** VS Code Extension  
@@ -1498,16 +1498,16 @@ Phase 0 구현은 확장·대체할 기준선입니다. §19.2의 기존 코드 
 |---|---|---|
 | Task·Run·Session 모델 | Task 상태·전이·Revision 조건, 부모·자식·의존성, Run·Attempt·Session 관계, 제한된 자식 생성 한도, 취소 전파·대기·Timeout·재시도 경합 | SCHED, MASTER, PERSIST, MCP, EXT |
 | 영속 기록 | 상태·이벤트·실행 의도의 동일 Transaction 경계, 실행 전/후 장애와 시작 응답 유실, 멱등 키·Payload 충돌, 불명 상태·Lock 대조, 이벤트 커서·보존, Migration·Backup·호환 실패 기준 | PERSIST, SCHED, HOST, MASTER |
-| Task MCP 도구 | 여섯 도구의 입력·출력·오류 Schema, 연결 자격·Scope | MCP, 세 Provider, MASTER |
+| Task MCP 도구 | 여섯 도구의 입력·출력·오류 Schema, 연결 자격·Project/Run Scope, Run 시작 시 Adapter(`RunContext`)로 전달하는 엔드포인트·Run 범위 토큰 주입 경계(사용자 전역 설정 무변경) | MCP, HOST, SCHED, 세 Provider, MASTER |
 | 산출물·검증 | OutputContract·InputBinding·불변 Artifact Version·Checksum·참조 수명, Validator Job의 상태·취소·오류·판정 불가, 승인의 Task/Run·계약·Version·행위 Digest·정책·기한·소비 상태 고정 | ARTIFACT, VALIDATION, MASTER, CONTEXT, WORKSPACE |
 | Workspace | none/directory/git-worktree 모드, Writer Lock·소유 Epoch·살아 있는 Writer 확인, 기존 변경 보존, Diff·반영 대상 Revision과 개별 행위 승인 | WORKSPACE, SCHED, MASTER, VALIDATION, 세 Provider |
-| 문맥 | Context Snapshot, Fresh/Capsule 구성, 필수 입력 누락·충돌·출처·신뢰 경계, 사용량의 누적/증분·Unknown·마스터 포함 집계 | CONTEXT, 세 Provider, MASTER, SCHED |
+| 문맥 | Context Snapshot, Fresh/Capsule 구성과 정책 허용·`RunContext`/`TaskSpec` 전달 경계(SB-11), 필수 입력 누락·충돌·출처·신뢰 경계, 사용량의 누적/증분·Unknown·마스터 포함 집계 | CONTEXT, 세 Provider, MASTER, SCHED |
 | 마스터 결정·정책 | 8종 kind 집행과 검증·재작업·완료 연결, Plan Revision·Epoch·멱등성, 권한 교집합·예산 예약/소비·사용자 전용 결정, Provider 승인 요청의 상관 ID·Allow/Deny·만료·재검사 | MASTER, SCHED, VALIDATION, HOST, 세 Provider |
 | Local Core API | Task·Master·Artifact·승인·개입 및 P0 RN 메서드와 오류, Snapshot+커서 구독·재동기화, RPC 호환·멱등성·Project/Host/Run Scope | HOST, EXT, RN, SCHED, MASTER |
 | 설정 | 설정 계층·출처·해시, 권한 상한과 Task 값의 구분, 실행 파일·인증의 Host 귀속, RN·Task MCP 설치 설정의 소유권·충돌·설치 후 사용자 변경 보존 | CONFIG, MASTER, RN, MCP, HOST |
 | Capability 판정 기준 | Phase 0 이월 P1-1(C5): 상태·증거·Host/CLI/확장 버전별 기준과 Core 집행 범위, 갱신 시 재판정, 미지원·실패 시 Capsule/Fresh 대체의 사유 기록·필수 입력·권한 유지 | CONTRACT, 세 Provider, SCHED, CONTEXT, MASTER |
 
-H0에서는 각 계약의 정의 경로·제공/사용 작업·확인자·Contract 시험·기준 Commit을 배정표 §5에 기록합니다. 특히 SCHED↔PERSIST의 원자적 상태 변경, SCHED↔HOST의 실행 의도·시작·종료, SCHED↔WORKSPACE/CONTEXT/ARTIFACT/VALIDATION, MASTER/MCP/API↔SCHED의 호출·오류·취소 경계를 정합니다. 의존 모듈 구현이 없어도 이 공개 계약의 테스트 대역으로 개발할 수 있어야 합니다. 각 모듈 담당은 자기 인터페이스를 작성하고 CONTRACT가 공유 타입을 검토하며 INTEGRATION이 등록·연결합니다. 미배정 작업의 확인은 통합 담당이 검토 대행자와 근거를 기록하며, 확인 없이 통과로 처리하지 않습니다.
+H0에서는 각 계약의 정의 경로·제공/사용 작업·확인자·Contract 시험·기준 Commit을 배정표 §5에 기록합니다. 특히 SCHED↔PERSIST의 원자적 상태 변경, SCHED↔HOST의 실행 의도·시작·종료, SCHED↔WORKSPACE/CONTEXT/ARTIFACT/VALIDATION, MASTER/MCP/API↔SCHED의 호출·오류·취소 경계, MCP↔HOST/세 Provider의 Run별 연결 자격 주입, HOST↔MASTER/VALIDATION의 실시간 승인(`ApprovalRequested`→판단·기록→`answer_approval`) 및 진행 중 제어 라우팅을 정합니다. 의존 모듈 구현이 없어도 이 공개 계약의 테스트 대역으로 개발할 수 있어야 합니다. 각 모듈 담당은 자기 인터페이스를 작성하고 CONTRACT가 공유 타입을 검토하며 INTEGRATION이 등록·연결합니다. 미배정 작업의 확인은 통합 담당이 검토 대행자와 근거를 기록하며, 확인 없이 통과로 처리하지 않습니다.
 
 H0 완료 시 공통 인터페이스와 컴파일 가능한 등록 경로(명시적 Stub 포함), Schema·계약 시험을 계약 기준 Commit에 포함합니다. Stub은 가용 기능으로 표시하지 않습니다. 대표 저장소의 AGENTS.md·README.md와 `crates/core/README.md`도 Phase 1 배정표·모듈 배치(`config` 포함)와 일치시킵니다.
 
@@ -1515,21 +1515,21 @@ H0 완료 시 공통 인터페이스와 컴파일 가능한 등록 경로(명시
 
 | 작업 ID | 책임·산출물 | 주요 요구사항 | 독점 수정 경로 |
 |---|---|---|---|
-| PH1-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·E2E·게이트 판정, Phase 0 임시 구성 정리 | §19.2 통과 조건, E2E P0 | §19.5.3의 PH0-INTEGRATION 경로(배정표는 `docs/phase-1/WORK_ALLOCATION.md`), crates/core/tests/phase1_*.rs, crates/core/tests/phase1/**, docs/phase-1/*.md |
+| PH1-INTEGRATION | 배정·기준 Commit·공통 등록·의존성·통합 Harness·E2E·게이트 판정, Phase 0 임시 구성 정리 | §19.2 통과 조건, E2E P0 | §19.5.3의 PH0-INTEGRATION 경로(`docs/phase-0/WORK_ALLOCATION.md` 보존 포함, Phase 1 배정표는 `docs/phase-1/WORK_ALLOCATION.md`), crates/core/tests/phase1_*.rs, crates/core/tests/phase1/**, docs/phase-1/*.md |
 | PH1-CONTRACT | H0 계약·Schema·생성·Contract 시험, Adapter Trait·공통 오류 | 공통 | crates/schema/**, schemas/**, crates/adapters/src/lib.rs, crates/adapters/src/unimplemented.rs, crates/adapters/tests/unimplemented.rs |
-| PH1-PERSIST | SQLite·Event Journal, 상태·실행 의도·결과·제어 이벤트의 원자적 기록, Migration·Backup 기준, 미완 의도·Run·Lock 조회와 소유 Epoch 조건부 갱신. 재시작 대조에 필요한 저장 인터페이스 제공 | SAFE-06·13, OPS-01·03의 P0, §14 | crates/core/src/persistence/**, crates/core/tests/persistence_*.rs |
-| PH1-SCHED | Task Registry, 단일 Scheduler 소유권, 상태 전이·의존성·순환 검사, 큐·동시성·제한된 자식 생성, 대기 자원·취소 전파, 예산·재시도·중복 방지, 재시작 시 HOST·WORKSPACE의 실제 상태와 영속 기록을 대조해 안전 보류 | TASK의 P0, DELEG-04·10, SAFE-02·13, §9·§14 | crates/core/src/scheduler/**, crates/core/tests/scheduler_*.rs |
+| PH1-PERSIST | SQLite·Event Journal, 상태·실행 의도·결과·제어 이벤트의 원자적 기록, Migration·Backup 기준, 미완 의도·Run·Lock 조회와 소유 Epoch 조건부 갱신. 재시작 대조에 필요한 저장 인터페이스 제공 | SESS-01·03·05의 P0, SAFE-06·13, OPS-01·03의 P0, §14 | crates/core/src/persistence/**, crates/core/tests/persistence_*.rs |
+| PH1-SCHED | Task Registry, 단일 Scheduler 소유권, 상태 전이·의존성·순환 검사, 큐·동시성·제한된 자식 생성, 대기 자원·취소 전파, 예산·재시도·중복 방지, 재시작 시 HOST·WORKSPACE의 실제 상태와 영속 기록을 대조해 안전 보류 | TASK의 P0, DELEG-04·09·10, SESS-05의 P0, SAFE-02·13, OPS-01·03의 P0, §9·§14 | crates/core/src/scheduler/**, crates/core/tests/scheduler_*.rs |
 | PH1-CONTEXT | Context Snapshot, Fresh/Capsule(지원 백로그 SB-11), 필수 입력 검사, 사용량 기록 | CTX·SESS·FORK의 P0 | crates/core/src/context/**, crates/core/tests/context_*.rs |
 | PH1-WORKSPACE | none/directory/git-worktree, Writer 소유권·Lock, 기존 변경 보존, Diff, 승인된 고정 Revision의 원본 Branch 반영과 정리 | WS·GIT의 P0 | crates/core/src/workspace/**, crates/core/tests/workspace_*.rs |
-| PH1-ARTIFACT | 텍스트·파일·JSON·Diff 등록·조회, OutputContract·InputBinding 해석, 불변 Artifact Version·Checksum·참조 수명 | ART-01~03 | crates/core/src/artifact/**, crates/core/tests/artifact_*.rs |
+| PH1-ARTIFACT | 텍스트·파일·JSON·Diff 등록·조회, OutputContract·InputBinding 해석, 불변 Artifact Version·Checksum·참조 수명 | ART-01~03, DELEG-06·COMM-10의 P0 | crates/core/src/artifact/**, crates/core/tests/artifact_*.rs |
 | PH1-VALIDATION | Schema/File/Command/Human 기본 검증, Job 취소·오류·판정 불가, 대상에 묶인 승인 기록·만료·철회·소비, 변경 후보의 재검증·재승인, 재작업 연결 | VAL·VERIFY의 P0 | crates/core/src/validation/**, crates/core/tests/validation_*.rs |
 | PH1-MCP | 인증된 Task MCP 여섯 도구, 연결 자격·Scope | DELEG-01~03, SAFE-08 | crates/core/src/mcp/**, crates/core/tests/mcp_*.rs |
-| PH1-MASTER | 마스터 제어 전체 kind 집행, 정식 정책 서비스(경로·명령·Session 소유권·권한 교집합·예산 예약/잔액), Epoch·감사·유실 시 안전 보류, 실시간 승인 판단과 Provider 제어 연결(이월 P1-2의 Core 측) | MASTER·SAFE의 P0 | §19.5.3의 PH0-MASTER 경로 |
-| PH1-HOST | Local API 확장(Task·Master·Artifact·승인·개입·P0 RN), RPC 호환·멱등성·재접속 조회, 실행 감독의 영속 연결·상태 대조, 출력·큐·로그 한도·비밀정보 마스킹·저장 실패 보류, 공용 런타임(이월 P1-5 Windows 정상 종료) | OPS·SAFE·UI의 P0 Core 측 | §19.5.3의 PH0-HOST 경로 |
-| PH1-CODEX·PH1-CLAUDE·PH1-AGY | 각 Adapter의 P0 최소 Capability, Task MCP 연결 주입, Capsule 입력, H0 판정 기준 적용(P1-1). Claude는 실시간 승인(P1-2), Claude·Agy는 진행 중 조정 검토(P1-3) | AGENT·SESS의 P0와 §19.6.6 이월 | §19.5.3의 각 PH0 Provider 경로 |
-| PH1-CONFIG | 설정 계층·우선순위·출처·최종 해시·검증, Host별 탐지·인증 설정, 권한 상한을 확장하지 않는 해석, 운영자 설정 전환 | CFG-01·02, §13 | crates/core/src/config/**, crates/core/tests/config_*.rs |
-| PH1-RN | RN 설치·제거 시 MCP/Hook 설정 소유권·충돌·사용자 후속 변경 보존, P0 통제된 RPC·TTL·중복 처리, Degraded 동작, Core Client 확장, DEC-07 제거 경로 회귀 | RN·COMM의 P0, CFG-03 | rn-fork/**, crates/rn-client/** |
-| PH1-EXT | 기본 Master·Task·Artifact·개입 UI, 고정 대상 승인·취소, 파일·Diff 보기, Snapshot·커서 재접속 조회, UI 연결과 Core 수명 분리, RN 오류·출력·로그 한도 표시 | UI의 P0, COMM-05 | extension/** |
+| PH1-MASTER | 마스터 제어 전체 kind 집행, 정식 정책 서비스(경로·명령·Session 소유권·Capsule 허용 조건(SB-11)·권한 교집합·예산 예약/잔액), Epoch·감사·유실 시 안전 보류, 실시간 승인 판단과 Provider 제어 연결(이월 P1-2의 Core 측) | MASTER·SAFE의 P0, VERIFY-06 | §19.5.3의 PH0-MASTER 경로 |
+| PH1-HOST | Local API 확장(Task·Master·Artifact·승인·개입·P0 RN), RPC 호환·멱등성·재접속 조회, 실행 감독의 영속 연결·상태 대조·Task MCP 주입·승인/제어 라우팅, 출력·큐·로그 한도·비밀정보 마스킹·저장 실패 보류, 공용 런타임(이월 P1-5 Windows 정상 종료) | SESS-02·03, OPS·SAFE·UI의 P0 Core 측 | §19.5.3의 PH0-HOST 경로 |
+| PH1-CODEX·PH1-CLAUDE·PH1-AGY | 각 Adapter의 P0 최소 Capability, Task MCP 연결 주입, Capsule 입력(SB-11), H0 판정 기준 적용(P1-1). Claude는 실시간 승인(P1-2), Claude·Agy는 진행 중 조정 검토(P1-3) | AGENT·SESS·FORK의 P0와 §19.6.6 이월 | §19.5.3의 각 PH0 Provider 경로 |
+| PH1-CONFIG | 설정 계층·우선순위·출처·최종 해시·검증, Host별 탐지·인증 설정, 권한 상한을 확장하지 않는 해석, 운영자 설정 전환 | CFG-01·02, AGENT-05·SAFE-01·10의 설정 측, §13 | crates/core/src/config/**, crates/core/tests/config_*.rs |
+| PH1-RN | RN 설치·제거 시 MCP/Hook 설정 소유권·충돌·사용자 후속 변경 보존, P0 통제된 RPC·TTL·중복 처리, Degraded 동작, Core Client 확장, DEC-07 제거 경로 회귀 | RN·COMM의 P0, CFG-03, SAFE-11·12·14 | rn-fork/**, crates/rn-client/** |
+| PH1-EXT | 기본 Master·Task·Artifact·개입 UI(SB-19의 P0 범위), 고정 대상 승인·취소, 파일·Diff 보기, Snapshot·커서 재접속 조회, UI 연결과 Core 수명 분리, RN 오류·출력·로그 한도 표시 | UI의 P0, COMM-05 | extension/** |
 
 총 17개 작업이며 Provider 3개는 각자 별도 배정·Writer를 갖습니다. 새 모듈의 `lib.rs` 등록·`main.rs` 연결·Cargo 의존성은 INTEGRATION이 합니다(§19.5.4). 새 Core 모듈 담당은 `crates/core/tests/fixtures/<모듈 이름>/**`에 자기 Fixture를 둘 수 있습니다. 공유 Fixture와 표에 없는 경로는 변경 요청으로 처리합니다.
 
@@ -1560,14 +1560,14 @@ INTEGRATION은 H0에서 §18의 각 P0 요구사항·혼합 항목의 P0 부분�
 
 | 이월 | 담당·연결 작업 | Phase 1에서 남길 결과 |
 |---|---|---|
-| P1-1 C5 | CONTRACT가 H0 기준 확정, 세 Provider 적용, MASTER·SCHED 집행 | 같은 증거에 같은 판정 기준 적용. Antigravity Fork 미지원 등 CLI 제한은 유지. Native Resume/Fork 제품 고도화는 §19.3 범위 |
-| P1-2 실시간 승인 | MASTER 판단, VALIDATION 대상·기록, HOST API, CLAUDE·CODEX 제어, EXT UI | 위임 범위 Allow/Deny·사용자 전용 판단·만료·변경 대상 거부 연결. 지원하지 않는 Provider 제어는 거부하고 재계획 |
-| P1-3 진행 중 조정 검토 | CONTRACT·CODEX·CLAUDE·AGY, MASTER·SCHED | Run당 Turn 하나라는 §7.3 계약 아래 판정·근거 기록. 같은 Turn 조정 수단이 없으면 Resume Run 등 명시적 대안. 다중 Turn Run 도입을 이 계획만으로 승인하지 않음 |
+| P1-1 C5 | CONTRACT가 H0 기준 확정, 세 Provider 적용(SB-10), MASTER·SCHED 집행 | 같은 증거에 같은 판정 기준 적용. Antigravity Fork 미지원 등 CLI/계약 제한(SB-01~04)은 버전 변화 때 재확인하며, Native Resume/Fork 제품 고도화(SB-05 포함)는 §19.3 범위 |
+| P1-2 실시간 승인 | MASTER 판단, VALIDATION 대상·기록, HOST API·라우팅, CLAUDE(SB-07)·CODEX(SB-09) 제어, EXT UI | 위임 범위 Allow/Deny·사용자 전용 판단·만료·변경 대상 거부 연결. 지원하지 않는 Provider 제어(SB-02 등)는 거부하고 재계획 |
+| P1-3 진행 중 조정 검토 | CONTRACT·CODEX·CLAUDE·AGY(SB-06), MASTER·SCHED | Run당 Turn 하나라는 §7.3 계약 아래 판정·근거 기록. 같은 Turn 조정 수단이 없으면 Resume Run 등 명시적 대안. 다중 Turn Run 도입을 이 계획만으로 승인하지 않음 |
 | P1-4 미검증 확장 | CODEX: SB-08·09, HOST: SB-13·18, 세 Provider·EXT·INTEGRATION: SB-16·17 | 환경·버전별 실행 결과 또는 미검증 사유·재확인 조건 기록. 필수 P0 경로 미검증은 H3 보류, 선택 기능은 지원으로 표시하지 않고 백로그 유지 |
-| P1-5 Windows 정상 종료 | HOST, 세 Provider·INTEGRATION 회귀 | 정상 종료 수단의 적용 가능성·유예·강제 종료·자식 회수 결과를 구분. 지원 불가 시 SB-12에 제한과 근거 유지 |
+| P1-5 Windows 정상 종료 | HOST(SB-12), 세 Provider·INTEGRATION 회귀 | 정상 종료 수단의 적용 가능성·유예·강제 종료·자식 회수 결과를 구분. 지원 불가 시 SB-12에 제한과 근거 유지 |
 | P1-6 CI | INTEGRATION | 현재 사용자 결정인 CI 보류 유지. 수동 공통 검사와 환경 증거는 계속 필수, 도입 여부 변경은 별도 결정 기록 |
 
-이월 검토는 모든 미지원·미검증 기능의 지원 전환을 보장하지 않습니다. 지원 백로그의 상태 변경은 실제 근거를 통합 담당이 반영하며, P0 밖 기능의 미해소를 이유로 Phase 1 범위를 임의로 늘리지 않습니다.
+이월 검토는 모든 미지원·미검증 기능의 지원 전환을 보장하지 않습니다. 지원 백로그의 상태 변경은 실제 근거를 통합 담당이 반영하며, P0 밖 기능(SB-05·14·15 및 SB-19의 P1 부분 등)의 미해소를 이유로 Phase 1 범위를 임의로 늘리지 않습니다.
 
 ## 20. PoC 및 제품 수용 시나리오
 

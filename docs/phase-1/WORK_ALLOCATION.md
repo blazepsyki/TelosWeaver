@@ -1,9 +1,9 @@
 # Phase 1 작업 배정표
 
 > **프로젝트:** TelosWeaver  
-> **갱신일:** 2026-11-07\
+> **갱신일:** 2026-11-07  
 > **범위 원본:** [Spec §19.6](../DEVELOPMENT_v1.5.md#196-phase-1-병렬-구현--작업-분할과-소유권), 절차는 §19.5를 PH1로 읽어 적용  
-> **현재 상태:** Phase 0 완료(G3 통과 확정, [Phase 0 배정표](../phase-0/WORK_ALLOCATION.md)). Phase 1의 **H0(공통 계약) 준비 중**. 다른 작업도 H0 계약 검토를 위해 먼저 배정할 수 있지만, 기능 구현은 H0 확정 뒤 시작합니다.
+> **현재 상태:** Phase 0 완료(G3 통과 확정, [Phase 0 배정표](../phase-0/WORK_ALLOCATION.md)). Phase 1의 **H0(공통 계약) 준비 중**. 다른 작업도 H0 계약 검토를 위해 먼저 배정할 수 있지만, 기능 구현은 H0 확정 뒤 시작합니다.  
 > **초안 위치:** `ph1/plan` / `D:\worktree\TelosWeaver\ph1-plan`. 대표 `master`에 병합하기 전에는 이 파일로 작업 소유권을 확정하지 않습니다. 통합 담당이 병합 시 대표 저장소의 실제 배정과 기준 Commit을 확인해 운영 원본으로 전환합니다.
 
 ## 1. 단일 원본과 갱신 주체
@@ -30,14 +30,14 @@
 | PH1-ARTIFACT | — | unassigned | — | — | — | H0 뒤 |
 | PH1-VALIDATION | — | unassigned | — | — | — | H0 뒤. SCHED·ARTIFACT 공개 인터페이스 통합 후 연결 |
 | PH1-MCP | — | unassigned | — | — | — | H0 뒤. SCHED 공개 인터페이스 통합 후 연결 |
-| PH1-MASTER | — | unassigned | — | — | — | H0 뒤. 이월 P1-2의 Core 판단·제어 연결, VALIDATION 승인 기록·HOST API·Provider·EXT와 연계 |
-| PH1-HOST | — | unassigned | — | — | — | H0 뒤. PERSIST·SCHED 통합 후 연결. 이월 P1-5(Windows 정상 종료), SB-12·13 |
+| PH1-MASTER | — | unassigned | — | — | — | H0 뒤. 정식 정책(SB-11 Capsule 허용 포함), 이월 P1-2의 Core 판단·제어 연결, VALIDATION 승인 기록·HOST API·Provider·EXT와 연계 |
+| PH1-HOST | — | unassigned | — | — | — | H0 뒤. PERSIST·SCHED 통합 후 연결. Task MCP 주입·승인/제어 라우팅, 이월 P1-5(Windows 정상 종료), SB-12·13·18 |
 | PH1-CODEX | — | unassigned | — | — | — | H0 뒤. 이월 P1-1 적용, SB-08·09 검토. SB-05 특정 Turn Resume는 제품 P1 범위의 백로그로 유지 |
-| PH1-CLAUDE | — | unassigned | — | — | — | H0 뒤. 이월 P1-1·P1-2(실시간 승인, SB-07)·P1-3 검토 |
-| PH1-AGY | — | unassigned | — | — | — | H0 뒤. 이월 P1-1·P1-3 검토 |
+| PH1-CLAUDE | — | unassigned | — | — | — | H0 뒤. 이월 P1-1(SB-10)·P1-2(실시간 승인, SB-07)·P1-3(SB-06) 검토 |
+| PH1-AGY | — | unassigned | — | — | — | H0 뒤. 이월 P1-1(SB-10)·P1-3(SB-06) 검토 |
 | PH1-CONFIG | — | unassigned | — | — | — | H0 뒤 |
 | PH1-RN | — | unassigned | — | — | — | H0 뒤. 설치 설정 소유권·사용자 후속 변경 보존, P0 RPC·TTL·중복·Degraded |
-| PH1-EXT | — | unassigned | — | — | — | H0 뒤. HOST API 확장 통합 후 연결 |
+| PH1-EXT | — | unassigned | — | — | — | H0 뒤. HOST API 확장 통합 후 연결(SB-19의 P0 범위) |
 
 총 17개 작업입니다. 상태는 `unassigned → reserved → in-progress → review → integrated → verified`(Spec §19.5.5). H0 전 배정은 계약 검토·초안 제출 범위이며 기능 구현 허가가 아닙니다.
 
@@ -63,16 +63,16 @@
 |---|---|---|
 | Task·Run·Session | 상태·Revision·의존성·자식 한도·대기·취소 전파·재시도 | 미확정 |
 | 영속 기록 | 상태·이벤트·실행 의도의 동일 Transaction, 멱등성·Epoch·재시작 대조·커서 | 미확정 |
-| Task MCP | 여섯 도구의 입출력·오류·연결 자격·Project/Run Scope | 미확정 |
+| Task MCP | 여섯 도구의 입출력·오류·연결 자격·Project/Run Scope, Run 시작 시 `RunContext` 주입 경계 | 미확정 |
 | 산출물·검증 | 불변 Version·참조 수명, Validator 상태, 고정 대상 승인·만료·소비 | 미확정 |
 | Workspace | Writer Lock·살아 있는 소유자, 기존 변경, Diff·승인된 Revision 반영 | 미확정 |
-| 문맥 | Fresh/Capsule, 필수 입력·신뢰 경계, 사용량·Unknown·집계 | 미확정 |
+| 문맥 | Fresh/Capsule(SB-11 정책 허용·Adapter 전달 포함), 필수 입력·신뢰 경계, 사용량·Unknown·집계 | 미확정 |
 | 마스터 결정·정책 | 8종 kind, 권한 교집합·예산, Provider 승인·사용자 판단 | 미확정 |
 | Local Core API | Task·Master·Artifact·승인·개입·P0 RN, Snapshot·커서·호환성 | 미확정 |
 | 설정 | 계층·출처·해시, Host 귀속, RN·Task MCP 설정 소유권·사용자 변경 보존 | 미확정 |
 | Capability 판정 | C5 공통 기준, 환경·버전별 증거, 미지원 거부·명시적 대체 | 미확정 |
 
-Core 연결은 SCHED↔PERSIST, SCHED↔HOST, SCHED↔WORKSPACE/CONTEXT/ARTIFACT/VALIDATION, MASTER/MCP/API↔SCHED의 공개 인터페이스·오류·취소 경계를 포함합니다(Spec §19.6.2). 통합 담당은 §18 전체 P0 요구사항과 §20.3 P0 시나리오를 담당·필수 환경·시험·증거에 연결한 수용 대조표를 H0에서 등록합니다. H3 때 실행 결과를 채우며, 목록 작성만으로 시험을 통과한 것으로 보지 않습니다.
+Core 연결은 SCHED↔PERSIST, SCHED↔HOST, SCHED↔WORKSPACE/CONTEXT/ARTIFACT/VALIDATION, MASTER/MCP/API↔SCHED, MCP↔HOST/세 Provider(Run별 자격 주입), HOST↔MASTER/VALIDATION(실시간 승인·제어 라우팅)의 공개 인터페이스·오류·취소 경계를 포함합니다(Spec §19.6.2). 통합 담당은 §18 전체 P0 요구사항과 §20.3 P0 시나리오를 담당·필수 환경·시험·증거에 연결한 수용 대조표를 H0에서 등록합니다. H3 때 실행 결과를 채우며, 목록 작성만으로 시험을 통과한 것으로 보지 않습니다.
 
 이월 P1-1~6의 담당과 완료 경계는 Spec §19.6.6을 따릅니다. P1-4는 CODEX(SB-08·09), HOST(SB-13·18), 세 Provider·EXT·INTEGRATION(SB-16·17)이 나누어 검토합니다. P1-6(CI)은 INTEGRATION이 현재 보류 결정을 유지하고 변경 결정만 기록합니다.
 
@@ -92,3 +92,4 @@ Phase 0 환경의 설치 버전·로그인 상태가 현재도 같다고 가정�
 |---|---|---|---|
 | 2026-10-26 18:20 | `claude-opus-5.5/session-c9336d2c` | Phase 1 착수 준비: 사용자 결정(병렬 절차·H0 먼저·통합 담당 유지·이월 과제 편입)에 따라 Spec v1.5.9 §19.6과 이 배정표 작성. PH1-INTEGRATION `in-progress`, 나머지 `unassigned` | Phase 0 최종 `master` |
 | 2026-11-07 (시각 미기록) | `Codex / PH1-PLAN-REVIEW` | 사용자 요청으로 계획 초안 리뷰·수정. H0 Core 인터페이스·확인 목록, 17개 작업과 이월 책임, H3 E2E-13·14·코딩·실패 경로, 초안/운영 원본 구분 보완. 담당 배정·지원 판정·게이트 변경과 기능 구현·실환경 시험 없음 | 초안 `441a89e`, 비교 `master` `4bb6ed4` |
+| 2026-11-07 17:44 | `gemini-4-argon/session-c2e931ec` | 사용자 요청으로 Codex 리뷰 수정본(`06ea45a`) 추가 리뷰·보완: H0 Task MCP Run별(`RunContext`) 자격 주입 경계·Capsule(SB-11) 정책 허용(`PH1-MASTER`) 및 전달 경계·HOST↔MASTER/VALIDATION 실시간 승인/제어 라우팅 명시, §19.6.3 작업별 P0 요구사항(`SESS`·`DELEG-06/09`·`COMM-10`·`VERIFY-06`·`SAFE-11/12/14`) 및 `docs/phase-0/WORK_ALLOCATION.md` 보존 경로 보완, §19.6.6 지원 백로그(`SB-01~19`) 매핑 정합화 | `06ea45a` |
