@@ -3,12 +3,12 @@
 서로 다른 AI 에이전트(Codex, Claude Code, Antigravity)를 사용하여 **목표 확인 → 계획 → 위임 → 실행 → 산출물 수집 → 검증 → 승인 판단 → 재작업 또는 완료**를 관리하는 로컬 우선 오케스트레이터입니다.
 
 - 기준 설계: [docs/DEVELOPMENT_v1.5.md](docs/DEVELOPMENT_v1.5.md)
-- 진행 현황: [docs/phase-0/WORK_ALLOCATION.md](docs/phase-0/WORK_ALLOCATION.md) (작업 배정·게이트·변경 요청의 단일 원본)
+- 진행 현황: [docs/phase-1/WORK_ALLOCATION.md](docs/phase-1/WORK_ALLOCATION.md) (Phase 1 작업 배정·게이트·변경 요청의 단일 원본). Phase 0 기록은 [docs/phase-0/WORK_ALLOCATION.md](docs/phase-0/WORK_ALLOCATION.md)
 - 에이전트 작업 지침: [AGENTS.md](AGENTS.md)
 - 외부 에이전트가 실행한 CLI 세션 표시(Codex·Claude Code·Antigravity): [VS Code에서 세션 확인](docs/AGENT_CLI_VSCODE_SESSIONS.md)
 - 지원하지 않거나 아직 검증하지 않은 기능과 지원 조건: [지원 백로그](docs/SUPPORT_BACKLOG.md)
 
-## 현재 상태 — Phase 0 (기술 검증) 완료, Phase 1 준비
+## 현재 상태 — Phase 0 (기술 검증) 완료, Phase 1 H0(공통 계약) 준비 중
 
 | 게이트 | 상태 |
 |---|---|
