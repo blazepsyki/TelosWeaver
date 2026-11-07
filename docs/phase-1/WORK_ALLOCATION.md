@@ -1,13 +1,14 @@
 # Phase 1 작업 배정표
 
 > **프로젝트:** TelosWeaver  
-> **갱신일:** 2026-10-26  
+> **갱신일:** 2026-11-07\
 > **범위 원본:** [Spec §19.6](../DEVELOPMENT_v1.5.md#196-phase-1-병렬-구현--작업-분할과-소유권), 절차는 §19.5를 PH1로 읽어 적용  
-> **현재 상태:** Phase 0 완료(G3 통과 확정, [Phase 0 배정표](../phase-0/WORK_ALLOCATION.md)). Phase 1 착수, **H0(공통 계약) 준비 중**. 다른 작업은 H0 확정 뒤 배정 요청을 받아 착수합니다.
+> **현재 상태:** Phase 0 완료(G3 통과 확정, [Phase 0 배정표](../phase-0/WORK_ALLOCATION.md)). Phase 1의 **H0(공통 계약) 준비 중**. 다른 작업도 H0 계약 검토를 위해 먼저 배정할 수 있지만, 기능 구현은 H0 확정 뒤 시작합니다.
+> **초안 위치:** `ph1/plan` / `D:\worktree\TelosWeaver\ph1-plan`. 대표 `master`에 병합하기 전에는 이 파일로 작업 소유권을 확정하지 않습니다. 통합 담당이 병합 시 대표 저장소의 실제 배정과 기준 Commit을 확인해 운영 원본으로 전환합니다.
 
 ## 1. 단일 원본과 갱신 주체
 
-이 파일이 Phase 1 배정·게이트·변경 요청의 단일 원본입니다. 수정 범위와 갱신 규칙은 Phase 0 배정표 §1과 같습니다(담당은 자기 행·자기 변경 요청·§7 기록, 통합 담당은 관리 항목·게이트·요청 판정·다른 행·`integrated`/`verified` 전환. 배정표 수정은 대표 저장소 `master`에서 단독 커밋, §7 표 행 사이 빈 줄 금지).
+이 파일은 대표 `master`에 병합된 뒤 Phase 1 배정·게이트·변경 요청의 단일 원본입니다. 수정 범위와 갱신 규칙은 Phase 0 배정표 §1과 같습니다(담당은 자기 행·자기 변경 요청·§7 기록, 통합 담당은 관리 항목·게이트·요청 판정·다른 행·`integrated`/`verified` 전환. 운영 배정표 수정은 대표 저장소 `master`에서 단독 커밋, §7 표 행 사이 빈 줄 금지). 현재 계획 Branch의 초안 작성·리뷰는 운영 배정이나 게이트 판정을 뜻하지 않습니다.
 
 | 관리 항목 | 현재 값 |
 |---|---|
@@ -20,34 +21,34 @@
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `master` / 대표 저장소 작업 트리 | Phase 0 최종 `master` | — | Spec v1.5.9 §19.6·이 배정표 작성. 다음: PH1-CONTRACT와 H0 계약 확정 |
+| PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | 계획 초안: `ph1/plan` / `D:\worktree\TelosWeaver\ph1-plan` | 초안 부모 `d7f1e4e` | 초안 `441a89e`, 리뷰 수정은 작업 트리 | Spec v1.5.10 §19.6·이 배정표의 초안. 다음: 대표 `master`에 계획 반영, PH1-CONTRACT 배정과 H0 계약 확정. 통합 담당·게이트 판정 변경 없음 |
 | PH1-CONTRACT | — | unassigned | — | — | — | H0 계약(§19.6.2)을 INTEGRATION과 함께 확정. 이월 P1-1(C5 Capability 판정 기준) 포함 |
 | PH1-PERSIST | — | unassigned | — | — | — | H0 뒤 |
-| PH1-SCHED | — | unassigned | — | — | — | H0 뒤 |
+| PH1-SCHED | — | unassigned | — | — | — | H0 뒤. 단일 Scheduler 소유권, 대기 자원·취소 전파, 재시작 대조·안전 보류 |
 | PH1-CONTEXT | — | unassigned | — | — | — | H0 뒤. 지원 백로그 SB-11(Capsule) |
-| PH1-WORKSPACE | — | unassigned | — | — | — | H0 뒤 |
+| PH1-WORKSPACE | — | unassigned | — | — | — | H0 뒤. Writer·기존 변경 보존, 고정 Revision의 승인된 Git 반영 |
 | PH1-ARTIFACT | — | unassigned | — | — | — | H0 뒤 |
 | PH1-VALIDATION | — | unassigned | — | — | — | H0 뒤. SCHED·ARTIFACT 공개 인터페이스 통합 후 연결 |
 | PH1-MCP | — | unassigned | — | — | — | H0 뒤. SCHED 공개 인터페이스 통합 후 연결 |
-| PH1-MASTER | — | unassigned | — | — | — | H0 뒤. 이월 P1-2(실시간 승인 정책의 Core 측) |
+| PH1-MASTER | — | unassigned | — | — | — | H0 뒤. 이월 P1-2의 Core 판단·제어 연결, VALIDATION 승인 기록·HOST API·Provider·EXT와 연계 |
 | PH1-HOST | — | unassigned | — | — | — | H0 뒤. PERSIST·SCHED 통합 후 연결. 이월 P1-5(Windows 정상 종료), SB-12·13 |
-| PH1-CODEX | — | unassigned | — | — | — | H0 뒤. 이월 P1-1 적용, SB-05·08·09 |
+| PH1-CODEX | — | unassigned | — | — | — | H0 뒤. 이월 P1-1 적용, SB-08·09 검토. SB-05 특정 Turn Resume는 제품 P1 범위의 백로그로 유지 |
 | PH1-CLAUDE | — | unassigned | — | — | — | H0 뒤. 이월 P1-1·P1-2(실시간 승인, SB-07)·P1-3 검토 |
 | PH1-AGY | — | unassigned | — | — | — | H0 뒤. 이월 P1-1·P1-3 검토 |
 | PH1-CONFIG | — | unassigned | — | — | — | H0 뒤 |
-| PH1-RN | — | unassigned | — | — | — | H0 뒤 |
+| PH1-RN | — | unassigned | — | — | — | H0 뒤. 설치 설정 소유권·사용자 후속 변경 보존, P0 RPC·TTL·중복·Degraded |
 | PH1-EXT | — | unassigned | — | — | — | H0 뒤. HOST API 확장 통합 후 연결 |
 
-상태는 `unassigned → reserved → in-progress → review → integrated → verified`(Spec §19.5.5).
+총 17개 작업입니다. 상태는 `unassigned → reserved → in-progress → review → integrated → verified`(Spec §19.5.5). H0 전 배정은 계약 검토·초안 제출 범위이며 기능 구현 허가가 아닙니다.
 
 ## 3. 통합 게이트
 
 | 게이트 | 상태 | 근거 |
 |---|---|---|
-| H0 Phase 1 공통 계약 | 준비 중 | Spec §19.6.2 |
-| H1 수직 경로 | 대기 | Spec §19.6.4 3번 |
+| H0 Phase 1 공통 계약 | 준비 중 | Spec §19.6.2. 아래 §5의 10종 계약·Core 공개 인터페이스·확인자·Contract 시험·기준 Commit 확정 전 통과 불가 |
+| H1 수직 경로 | 대기 | Spec §19.6.4 3번. 실제 Provider 경로, 재시작 후 확정 결과 보존과 미완 실행 안전 보류를 각각 확인 |
 | H2 구성 통합 | 대기 | — |
-| H3 Phase 1 수용 | 대기 | Spec §19.2 통과 조건, §20.3 P0 E2E |
+| H3 Phase 1 수용 | 대기 | Spec §19.2, §18 P0 및 혼합 항목 P0 부분, E2E-01·04·05·06·08·09·13과 E2E-02·07·14의 P0 부분, 별도 코딩·실패 시나리오. 필수 환경 미검증 시 보류 |
 
 ## 4. 계약·공통 파일 변경 요청
 
@@ -56,7 +57,24 @@
 
 ## 5. H0 계약 범위와 등록 경로
 
-H0 확정 때 계약별 정의 위치·기준 Commit을 기록합니다(Spec §19.6.2의 10종).
+다음은 H0의 확인 목록이며 아직 확정된 계약이 아닙니다. 각 행에 실제 정의 경로·제공/사용 작업·확인자·Contract 시험·기준 Commit을 채워야 합니다. 공유 타입은 CONTRACT, Core 서비스 인터페이스는 해당 모듈 담당, 등록·Stub 연결은 INTEGRATION이 반영합니다. 미배정 작업은 통합 담당이 검토 대행자와 근거를 기록합니다.
+
+| 계약 | 확인할 경계 | 정의 경로·확인자·시험·기준 Commit |
+|---|---|---|
+| Task·Run·Session | 상태·Revision·의존성·자식 한도·대기·취소 전파·재시도 | 미확정 |
+| 영속 기록 | 상태·이벤트·실행 의도의 동일 Transaction, 멱등성·Epoch·재시작 대조·커서 | 미확정 |
+| Task MCP | 여섯 도구의 입출력·오류·연결 자격·Project/Run Scope | 미확정 |
+| 산출물·검증 | 불변 Version·참조 수명, Validator 상태, 고정 대상 승인·만료·소비 | 미확정 |
+| Workspace | Writer Lock·살아 있는 소유자, 기존 변경, Diff·승인된 Revision 반영 | 미확정 |
+| 문맥 | Fresh/Capsule, 필수 입력·신뢰 경계, 사용량·Unknown·집계 | 미확정 |
+| 마스터 결정·정책 | 8종 kind, 권한 교집합·예산, Provider 승인·사용자 판단 | 미확정 |
+| Local Core API | Task·Master·Artifact·승인·개입·P0 RN, Snapshot·커서·호환성 | 미확정 |
+| 설정 | 계층·출처·해시, Host 귀속, RN·Task MCP 설정 소유권·사용자 변경 보존 | 미확정 |
+| Capability 판정 | C5 공통 기준, 환경·버전별 증거, 미지원 거부·명시적 대체 | 미확정 |
+
+Core 연결은 SCHED↔PERSIST, SCHED↔HOST, SCHED↔WORKSPACE/CONTEXT/ARTIFACT/VALIDATION, MASTER/MCP/API↔SCHED의 공개 인터페이스·오류·취소 경계를 포함합니다(Spec §19.6.2). 통합 담당은 §18 전체 P0 요구사항과 §20.3 P0 시나리오를 담당·필수 환경·시험·증거에 연결한 수용 대조표를 H0에서 등록합니다. H3 때 실행 결과를 채우며, 목록 작성만으로 시험을 통과한 것으로 보지 않습니다.
+
+이월 P1-1~6의 담당과 완료 경계는 Spec §19.6.6을 따릅니다. P1-4는 CODEX(SB-08·09), HOST(SB-13·18), 세 Provider·EXT·INTEGRATION(SB-16·17)이 나누어 검토합니다. P1-6(CI)은 INTEGRATION이 현재 보류 결정을 유지하고 변경 결정만 기록합니다.
 
 ## 6. 환경·운영 결정
 
@@ -66,8 +84,11 @@ Phase 0 배정표 §6의 결정(줄바꿈, Linux·Remote SSH Host `psyki-nas`, C
 |---|---|---|---|
 | Phase 1 진행 방식 | §19.6 병렬 절차, 계약 게이트(H0) 먼저, 통합 담당 유지, 이월 과제는 관련 작업에 편입 | 적용 | 2026-10-26 |
 
+Phase 0 환경의 설치 버전·로그인 상태가 현재도 같다고 가정하지 않습니다. 실제 시험 시 Host·탐지 경로·CLI/확장/RN 버전과 인증 조건을 다시 기록합니다. Linux SSH 명령 실행과 VS Code Remote SSH UI 증거는 구분합니다. 사용자 전역 MCP/Hook 설정 변경은 기존 결정에 따른 명시적 실행·확인 범위를 지킵니다.
+
 ## 7. 변경 기록
 
 | 일시 (KST) | 기록자 | 변경 | 기준 Commit |
 |---|---|---|---|
 | 2026-10-26 18:20 | `claude-opus-5.5/session-c9336d2c` | Phase 1 착수 준비: 사용자 결정(병렬 절차·H0 먼저·통합 담당 유지·이월 과제 편입)에 따라 Spec v1.5.9 §19.6과 이 배정표 작성. PH1-INTEGRATION `in-progress`, 나머지 `unassigned` | Phase 0 최종 `master` |
+| 2026-11-07 (시각 미기록) | `Codex / PH1-PLAN-REVIEW` | 사용자 요청으로 계획 초안 리뷰·수정. H0 Core 인터페이스·확인 목록, 17개 작업과 이월 책임, H3 E2E-13·14·코딩·실패 경로, 초안/운영 원본 구분 보완. 담당 배정·지원 판정·게이트 변경과 기능 구현·실환경 시험 없음 | 초안 `441a89e`, 비교 `master` `4bb6ed4` |
