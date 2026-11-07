@@ -4,11 +4,11 @@
 > **갱신일:** 2026-11-07  
 > **범위 원본:** [Spec §19.6](../DEVELOPMENT_v1.5.md#196-phase-1-병렬-구현--작업-분할과-소유권), 절차는 §19.5를 PH1로 읽어 적용  
 > **현재 상태:** Phase 0 완료(G3 통과 확정, [Phase 0 배정표](../phase-0/WORK_ALLOCATION.md)). Phase 1의 **H0(공통 계약) 준비 중**. 다른 작업도 H0 계약 검토를 위해 먼저 배정할 수 있지만, 기능 구현은 H0 확정 뒤 시작합니다.  
-> **초안 위치:** `ph1/plan` / `D:\worktree\TelosWeaver\ph1-plan`. 대표 `master`에 병합하기 전에는 이 파일로 작업 소유권을 확정하지 않습니다. 통합 담당이 병합 시 대표 저장소의 실제 배정과 기준 Commit을 확인해 운영 원본으로 전환합니다.
+> **확정:** 2026-11-07 사용자 확정, `c696cb4`로 `master`에 병합(Spec v1.5.10). 이 파일이 운영 원본입니다.
 
 ## 1. 단일 원본과 갱신 주체
 
-이 파일은 대표 `master`에 병합된 뒤 Phase 1 배정·게이트·변경 요청의 단일 원본입니다. 수정 범위와 갱신 규칙은 Phase 0 배정표 §1과 같습니다(담당은 자기 행·자기 변경 요청·§7 기록, 통합 담당은 관리 항목·게이트·요청 판정·다른 행·`integrated`/`verified` 전환. 운영 배정표 수정은 대표 저장소 `master`에서 단독 커밋, §7 표 행 사이 빈 줄 금지). 현재 계획 Branch의 초안 작성·리뷰는 운영 배정이나 게이트 판정을 뜻하지 않습니다.
+이 파일이 Phase 1 배정·게이트·변경 요청의 단일 원본입니다. 수정 범위와 갱신 규칙은 Phase 0 배정표 §1과 같습니다(담당은 자기 행·자기 변경 요청·§7 기록, 통합 담당은 관리 항목·게이트·요청 판정·다른 행·`integrated`/`verified` 전환. 운영 배정표 수정은 대표 저장소 `master`에서 단독 커밋, §7 표 행 사이 빈 줄 금지).
 
 | 관리 항목 | 현재 값 |
 |---|---|
@@ -21,7 +21,7 @@
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | 계획 초안: `ph1/plan` / `D:\worktree\TelosWeaver\ph1-plan` | 초안 부모 `d7f1e4e` | 초안 `441a89e`, 리뷰 반영 `06ea45a`(Codex)·`ea209cd`(Antigravity) | Spec v1.5.10 §19.6·이 배정표의 초안. 다음: 대표 `master`에 계획 반영, PH1-CONTRACT 배정과 H0 계약 확정. 통합 담당·게이트 판정 변경 없음 |
+| PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `master` / 대표 저장소 작업 트리 | `c696cb4` | 계획 `56f6091`, 리뷰 반영 `9626249`(Codex)·`274ea35`(Antigravity), 정정 `b24120d`, 병합 `c696cb4` | Spec v1.5.10 §19.6·이 배정표 확정(2026-11-07 사용자 확정). 다음: PH1-CONTRACT 배정과 H0 계약 확정 |
 | PH1-CONTRACT | — | unassigned | — | — | — | H0 계약(§19.6.2)을 INTEGRATION과 함께 확정. 이월 P1-1(C5 Capability 판정 기준) 포함 |
 | PH1-PERSIST | — | unassigned | — | — | — | H0 뒤 |
 | PH1-SCHED | — | unassigned | — | — | — | H0 뒤. 단일 Scheduler 소유권, 대기 자원·취소 전파, 재시작 대조·안전 보류 |
@@ -93,3 +93,4 @@ Phase 0 환경의 설치 버전·로그인 상태가 현재도 같다고 가정�
 | 2026-10-26 18:20 | `claude-opus-5.5/session-c9336d2c` | Phase 1 착수 준비: 사용자 결정(병렬 절차·H0 먼저·통합 담당 유지·이월 과제 편입)에 따라 Spec v1.5.9 §19.6과 이 배정표 작성. PH1-INTEGRATION `in-progress`, 나머지 `unassigned` | Phase 0 최종 `master` |
 | 2026-11-07 (시각 미기록) | `Codex / PH1-PLAN-REVIEW` | 사용자 요청으로 계획 초안 리뷰·수정. H0 Core 인터페이스·확인 목록, 17개 작업과 이월 책임, H3 E2E-13·14·코딩·실패 경로, 초안/운영 원본 구분 보완. 담당 배정·지원 판정·게이트 변경과 기능 구현·실환경 시험 없음 | 초안 `441a89e`, 비교 `master` `4bb6ed4` |
 | 2026-11-07 17:44 | `gemini-4-argon/session-c2e931ec` | 사용자 요청으로 Codex 리뷰 수정본(`06ea45a`) 추가 리뷰·보완: H0 Task MCP Run별(`RunContext`) 자격 주입 경계·Capsule(SB-11) 정책 허용(`PH1-MASTER`) 및 전달 경계·HOST↔MASTER/VALIDATION 실시간 승인/제어 라우팅 명시, §19.6.3 작업별 P0 요구사항(`SESS`·`DELEG-06/09`·`COMM-10`·`VERIFY-06`·`SAFE-11/12/14`) 및 `docs/phase-0/WORK_ALLOCATION.md` 보존 경로 보완, §19.6.6 지원 백로그(`SB-01~19`) 매핑 정합화 | `06ea45a` |
+| 2026-11-07 18:09 | `claude-opus-5.5/session-c9336d2c` | 두 리뷰 검토: 작업 17개·E2E-13·14 보완, 책임 경계·H0 계약 보강, 요구사항 ID 25개 실재 확인, §18 P0 전 항목의 작업 배정 확인. 정정: SB-19(RN 관찰 한계)를 UI 범위로 인용한 3곳 수정(`b24120d`). 사용자 결정: 이번 리뷰는 직접 배정이라 REQ1 제출 없이 수용. 최신 `master` 위로 Rebase(이전 Hash `441a89e`→`56f6091`, `06ea45a`→`9626249`, `ea209cd`→`274ea35`) 뒤 **사용자 확정으로 병합 `c696cb4`**. 운영 원본으로 전환 | `c696cb4` |
