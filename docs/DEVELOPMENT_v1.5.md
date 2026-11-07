@@ -1529,7 +1529,7 @@ H0 완료 시 공통 인터페이스와 컴파일 가능한 등록 경로(명시
 | PH1-CODEX·PH1-CLAUDE·PH1-AGY | 각 Adapter의 P0 최소 Capability, Task MCP 연결 주입, Capsule 입력(SB-11), H0 판정 기준 적용(P1-1). Claude는 실시간 승인(P1-2), Claude·Agy는 진행 중 조정 검토(P1-3) | AGENT·SESS·FORK의 P0와 §19.6.6 이월 | §19.5.3의 각 PH0 Provider 경로 |
 | PH1-CONFIG | 설정 계층·우선순위·출처·최종 해시·검증, Host별 탐지·인증 설정, 권한 상한을 확장하지 않는 해석, 운영자 설정 전환 | CFG-01·02, AGENT-05·SAFE-01·10의 설정 측, §13 | crates/core/src/config/**, crates/core/tests/config_*.rs |
 | PH1-RN | RN 설치·제거 시 MCP/Hook 설정 소유권·충돌·사용자 후속 변경 보존, P0 통제된 RPC·TTL·중복 처리, Degraded 동작, Core Client 확장, DEC-07 제거 경로 회귀 | RN·COMM의 P0, CFG-03, SAFE-11·12·14 | rn-fork/**, crates/rn-client/** |
-| PH1-EXT | 기본 Master·Task·Artifact·개입 UI(SB-19의 P0 범위), 고정 대상 승인·취소, 파일·Diff 보기, Snapshot·커서 재접속 조회, UI 연결과 Core 수명 분리, RN 오류·출력·로그 한도 표시 | UI의 P0, COMM-05 | extension/** |
+| PH1-EXT | 기본 Master·Task·Artifact·개입 UI, 고정 대상 승인·취소, 파일·Diff 보기, Snapshot·커서 재접속 조회, UI 연결과 Core 수명 분리, RN 오류·출력·로그 한도 표시 | UI의 P0, COMM-05 | extension/** |
 
 총 17개 작업이며 Provider 3개는 각자 별도 배정·Writer를 갖습니다. 새 모듈의 `lib.rs` 등록·`main.rs` 연결·Cargo 의존성은 INTEGRATION이 합니다(§19.5.4). 새 Core 모듈 담당은 `crates/core/tests/fixtures/<모듈 이름>/**`에 자기 Fixture를 둘 수 있습니다. 공유 Fixture와 표에 없는 경로는 변경 요청으로 처리합니다.
 
@@ -1567,7 +1567,7 @@ INTEGRATION은 H0에서 §18의 각 P0 요구사항·혼합 항목의 P0 부분�
 | P1-5 Windows 정상 종료 | HOST(SB-12), 세 Provider·INTEGRATION 회귀 | 정상 종료 수단의 적용 가능성·유예·강제 종료·자식 회수 결과를 구분. 지원 불가 시 SB-12에 제한과 근거 유지 |
 | P1-6 CI | INTEGRATION | 현재 사용자 결정인 CI 보류 유지. 수동 공통 검사와 환경 증거는 계속 필수, 도입 여부 변경은 별도 결정 기록 |
 
-이월 검토는 모든 미지원·미검증 기능의 지원 전환을 보장하지 않습니다. 지원 백로그의 상태 변경은 실제 근거를 통합 담당이 반영하며, P0 밖 기능(SB-05·14·15 및 SB-19의 P1 부분 등)의 미해소를 이유로 Phase 1 범위를 임의로 늘리지 않습니다.
+이월 검토는 모든 미지원·미검증 기능의 지원 전환을 보장하지 않습니다. 지원 백로그의 상태 변경은 실제 근거를 통합 담당이 반영하며, P0 밖 기능(SB-05·14·15·19 등)의 미해소를 이유로 Phase 1 범위를 임의로 늘리지 않습니다.
 
 ## 20. PoC 및 제품 수용 시나리오
 

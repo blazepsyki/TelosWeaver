@@ -21,7 +21,7 @@
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | 계획 초안: `ph1/plan` / `D:\worktree\TelosWeaver\ph1-plan` | 초안 부모 `d7f1e4e` | 초안 `441a89e`, 리뷰 수정은 작업 트리 | Spec v1.5.10 §19.6·이 배정표의 초안. 다음: 대표 `master`에 계획 반영, PH1-CONTRACT 배정과 H0 계약 확정. 통합 담당·게이트 판정 변경 없음 |
+| PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | 계획 초안: `ph1/plan` / `D:\worktree\TelosWeaver\ph1-plan` | 초안 부모 `d7f1e4e` | 초안 `441a89e`, 리뷰 반영 `06ea45a`(Codex)·`ea209cd`(Antigravity) | Spec v1.5.10 §19.6·이 배정표의 초안. 다음: 대표 `master`에 계획 반영, PH1-CONTRACT 배정과 H0 계약 확정. 통합 담당·게이트 판정 변경 없음 |
 | PH1-CONTRACT | — | unassigned | — | — | — | H0 계약(§19.6.2)을 INTEGRATION과 함께 확정. 이월 P1-1(C5 Capability 판정 기준) 포함 |
 | PH1-PERSIST | — | unassigned | — | — | — | H0 뒤 |
 | PH1-SCHED | — | unassigned | — | — | — | H0 뒤. 단일 Scheduler 소유권, 대기 자원·취소 전파, 재시작 대조·안전 보류 |
@@ -37,7 +37,7 @@
 | PH1-AGY | — | unassigned | — | — | — | H0 뒤. 이월 P1-1(SB-10)·P1-3(SB-06) 검토 |
 | PH1-CONFIG | — | unassigned | — | — | — | H0 뒤 |
 | PH1-RN | — | unassigned | — | — | — | H0 뒤. 설치 설정 소유권·사용자 후속 변경 보존, P0 RPC·TTL·중복·Degraded |
-| PH1-EXT | — | unassigned | — | — | — | H0 뒤. HOST API 확장 통합 후 연결(SB-19의 P0 범위) |
+| PH1-EXT | — | unassigned | — | — | — | H0 뒤. HOST API 확장 통합 후 연결 |
 
 총 17개 작업입니다. 상태는 `unassigned → reserved → in-progress → review → integrated → verified`(Spec §19.5.5). H0 전 배정은 계약 검토·초안 제출 범위이며 기능 구현 허가가 아닙니다.
 
