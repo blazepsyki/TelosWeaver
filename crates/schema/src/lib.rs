@@ -16,6 +16,7 @@ mod failure;
 #[cfg(feature = "fixtures")]
 pub mod fixtures;
 mod journal;
+mod judgment;
 mod limits;
 mod master;
 mod mcp;
@@ -37,6 +38,7 @@ pub use discovery::*;
 pub use events::*;
 pub use failure::*;
 pub use journal::*;
+pub use judgment::*;
 pub use limits::*;
 pub use master::*;
 pub use mcp::*;
@@ -130,6 +132,9 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
         ("ConfigFile", schema_for!(ConfigFile)),
         ("ResolvedConfig", schema_for!(ResolvedConfig)),
         ("InstalledSetting", schema_for!(InstalledSetting)),
+        // Phase 1 H0: Capability 판정 (§7.1)
+        ("CapabilityEvidence", schema_for!(CapabilityEvidence)),
+        ("PreflightReport", schema_for!(PreflightReport)),
         // 마스터 결정 검증 (§4.2)
         ("DecisionPayload", schema_for!(DecisionPayload)),
         ("DecisionContext", schema_for!(DecisionContext)),

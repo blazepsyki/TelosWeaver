@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CapabilityEvidence",
+  "description": "실환경 시험 한 건의 결과입니다 (`provider_capabilities`, §14.1).",
+  "type": "object",
+  "properties": {
+    "checkedAt": {
+      "type": "string"
+    },
+    "cliVersion": {
+      "type": "string"
+    },
+    "evidenceRef": {
+      "description": "증거 문서·Commit",
+      "type": "string"
+    },
+    "extensionVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "key": {
+      "description": "공통 Capability 키",
+      "type": "string"
+    },
+    "passed": {
+      "type": "boolean"
+    },
+    "platform": {
+      "description": "예: `win32-x64`, `linux-x64`",
+      "type": "string"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "test": {
+      "description": "시험 이름(예: `env_resume_and_fork`)",
+      "type": "string"
+    }
+  },
+  "required": [
+    "key",
+    "provider",
+    "hostId",
+    "platform",
+    "cliVersion",
+    "test",
+    "passed",
+    "checkedAt",
+    "evidenceRef"
+  ]
+}
