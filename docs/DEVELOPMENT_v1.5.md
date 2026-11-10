@@ -43,7 +43,7 @@
 | v1.5.8 | 2026-10-26 | 지원 백로그 `docs/SUPPORT_BACKLOG.md` 신설(사용자 요청): 미지원·설계상 미지원·미구현·미검증 기능을 지원 조건·재확인 방법과 함께 한 목록으로 유지하고 CLI 버전 변화 때 재판정(§7.1). PH0-INTEGRATION 경로에 등록(§19.5.3) |
 | v1.5.9 | 2026-10-26 | Phase 0 완료(G3 통과 확정) 뒤 Phase 1 병렬 구현 절차 신설(§19.6, 사용자 결정: 병렬 절차·계약 게이트 먼저·통합 담당 유지·이월 과제는 관련 작업에 편입): 게이트 H0~H3, H0 공통 계약 10종, 작업 17종(PH1-*)과 독점 경로, 진행 순서, §19.5 규칙 재사용, Phase 0 임시 구성 대체 |
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
-| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2), Workspace 기록·Git 기준선·잠금 충돌·Diff·원본 반영 요청(§10), Lock 인수 조건(§14.3) |
+| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2), Workspace 기록·Git 기준선·잠금 충돌·Diff·원본 반영 요청(§10), Lock 인수 조건(§14.3), Context Snapshot 필드·입력 문제·신뢰 구분(§6.1), 전략 대체·Capsule 내용(§8.2), 사용량 기록 역할·Unknown·중복 합산 방지(§8.3) |
 
 ## 목차
 
@@ -429,6 +429,8 @@ Run 시작 전에 다음 내용을 `ContextSnapshot`으로 고정합니다.
 
 Workspace 전체를 무조건 모델 입력에 넣지 않습니다. 관련 파일·자료의 선택 이유와 제외 범위를 남깁니다. 필수 지침이나 입력을 읽지 못하면 조용히 생략하지 않습니다. Core가 판정 가능한 누락은 실행을 보류하고, 판단이 필요한 경우 마스터가 질문·제한적 실행·실패를 결정합니다.
 
+**Snapshot 계약(H0 계약 `ContextSnapshot`):** 위 범주를 지침 출처(경로·Digest·범위), 해석한 입력 Version과 Producer, 고른 자료와 이유·신뢰 구분(`instruction`·`material`·`tool-output`·`external-message`), 제외 범위, 환경(Host·Workspace·cwd·실행 파일·CLI 버전), Git 기준선, 계약 Digest(Plan/Task Revision·Policy Revision·설정·권한·예산·검증), 입력 문제, 가정으로 기록합니다. 입력 문제는 `missing`·`conflict`·`stale`·`unreadable`로 구분하고, Core가 판정할 수 있는 문제는 `blocking`으로 표시해 실행을 보류합니다.
+
 ### 6.2 출처와 신뢰 경계
 
 프로젝트의 적용 지침과 분석 대상 문서·도구 출력·외부 메시지를 구분합니다. 자료 본문의 지시를 사용자 권한이나 정책 변경으로 승격하지 않습니다. 지침 충돌은 출처와 함께 표시하며 우선순위는 §13을 따릅니다.
@@ -738,6 +740,8 @@ Session은 여러 Run에서 재사용할 수 있습니다. 동일 Session의 쓰
 5. 완료된 부작용을 재실행하지 않도록 결과와 실행 의도를 확인합니다. 분기 깊이·개수·동시성·전체 예산에 상한을 적용합니다.
 6. 실패하면 이유와 선택한 Capsule/Fresh 대체 경로를 기록합니다. Native Fork에 성공한 것처럼 표시하지 않습니다.
 
+대체는 Snapshot의 `fallback`(요청 전략·사용 전략·사유·거부된 Capability 키)으로 남깁니다. Capsule 내용(목표·결정·근거 Artifact·제약·미해결 질문·원래 이력의 출처와 생략 범위)은 `structured` Artifact로 저장하고 Snapshot에서 참조합니다(H0 계약 `CapsuleContent`).
+
 독립 Reviewer에는 대상 Artifact와 검증 계약을 우선 전달합니다. 구현자의 결론과 전체 이력 상속은 검토 독립성과 필요한 문맥을 고려해 선택합니다. 모든 Worker의 전체 대화를 마스터에 반복 전달하지 않습니다.
 
 ### 8.3 토큰 효율과 Prompt Cache
@@ -755,6 +759,8 @@ Session은 여러 Run에서 재사용할 수 있습니다. 동일 Session의 쓰
 | 품질 | 동일 Validation Contract의 통과 여부와 재작업 횟수 |
 
 누적값과 Turn별 증가량을 구분합니다. 부모 사용량에 자식 값이 포함되면 중복 집계하지 않습니다. 다른 Provider의 독자적인 크레딧을 단순 합산하지 않습니다. API 비용 규칙을 CLI 구독에 그대로 적용하지 않습니다.
+
+사용량 기록(H0 계약 `UsageRecord`)은 Provider 이벤트의 `UsagePayload`에 Plan·Task·Run·Native Turn·역할(`master`·`worker`·`validator`)을 붙여 저장합니다. 보고되지 않은 값은 0이 아니라 없음(Unknown)으로 두고, 부모 기록에 이미 포함된 값(`includedInParent`)은 다시 합산하지 않습니다.
 
 P0는 전략 계약과 PoC, P1은 검증된 Native Fork와 측정 기반 최적화입니다. 세 Provider 모두의 포크 성공을 MVP 선행 조건으로 두지 않습니다.
 

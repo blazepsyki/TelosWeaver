@@ -1,0 +1,415 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ContextSnapshot",
+  "type": "object",
+  "properties": {
+    "assumptions": {
+      "description": "알려진 가정과 미해결 질문",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "capsule": {
+      "description": "`capsule` 전략에서 전달한 Capsule Artifact",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactVersionRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "contract": {
+      "$ref": "#/$defs/ContractDigests"
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "environment": {
+      "$ref": "#/$defs/EnvironmentFacts"
+    },
+    "exclusions": {
+      "description": "일부러 넣지 않은 범위와 이유",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "fallback": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StrategyFallback"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "git": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GitBaseline"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ResolvedInput"
+      }
+    },
+    "instructions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/InstructionSource"
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/InputIssue"
+      }
+    },
+    "runId": {
+      "type": "string"
+    },
+    "selected": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SelectedMaterial"
+      }
+    },
+    "snapshotId": {
+      "type": "string"
+    },
+    "strategy": {
+      "$ref": "#/$defs/SessionMode"
+    },
+    "taskId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshotId",
+    "runId",
+    "taskId",
+    "strategy",
+    "instructions",
+    "inputs",
+    "selected",
+    "exclusions",
+    "environment",
+    "contract",
+    "issues",
+    "assumptions",
+    "createdAt"
+  ],
+  "$defs": {
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    },
+    "ContractDigests": {
+      "description": "실행 계약의 고정 값입니다. 최종 설정·권한·예산·검증 계약의 SHA-256과 Policy Revision.",
+      "type": "object",
+      "properties": {
+        "budgetDigest": {
+          "type": "string"
+        },
+        "configDigest": {
+          "type": "string"
+        },
+        "permissionDigest": {
+          "type": "string"
+        },
+        "planRevision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "policyRevision": {
+          "type": "string"
+        },
+        "taskRevision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "validationDigest": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "planRevision",
+        "taskRevision",
+        "policyRevision",
+        "configDigest",
+        "permissionDigest",
+        "budgetDigest",
+        "validationDigest"
+      ]
+    },
+    "EnvironmentFacts": {
+      "type": "object",
+      "properties": {
+        "cliVersion": {
+          "type": "string"
+        },
+        "cwd": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "executablePath": {
+          "type": "string"
+        },
+        "hostId": {
+          "type": "string"
+        },
+        "tools": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostId",
+        "workspaceId",
+        "executablePath",
+        "cliVersion"
+      ]
+    },
+    "GitBaseline": {
+      "description": "시작 시점의 Git 상태입니다. staged/unstaged/untracked 변경을 자동 초기화하지 않습니다 (GIT-03).",
+      "type": "object",
+      "properties": {
+        "baseCommit": {
+          "type": "string"
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gitRoot": {
+          "type": "string"
+        },
+        "recordedAt": {
+          "type": "string"
+        },
+        "staged": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unstaged": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "untracked": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "gitRoot",
+        "baseCommit",
+        "staged",
+        "unstaged",
+        "untracked",
+        "recordedAt"
+      ]
+    },
+    "InputIssue": {
+      "description": "입력 문제입니다. `blocking`이면 Core가 실행을 보류하고, 아니면 마스터가 질문·제한적 실행·실패를 정합니다 (§6.1).",
+      "type": "object",
+      "properties": {
+        "blocking": {
+          "type": "boolean"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/InputIssueKind"
+        },
+        "subject": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "subject",
+        "detail",
+        "blocking"
+      ]
+    },
+    "InputIssueKind": {
+      "type": "string",
+      "enum": [
+        "missing",
+        "conflict",
+        "stale",
+        "unreadable"
+      ]
+    },
+    "InstructionSource": {
+      "type": "object",
+      "properties": {
+        "digest": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "scope": {
+          "description": "예: `user`, `project`, `directory:<경로>`",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "digest",
+        "scope"
+      ]
+    },
+    "ResolvedInput": {
+      "description": "Run 시작 때 실제 Version으로 해석한 입력입니다 (§5.2 `task-output` 고정).",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "producerTaskId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "producerTaskRevision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "version": {
+          "$ref": "#/$defs/ArtifactVersionRef"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ]
+    },
+    "SelectedMaterial": {
+      "description": "모델에 전달하려고 고른 자료와 이유입니다. Workspace 전체를 무조건 넣지 않습니다 (§6.1).",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "trust": {
+          "$ref": "#/$defs/SourceTrust"
+        }
+      },
+      "required": [
+        "reference",
+        "trust",
+        "reason"
+      ]
+    },
+    "SessionMode": {
+      "description": "Spec §8.1 문맥 전략.",
+      "type": "string",
+      "enum": [
+        "fresh",
+        "resume",
+        "native-fork",
+        "capsule"
+      ]
+    },
+    "SourceTrust": {
+      "description": "자료의 출처 종류입니다. 자료 본문의 지시를 사용자 권한이나 정책 변경으로 승격하지 않습니다 (§6.2).",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "tool-output",
+            "external-message"
+          ]
+        },
+        {
+          "description": "적용하는 사용자·프로젝트 지침",
+          "type": "string",
+          "const": "instruction"
+        },
+        {
+          "description": "분석·작업 대상 문서와 파일",
+          "type": "string",
+          "const": "material"
+        }
+      ]
+    },
+    "StrategyFallback": {
+      "description": "요청한 문맥 전략을 쓰지 못해 다른 전략으로 실행한 기록입니다. 성공한 것처럼 표시하지 않습니다 (§8.2 6번, E2E-13).",
+      "type": "object",
+      "properties": {
+        "capability": {
+          "description": "거부된 기능의 공통 Capability 키",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "requested": {
+          "$ref": "#/$defs/SessionMode"
+        },
+        "used": {
+          "$ref": "#/$defs/SessionMode"
+        }
+      },
+      "required": [
+        "requested",
+        "used",
+        "reason"
+      ]
+    }
+  }
+}

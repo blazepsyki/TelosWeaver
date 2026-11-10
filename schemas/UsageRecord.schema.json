@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UsageRecord",
+  "description": "Provider가 보고한 사용량 한 건입니다. 값이 없으면 0이 아니라 Unknown입니다 (§8.3, §15.2).\n`included_in_parent`가 참이면 부모 기록에 이미 포함된 값이므로 다시 합산하지 않습니다.",
+  "type": "object",
+  "properties": {
+    "includedInParent": {
+      "type": "boolean"
+    },
+    "nativeTurnId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "planId": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "recordedAt": {
+      "type": "string"
+    },
+    "role": {
+      "$ref": "#/$defs/UsageRole"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "usage": {
+      "$ref": "#/$defs/UsagePayload"
+    },
+    "usageId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "usageId",
+    "planId",
+    "taskId",
+    "runId",
+    "provider",
+    "role",
+    "usage",
+    "includedInParent",
+    "recordedAt"
+  ],
+  "$defs": {
+    "UsagePayload": {
+      "description": "캐시 값이 입력 합계에 포함되어 있으면 `cache_included_in_input`을 `true`로 보고합니다 (§8.3).",
+      "type": "object",
+      "properties": {
+        "cacheIncludedInInput": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "cacheReadTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "cacheWriteTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "costUsd": {
+          "description": "API 실제 비용만 기록합니다. CLI 구독 사용량을 비용으로 환산하지 않습니다.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "inputTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "scope": {
+          "$ref": "#/$defs/UsageScope"
+        },
+        "source": {
+          "$ref": "#/$defs/UsageSource"
+        }
+      },
+      "required": [
+        "scope",
+        "source"
+      ]
+    },
+    "UsageRole": {
+      "type": "string",
+      "enum": [
+        "master",
+        "worker",
+        "validator"
+      ]
+    },
+    "UsageScope": {
+      "oneOf": [
+        {
+          "description": "직전 usage 이벤트 이후의 증가량",
+          "type": "string",
+          "const": "delta"
+        },
+        {
+          "description": "Run 시작 이후 누적값",
+          "type": "string",
+          "const": "cumulative"
+        }
+      ]
+    },
+    "UsageSource": {
+      "type": "string",
+      "enum": [
+        "provider_reported",
+        "estimated"
+      ]
+    }
+  }
+}

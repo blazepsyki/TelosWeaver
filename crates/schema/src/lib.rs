@@ -7,6 +7,7 @@
 pub mod api;
 mod artifact;
 pub mod capability_keys;
+mod context;
 mod decision;
 mod discovery;
 mod events;
@@ -27,6 +28,7 @@ mod validation;
 mod workspace;
 
 pub use artifact::*;
+pub use context::*;
 pub use decision::*;
 pub use discovery::*;
 pub use events::*;
@@ -108,6 +110,10 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
         ("DiffSummary", schema_for!(DiffSummary)),
         ("SourceMergeRequest", schema_for!(SourceMergeRequest)),
         ("SourceMergeResult", schema_for!(SourceMergeResult)),
+        // Phase 1 H0: 문맥 (§6, §8)
+        ("ContextSnapshot", schema_for!(ContextSnapshot)),
+        ("CapsuleContent", schema_for!(CapsuleContent)),
+        ("UsageRecord", schema_for!(UsageRecord)),
         // 마스터 결정 검증 (§4.2)
         ("DecisionPayload", schema_for!(DecisionPayload)),
         ("DecisionContext", schema_for!(DecisionContext)),
