@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResolvedConfig",
+  "description": "Run에 고정하는 최종 설정입니다. `digest`는 정렬한 항목의 SHA-256입니다.",
+  "type": "object",
+  "properties": {
+    "digest": {
+      "type": "string"
+    },
+    "settings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ResolvedSetting"
+      }
+    }
+  },
+  "required": [
+    "settings",
+    "digest"
+  ],
+  "$defs": {
+    "ConfigLayer": {
+      "description": "해석 순서입니다. 뒤 계층이 일반 설정을 덮어씁니다.",
+      "type": "string",
+      "enum": [
+        "product-default",
+        "user-host",
+        "project",
+        "task"
+      ]
+    },
+    "ResolvedSetting": {
+      "description": "최종 설정의 항목 하나와 출처입니다 (CFG-01).",
+      "type": "object",
+      "properties": {
+        "key": {
+          "description": "예: `master.model`, `providers.codex.models`",
+          "type": "string"
+        },
+        "layer": {
+          "$ref": "#/$defs/ConfigLayer"
+        },
+        "sourcePath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value": true
+      },
+      "required": [
+        "key",
+        "value",
+        "layer"
+      ]
+    }
+  }
+}

@@ -7,6 +7,7 @@
 pub mod api;
 mod artifact;
 pub mod capability_keys;
+mod config;
 mod context;
 mod decision;
 mod discovery;
@@ -29,6 +30,7 @@ mod validation;
 mod workspace;
 
 pub use artifact::*;
+pub use config::*;
 pub use context::*;
 pub use decision::*;
 pub use discovery::*;
@@ -124,6 +126,10 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
             "ProviderApprovalRequest",
             schema_for!(ProviderApprovalRequest),
         ),
+        // Phase 1 H0: 설정 (§13.1)
+        ("ConfigFile", schema_for!(ConfigFile)),
+        ("ResolvedConfig", schema_for!(ResolvedConfig)),
+        ("InstalledSetting", schema_for!(InstalledSetting)),
         // 마스터 결정 검증 (§4.2)
         ("DecisionPayload", schema_for!(DecisionPayload)),
         ("DecisionContext", schema_for!(DecisionContext)),

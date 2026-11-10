@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConfigFile",
+  "description": "한 계층 설정 파일의 형식입니다. 없는 항목은 아래 계층 값을 씁니다.",
+  "type": "object",
+  "properties": {
+    "artifactMaxBytes": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
+    "budgetProfiles": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/BudgetProfile"
+      }
+    },
+    "commands": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/ValidationCommand"
+      },
+      "default": {}
+    },
+    "master": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentSelection"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "permissions": {
+      "description": "이 계층의 권한 상한. 최종 권한은 모든 계층과 Plan·부모 위임·Task 요청의 교집합입니다.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PermissionSet"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "providers": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/ProviderConfig"
+      },
+      "default": {}
+    },
+    "rnExecutable": {
+      "description": "RN Fork 실행 파일 (Host 귀속)",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "AgentSelection": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "role"
+      ]
+    },
+    "BudgetProfile": {
+      "description": "실행 시간·대기·재시도·토큰·비용의 상한입니다. Timeout은 작업 프로파일별 필수 양수입니다 (§13.2).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/ControlLimits"
+        },
+        "masterReserveTasks": {
+          "description": "마스터 판단용으로 예약하는 몫(Task 수·토큰). Worker가 쓰지 못합니다.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "masterReserveTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "maxCostUsd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "maxTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "planTimeoutSecs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "requireExactCost": {
+          "description": "참이면 사용량을 정확히 잴 수 없는 Provider로 이 Plan을 시작하지 않습니다.",
+          "type": "boolean"
+        },
+        "runTimeoutSecs": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "waitTimeoutSecs": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "id",
+        "limits",
+        "runTimeoutSecs",
+        "waitTimeoutSecs",
+        "requireExactCost",
+        "masterReserveTasks"
+      ]
+    },
+    "ControlLimits": {
+      "type": "object",
+      "properties": {
+        "executionRetryLimit": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "maxDelegationDepth": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "maxPlanTasks": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "providerConcurrency": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "reworkLimit": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "providerConcurrency",
+        "maxDelegationDepth",
+        "maxPlanTasks",
+        "executionRetryLimit",
+        "reworkLimit"
+      ]
+    },
+    "PermissionSet": {
+      "description": "한 범위(사용자·Host·프로젝트·Plan·부모 위임·Task 요청)가 허용하는 것입니다.\n최종 권한은 모든 범위의 교집합이며 저장소 설정·외부 메시지만으로 넓히지 않습니다 (§13.1, CFG-02).",
+      "type": "object",
+      "properties": {
+        "commands": {
+          "description": "실행해도 되는 검증 명령 이름 (H0 D8)",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hostIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "masterApprovableActions": {
+          "description": "마스터가 사용자 대신 승인할 수 있는 개별 행위(예: `git-merge`). 여기 없는 행위는 사용자 전용입니다 (§4.3).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "network": {
+          "type": "boolean"
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "workspaceModes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WorkspaceMode"
+          }
+        },
+        "writableWorkspaceIds": {
+          "description": "쓰기를 허용하는 Workspace ID. 없으면 읽기 전용입니다.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "providers",
+        "hostIds",
+        "workspaceModes",
+        "writableWorkspaceIds",
+        "commands",
+        "network",
+        "masterApprovableActions"
+      ]
+    },
+    "ProviderConfig": {
+      "description": "Provider별 설정입니다. `executable`은 Host 귀속이며 비우면 VS Code 확장 탐지 규칙(§7.5)을 따릅니다.",
+      "type": "object",
+      "properties": {
+        "executable": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "models": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "vscodeListing": {
+          "description": "`listed`(기본) 또는 `hidden` (§7.6)",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ValidationCommand": {
+      "description": "`command` 검증에 쓸 수 있는 명령입니다 (H0 D8). Task 계약은 이 이름으로만 참조합니다.",
+      "type": "object",
+      "properties": {
+        "allowedExtraArgs": {
+          "description": "Task 계약이 덧붙일 수 있는 인자. 여기 없는 인자는 거부합니다.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "args": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "program": {
+          "type": "string"
+        },
+        "timeoutSecs": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "program",
+        "timeoutSecs"
+      ]
+    },
+    "WorkspaceMode": {
+      "description": "P0 실행 대상은 None·Directory·GitWorktree입니다 (§10).",
+      "type": "string",
+      "enum": [
+        "none",
+        "directory",
+        "git-worktree",
+        "sandbox",
+        "remote"
+      ]
+    }
+  }
+}

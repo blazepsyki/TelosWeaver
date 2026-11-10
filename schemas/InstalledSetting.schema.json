@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InstalledSetting",
+  "description": "TelosWeaver가 사용자 설정 파일에 써 넣은 항목의 기록입니다 (CFG-03, E2E-09).",
+  "type": "object",
+  "properties": {
+    "installedAt": {
+      "type": "string"
+    },
+    "installedDigest": {
+      "description": "써 넣은 값의 SHA-256",
+      "type": "string"
+    },
+    "keyPath": {
+      "description": "파일 안의 위치(예: `mcpServers.telos-rn`)",
+      "type": "string"
+    },
+    "owner": {
+      "$ref": "#/$defs/InstallOwner"
+    },
+    "targetFile": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner",
+    "targetFile",
+    "keyPath",
+    "installedDigest",
+    "installedAt"
+  ],
+  "$defs": {
+    "InstallOwner": {
+      "type": "string",
+      "enum": [
+        "rn-fork",
+        "task-mcp"
+      ]
+    }
+  }
+}
