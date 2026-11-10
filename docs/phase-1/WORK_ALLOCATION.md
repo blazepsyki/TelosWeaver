@@ -22,7 +22,7 @@
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
 | PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `master` / 대표 저장소 작업 트리 | `c696cb4` | 계획 `56f6091`, 리뷰 반영 `9626249`(Codex)·`274ea35`(Antigravity), 정정 `b24120d`, 병합 `c696cb4` | Spec v1.5.10 §19.6·이 배정표 확정(2026-11-07 사용자 확정). 다음: PH1-CONTRACT 배정과 H0 계약 확정 |
-| PH1-CONTRACT | `claude-opus-5.5/session-c9336d2c` | in-progress | `master` / 대표 저장소 작업 트리(계약 구현은 `ph1/contract` Branch 예정) | `ff29e3f` | — | 사용자 지정(2026-11-07, INTEGRATION 겸임). H0 결정 사항 [H0_DECISIONS.md](H0_DECISIONS.md) D1~D13 사용자 결정 대기. 겸임 보완: 각 계약은 사용 작업 담당(미배정이면 검토 대행자)의 확인을 받음(Spec §19.6.2) |
+| PH1-CONTRACT | `claude-opus-5.5/session-c9336d2c` | in-progress | `master` / 대표 저장소 작업 트리(계약 구현은 `ph1/contract` Branch 예정) | `ff29e3f` | — | 사용자 지정(2026-11-07, INTEGRATION 겸임). H0 결정 사항 [H0_DECISIONS.md](H0_DECISIONS.md) D1~D15 확정(2026-11-10, `38cccec`). 겸임 보완: 각 계약은 사용 작업 담당(미배정이면 검토 대행자)의 확인을 받음(Spec §19.6.2) |
 | PH1-PERSIST | — | unassigned | — | — | — | H0 뒤 |
 | PH1-SCHED | — | unassigned | — | — | — | H0 뒤. 단일 Scheduler 소유권, 대기 자원·취소 전파, 재시작 대조·안전 보류 |
 | PH1-CONTEXT | — | unassigned | — | — | — | H0 뒤. 지원 백로그 SB-11(Capsule) |
@@ -95,3 +95,4 @@ Phase 0 환경의 설치 버전·로그인 상태가 현재도 같다고 가정�
 | 2026-11-07 17:44 | `gemini-4-argon/session-c2e931ec` | 사용자 요청으로 Codex 리뷰 수정본(`06ea45a`) 추가 리뷰·보완: H0 Task MCP Run별(`RunContext`) 자격 주입 경계·Capsule(SB-11) 정책 허용(`PH1-MASTER`) 및 전달 경계·HOST↔MASTER/VALIDATION 실시간 승인/제어 라우팅 명시, §19.6.3 작업별 P0 요구사항(`SESS`·`DELEG-06/09`·`COMM-10`·`VERIFY-06`·`SAFE-11/12/14`) 및 `docs/phase-0/WORK_ALLOCATION.md` 보존 경로 보완, §19.6.6 지원 백로그(`SB-01~19`) 매핑 정합화 | `06ea45a` |
 | 2026-11-07 18:09 | `claude-opus-5.5/session-c9336d2c` | 두 리뷰 검토: 작업 17개·E2E-13·14 보완, 책임 경계·H0 계약 보강, 요구사항 ID 25개 실재 확인, §18 P0 전 항목의 작업 배정 확인. 정정: SB-19(RN 관찰 한계)를 UI 범위로 인용한 3곳 수정(`b24120d`). 사용자 결정: 이번 리뷰는 직접 배정이라 REQ1 제출 없이 수용. 최신 `master` 위로 Rebase(이전 Hash `441a89e`→`56f6091`, `06ea45a`→`9626249`, `ea209cd`→`274ea35`) 뒤 **사용자 확정으로 병합 `c696cb4`**. 운영 원본으로 전환 | `c696cb4` |
 | 2026-11-07 18:15 | `claude-opus-5.5/session-c9336d2c` | 사용자 지정: PH1-CONTRACT를 통합 담당이 겸임(`unassigned → in-progress`). H0 결정 사항 D1~D13·사전 작업 A1~A3 정리(`ff29e3f`). 발견: Claude Code 2.1.318·Antigravity 1.5.2로 갱신돼 검증 버전 밖(A1) | `ff29e3f` |
+| 2026-11-10 20:46 | `claude-opus-5.5/session-c9336d2c` | A1(CLI 버전 변경 재시험: Claude 2.1.318 9개·Antigravity 1.5.3 8개 통과)·A2(Antigravity Workspace 플러그인 + 세션 한정 권한으로 MCP 주입 성공) 기록(`2088bb5`). 사용자 결정: H0 결정 D15는 (b) 요약 원본 조사, 나머지 14개 권장안(`38cccec`) | `38cccec` |
