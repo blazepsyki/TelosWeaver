@@ -35,6 +35,17 @@
     "taskId": {
       "type": "string"
     },
+    "taskMcp": {
+      "description": "Task MCP 연결 정보 (§9.2, H0). Task MCP를 주지 않는 Run은 비워 둡니다.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TaskMcpBinding"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "taskRevision": {
       "type": "integer",
       "format": "uint32",
@@ -96,6 +107,36 @@
       "additionalProperties": false,
       "required": [
         "mode"
+      ]
+    },
+    "TaskMcpBinding": {
+      "description": "Run 시작 때 Adapter에 넘기는 연결 정보입니다. 자격 원문은 넣지 않고 Core 상태 디렉터리의 파일 경로만 넘깁니다.",
+      "type": "object",
+      "properties": {
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "command": {
+          "description": "stdio MCP 서버로 띄울 실행 파일(`telos-weaver`)과 인자",
+          "type": "string"
+        },
+        "credentialFile": {
+          "description": "Run 범위 연결 자격 파일. 현재 사용자만 읽을 수 있게 만들고 Run 종료 때 폐기합니다.",
+          "type": "string"
+        },
+        "serverName": {
+          "description": "Provider 설정에 쓰는 MCP 서버 이름입니다. 고정 이름을 써서 Provider의 도구 Schema 캐시를 재사용합니다.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "serverName",
+        "command",
+        "args",
+        "credentialFile"
       ]
     }
   }

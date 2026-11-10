@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DelegateTaskOutput",
+  "type": "object",
+  "properties": {
+    "status": {
+      "$ref": "#/$defs/TaskStatus"
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "taskRevision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "taskId",
+    "taskRevision",
+    "status"
+  ],
+  "$defs": {
+    "TaskStatus": {
+      "description": "기본 경로: Created → Ready → Running → Executed → Validating → Verified → Completed.\n전이 규칙은 §9.4 표를 따르며 Core Scheduler가 소유합니다.",
+      "type": "string",
+      "enum": [
+        "Created",
+        "Blocked",
+        "Ready",
+        "Running",
+        "WaitingChild",
+        "WaitingMaster",
+        "WaitingUser",
+        "Executed",
+        "Validating",
+        "Verified",
+        "Completed",
+        "Failed",
+        "Skipped",
+        "Cancelling",
+        "Cancelled",
+        "Interrupted",
+        "NeedsReconciliation"
+      ]
+    }
+  }
+}

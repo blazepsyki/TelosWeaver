@@ -53,7 +53,7 @@ impl IntentPhase {
 /// 실행 중인 프로세스를 다시 찾을 때 쓰는 증거입니다. PID만으로 정체성을 확정하지 않습니다 (§14.3).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ProcessIdentity {
+pub struct ProcessEvidence {
     pub host_id: String,
     pub pid: u32,
     /// OS가 보고한 프로세스 시작 시각
@@ -79,7 +79,7 @@ pub struct RunIntent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub native_session_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub process: Option<ProcessIdentity>,
+    pub process: Option<ProcessEvidence>,
     pub recorded_at: String,
     pub updated_at: String,
 }

@@ -16,6 +16,7 @@ pub mod fixtures;
 mod journal;
 mod limits;
 mod master;
+mod mcp;
 mod messaging;
 mod provider;
 pub mod rn;
@@ -32,6 +33,7 @@ pub use failure::*;
 pub use journal::*;
 pub use limits::*;
 pub use master::*;
+pub use mcp::*;
 pub use messaging::*;
 pub use provider::*;
 pub use secret::*;
@@ -69,6 +71,27 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
         ("RunIntent", schema_for!(RunIntent)),
         ("JournalEntry", schema_for!(JournalEntry)),
         ("IdempotencyRecord", schema_for!(IdempotencyRecord)),
+        // Phase 1 H0: Task MCP (§9.2)
+        ("TaskMcpBinding", schema_for!(TaskMcpBinding)),
+        ("McpDelegateTaskInput", schema_for!(DelegateTaskInput)),
+        ("McpDelegateTaskOutput", schema_for!(DelegateTaskOutput)),
+        ("McpGetTaskResultInput", schema_for!(GetTaskResultInput)),
+        ("McpGetTaskResultOutput", schema_for!(GetTaskResultOutput)),
+        ("McpListTasksInput", schema_for!(ListTasksInput)),
+        ("McpListTasksOutput", schema_for!(ListTasksOutput)),
+        ("McpCancelTaskInput", schema_for!(CancelTaskInput)),
+        ("McpCancelTaskOutput", schema_for!(CancelTaskOutput)),
+        ("McpGetAgentStatusInput", schema_for!(GetAgentStatusInput)),
+        ("McpGetAgentStatusOutput", schema_for!(GetAgentStatusOutput)),
+        (
+            "McpReportTaskResultInput",
+            schema_for!(ReportTaskResultInput),
+        ),
+        (
+            "McpReportTaskResultOutput",
+            schema_for!(ReportTaskResultOutput),
+        ),
+        ("McpTaskToolError", schema_for!(TaskToolError)),
         // 마스터 결정 검증 (§4.2)
         ("DecisionPayload", schema_for!(DecisionPayload)),
         ("DecisionContext", schema_for!(DecisionContext)),

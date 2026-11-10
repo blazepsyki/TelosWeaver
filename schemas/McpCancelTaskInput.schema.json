@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CancelTaskInput",
+  "type": "object",
+  "properties": {
+    "idempotencyKey": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "taskId": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "idempotencyKey",
+    "taskId",
+    "reason"
+  ]
+}

@@ -277,6 +277,8 @@ impl ExecutionSupervisor {
             policy_revision: permit.policy_revision,
             idempotency_key: params.idempotency_key,
             session: params.session,
+            // Phase 1 H0: Task MCP 연결은 PH1-MCP·HOST 연결 때 채웁니다.
+            task_mcp: None,
         };
         match adapter.start_run(&params.task, &context).await {
             Ok(started) if started.run_id == run_id => {}

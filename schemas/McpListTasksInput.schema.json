@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ListTasksInput",
+  "description": "호출자에게 허용된 Project·Plan 안에서만 조회합니다.",
+  "type": "object",
+  "properties": {
+    "parentTaskId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "statuses": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/TaskStatus"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "TaskStatus": {
+      "description": "기본 경로: Created → Ready → Running → Executed → Validating → Verified → Completed.\n전이 규칙은 §9.4 표를 따르며 Core Scheduler가 소유합니다.",
+      "type": "string",
+      "enum": [
+        "Created",
+        "Blocked",
+        "Ready",
+        "Running",
+        "WaitingChild",
+        "WaitingMaster",
+        "WaitingUser",
+        "Executed",
+        "Validating",
+        "Verified",
+        "Completed",
+        "Failed",
+        "Skipped",
+        "Cancelling",
+        "Cancelled",
+        "Interrupted",
+        "NeedsReconciliation"
+      ]
+    }
+  }
+}

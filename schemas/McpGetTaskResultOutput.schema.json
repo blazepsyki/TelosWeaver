@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GetTaskResultOutput",
+  "type": "object",
+  "properties": {
+    "result": {
+      "description": "고정된 결과입니다. 완료 전에는 비어 있을 수 있습니다.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TaskResult"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "$ref": "#/$defs/TaskStatus"
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "taskRevision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "validations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ValidationSummary"
+      }
+    }
+  },
+  "required": [
+    "taskId",
+    "taskRevision",
+    "status",
+    "validations",
+    "unresolved"
+  ],
+  "$defs": {
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    },
+    "ExecutionOutcome": {
+      "type": "string",
+      "enum": [
+        "succeeded",
+        "failed",
+        "cancelled",
+        "unknown"
+      ]
+    },
+    "TaskResult": {
+      "description": "`execution_outcome`이 `Succeeded`여도 Task 완료를 뜻하지 않습니다.",
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactVersionRef"
+          }
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "executionOutcome": {
+          "$ref": "#/$defs/ExecutionOutcome"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "taskRevision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "taskId",
+        "taskRevision",
+        "runId",
+        "executionOutcome",
+        "artifacts",
+        "summary",
+        "unresolved",
+        "evidenceIds"
+      ]
+    },
+    "TaskStatus": {
+      "description": "기본 경로: Created → Ready → Running → Executed → Validating → Verified → Completed.\n전이 규칙은 §9.4 표를 따르며 Core Scheduler가 소유합니다.",
+      "type": "string",
+      "enum": [
+        "Created",
+        "Blocked",
+        "Ready",
+        "Running",
+        "WaitingChild",
+        "WaitingMaster",
+        "WaitingUser",
+        "Executed",
+        "Validating",
+        "Verified",
+        "Completed",
+        "Failed",
+        "Skipped",
+        "Cancelling",
+        "Cancelled",
+        "Interrupted",
+        "NeedsReconciliation"
+      ]
+    },
+    "ValidationSummary": {
+      "type": "object",
+      "properties": {
+        "contractRevision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "target": {
+          "$ref": "#/$defs/ArtifactVersionRef"
+        },
+        "validationId": {
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/ValidationVerdict"
+        }
+      },
+      "required": [
+        "validationId",
+        "contractRevision",
+        "verdict",
+        "target"
+      ]
+    },
+    "ValidationVerdict": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "error",
+        "inconclusive",
+        "skipped"
+      ]
+    }
+  }
+}

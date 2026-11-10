@@ -71,7 +71,7 @@ fn intent_wire_format_keeps_digests_not_secrets() {
         host_id: "windows-local".into(),
         provider: "claude".into(),
         native_session_id: None,
-        process: Some(ProcessIdentity {
+        process: Some(ProcessEvidence {
             host_id: "windows-local".into(),
             pid: 42,
             process_started_at: "2026-11-10T00:00:00Z".into(),

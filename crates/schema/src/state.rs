@@ -70,8 +70,8 @@ pub struct TaskRecord {
     pub wait: Option<WaitState>,
     #[serde(default)]
     pub cancel_propagation: CancelPropagation,
-    /// 위임 깊이. 마스터의 직접 자식이 1입니다 (`ControlLimits::max_delegation_depth`).
-    pub depth: u32,
+    /// 위임 깊이. 최상위 Task는 0입니다(`TaskSummary::delegation_depth`와 같은 기준, `ControlLimits::max_delegation_depth`).
+    pub delegation_depth: u32,
     pub created_at: String,
     pub updated_at: String,
 }

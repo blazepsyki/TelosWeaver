@@ -11,8 +11,8 @@
     "createdAt": {
       "type": "string"
     },
-    "depth": {
-      "description": "위임 깊이. 마스터의 직접 자식이 1입니다 (`ControlLimits::max_delegation_depth`).",
+    "delegationDepth": {
+      "description": "위임 깊이. 최상위 Task는 0입니다(`TaskSummary::delegation_depth`와 같은 기준, `ControlLimits::max_delegation_depth`).",
       "type": "integer",
       "format": "uint32",
       "minimum": 0
@@ -47,7 +47,7 @@
     "spec",
     "status",
     "stateVersion",
-    "depth",
+    "delegationDepth",
     "createdAt",
     "updatedAt"
   ],

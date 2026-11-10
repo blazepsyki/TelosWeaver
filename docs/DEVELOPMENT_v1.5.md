@@ -43,7 +43,7 @@
 | v1.5.8 | 2026-10-26 | 지원 백로그 `docs/SUPPORT_BACKLOG.md` 신설(사용자 요청): 미지원·설계상 미지원·미구현·미검증 기능을 지원 조건·재확인 방법과 함께 한 목록으로 유지하고 CLI 버전 변화 때 재판정(§7.1). PH0-INTEGRATION 경로에 등록(§19.5.3) |
 | v1.5.9 | 2026-10-26 | Phase 0 완료(G3 통과 확정) 뒤 Phase 1 병렬 구현 절차 신설(§19.6, 사용자 결정: 병렬 절차·계약 게이트 먼저·통합 담당 유지·이월 과제는 관련 작업에 편입): 게이트 H0~H3, H0 공통 계약 10종, 작업 17종(PH1-*)과 독점 경로, 진행 순서, §19.5 규칙 재사용, Phase 0 임시 구성 대체 |
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
-| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 정체성·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1) |
+| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2) |
 
 ## 목차
 
@@ -791,6 +791,8 @@ MCP 인자의 Task ID만으로 호출자를 신뢰하지 않습니다. Core가 �
 | Antigravity | Run Workspace의 `.agents/plugins/<이름>/{plugin.json, mcp_config.json}`과 세션 한정 `--settings`의 `permissions.allow`(`mcp(<server>/<tool>)`). 1.5.3에서 확인(H0 A2) |
 
 연결 자격 원문은 Workspace나 MCP 설정 파일에 쓰지 않고, Core 상태 디렉터리의 자격 파일 경로만 넘깁니다. 주입용 `.agents/` 파일은 Diff·Artifact 수집과 원본 Branch 반영에서 제외합니다. Provider가 남기는 도구 Schema 캐시(예: Antigravity `~/.gemini/antigravity-cli/mcp/<server>/`)는 고정 서버 이름으로 재사용합니다.
+
+**도구 계약(H0 계약 `mcp`):** `delegate_task`는 권한·예산·완료 정책 Profile을 입력으로 받지 않고 Core가 부모의 남은 범위 안에서 정합니다. 등록은 항상 비동기이며 `waitForResult`가 참이면 호출자를 `WaitingChild`로 둡니다. `report_task_result`는 Workspace 안 파일 경로 또는 본문으로 출력을 보고하고, Core가 경로 범위·소유권·출력 계약을 검사해 불변 Artifact로 등록합니다. `cancel_task`의 접수와 실제 정지는 구분합니다. Run 단위 허용 범위(Project·Plan·호출 Task/Run·허용 도구·남은 자식 수·만료)는 Core만 보관하며, 연결 자격 파일은 현재 사용자만 읽을 수 있게 만들고 Run 종료 때 폐기합니다. 지금 실행할 수 없는 위임은 `unavailable` 오류로 즉시 거부하고 무한 대기하지 않습니다. Adapter에는 `RunContext.taskMcp`(서버 이름·명령·자격 파일 경로)로 전달합니다.
 
 ### 9.3 동기 대기와 교착 방지
 

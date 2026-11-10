@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskToolError",
+  "type": "object",
+  "properties": {
+    "capability": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "code": {
+      "$ref": "#/$defs/TaskToolErrorCode"
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "code",
+    "message"
+  ],
+  "$defs": {
+    "TaskToolErrorCode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "not_found",
+            "invalid_input"
+          ]
+        },
+        {
+          "description": "자격이 없거나 만료됨",
+          "type": "string",
+          "const": "unauthenticated"
+        },
+        {
+          "description": "이 Run의 허용 도구·범위 밖",
+          "type": "string",
+          "const": "out_of_scope"
+        },
+        {
+          "description": "깊이·자식 수·전체 Task·예산 상한 초과 (§13.2)",
+          "type": "string",
+          "const": "limit_exceeded"
+        },
+        {
+          "description": "같은 멱등 키에 다른 내용 (§4.2)",
+          "type": "string",
+          "const": "idempotency_conflict"
+        },
+        {
+          "description": "요청한 Provider·모드를 지원하지 않음 (`capability` 공통 키와 함께 보고)",
+          "type": "string",
+          "const": "unsupported"
+        },
+        {
+          "description": "지금 실행할 수 없어 즉시 설명 가능한 거부를 돌려줌. 무한 대기하지 않습니다 (§9.3).",
+          "type": "string",
+          "const": "unavailable"
+        }
+      ]
+    }
+  }
+}

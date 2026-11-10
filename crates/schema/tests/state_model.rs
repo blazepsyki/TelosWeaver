@@ -128,7 +128,7 @@ fn task_record_wire_format() {
             deadline: None,
         }),
         cancel_propagation: CancelPropagation::Descendants,
-        depth: 1,
+        delegation_depth: 1,
         created_at: "2026-11-10T00:00:00Z".into(),
         updated_at: "2026-11-10T00:00:01Z".into(),
     };

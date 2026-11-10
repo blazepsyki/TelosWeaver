@@ -33,7 +33,7 @@
     "process": {
       "anyOf": [
         {
-          "$ref": "#/$defs/ProcessIdentity"
+          "$ref": "#/$defs/ProcessEvidence"
         },
         {
           "type": "null"
@@ -106,7 +106,7 @@
         }
       ]
     },
-    "ProcessIdentity": {
+    "ProcessEvidence": {
       "description": "실행 중인 프로세스를 다시 찾을 때 쓰는 증거입니다. PID만으로 정체성을 확정하지 않습니다 (§14.3).",
       "type": "object",
       "properties": {
