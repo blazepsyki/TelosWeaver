@@ -22,7 +22,7 @@
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
 | PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `master` / 대표 저장소 작업 트리 | `c696cb4` | 계획 `56f6091`, 리뷰 반영 `9626249`(Codex)·`274ea35`(Antigravity), 정정 `b24120d`, 병합 `c696cb4` | Spec v1.5.10 §19.6·이 배정표 확정(2026-11-07 사용자 확정). 다음: PH1-CONTRACT 배정과 H0 계약 확정 |
-| PH1-CONTRACT | `claude-opus-5.5/session-c9336d2c` | in-progress | `master` / 대표 저장소 작업 트리(계약 구현은 `ph1/contract` Branch 예정) | `ff29e3f` | — | 사용자 지정(2026-11-07, INTEGRATION 겸임). H0 결정 사항 [H0_DECISIONS.md](H0_DECISIONS.md) D1~D15 확정(2026-11-10, `38cccec`). 겸임 보완: 각 계약은 사용 작업 담당(미배정이면 검토 대행자)의 확인을 받음(Spec §19.6.2) |
+| PH1-CONTRACT | `claude-opus-5.5/session-c9336d2c` | in-progress | `ph1/contract` / `D:\worktree\TelosWeaver\ph1-contract` | `b7655c1` | — | 사용자 지정(2026-11-07, INTEGRATION 겸임). H0 결정 사항 [H0_DECISIONS.md](H0_DECISIONS.md) D1~D15 확정(2026-11-10, `38cccec`). 겸임 보완: 각 계약은 사용 작업 담당(미배정이면 검토 대행자)의 확인을 받음(Spec §19.6.2) |
 | PH1-PERSIST | — | unassigned | — | — | — | H0 뒤 |
 | PH1-SCHED | — | unassigned | — | — | — | H0 뒤. 단일 Scheduler 소유권, 대기 자원·취소 전파, 재시작 대조·안전 보류 |
 | PH1-CONTEXT | — | unassigned | — | — | — | H0 뒤. 지원 백로그 SB-11(Capsule) |
@@ -97,3 +97,4 @@ Phase 0 환경의 설치 버전·로그인 상태가 현재도 같다고 가정�
 | 2026-11-07 18:15 | `claude-opus-5.5/session-c9336d2c` | 사용자 지정: PH1-CONTRACT를 통합 담당이 겸임(`unassigned → in-progress`). H0 결정 사항 D1~D13·사전 작업 A1~A3 정리(`ff29e3f`). 발견: Claude Code 2.1.318·Antigravity 1.5.2로 갱신돼 검증 버전 밖(A1) | `ff29e3f` |
 | 2026-11-10 20:46 | `claude-opus-5.5/session-c9336d2c` | A1(CLI 버전 변경 재시험: Claude 2.1.318 9개·Antigravity 1.5.3 8개 통과)·A2(Antigravity Workspace 플러그인 + 세션 한정 권한으로 MCP 주입 성공) 기록(`2088bb5`). 사용자 결정: H0 결정 D15는 (b) 요약 원본 조사, 나머지 14개 권장안(`38cccec`) | `38cccec` |
 | 2026-11-10 20:52 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시: H0 D15(b) 조사 완료. Antigravity 요약 DB는 `jetbox_summaries_proto.pb`에서 다시 만들어짐. 원본·DB·`last_conversations.json`의 시험 항목 52개를 백업 후 함께 삭제, CLI 시작·실제 세션 뒤에도 유지 확인. 정리 도구를 증거로 등록(`4a24f65`). 후속: PH1-AGY 시험 정리 함수에 반영 | `4a24f65` |
+| 2026-11-10 20:55 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시로 H0 계약 작업 착수. Branch `ph1/contract`, Worktree `D:\worktree\TelosWeaver\ph1-contract`, 기준 `b7655c1`. 첫 커밋 Spec v1.5.11(H0 결정 D1~D14 반영, `86d7c8b`) | `b7655c1` |
