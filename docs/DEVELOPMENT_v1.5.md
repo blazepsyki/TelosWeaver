@@ -43,7 +43,7 @@
 | v1.5.8 | 2026-10-26 | 지원 백로그 `docs/SUPPORT_BACKLOG.md` 신설(사용자 요청): 미지원·설계상 미지원·미구현·미검증 기능을 지원 조건·재확인 방법과 함께 한 목록으로 유지하고 CLI 버전 변화 때 재판정(§7.1). PH0-INTEGRATION 경로에 등록(§19.5.3) |
 | v1.5.9 | 2026-10-26 | Phase 0 완료(G3 통과 확정) 뒤 Phase 1 병렬 구현 절차 신설(§19.6, 사용자 결정: 병렬 절차·계약 게이트 먼저·통합 담당 유지·이월 과제는 관련 작업에 편입): 게이트 H0~H3, H0 공통 계약 10종, 작업 17종(PH1-*)과 독점 경로, 진행 순서, §19.5 규칙 재사용, Phase 0 임시 구성 대체 |
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
-| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1) |
+| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4) |
 
 ## 목차
 
@@ -716,6 +716,8 @@ DEC-08에 따라 Adapter가 시작한 Managed Run의 세션은 각 Provider의 V
 
 Session은 여러 Run에서 재사용할 수 있습니다. 동일 Session의 쓰기 Turn은 한 번에 하나로 제한하고 `run_sessions`에 Run·Session·Native Turn의 관계를 저장합니다. 재개 시 Task·입력·권한·예산을 다시 확인합니다.
 
+각 Session에는 소유 Task가 있습니다. 다른 Task가 그 Session을 `resume`하려면 소유권 확인과 위 재확인을 거칩니다. Native Fork로 만든 Session은 새 소유 Task를 갖고 부모 Session과 분기 기준을 기록합니다(H0 계약 `SessionRecord`).
+
 | 전략 | 선택 조건 | 확인 사항 |
 |---|---|---|
 | `fresh` | 작은 작업, 독립 Review, 과거 문맥 불필요 | 필수 입력 포함 |
@@ -819,6 +821,8 @@ Task의 기본 경로는 `Created → Ready → Running → Executed → Validat
 | 부작용·종료 결과 불명 | NeedsReconciliation, 상태 조회·대조·필요한 개입 |
 
 Run은 Starting·Running·Waiting·Succeeded·Failed·Cancelling·Cancelled·Interrupted·Unknown을 별도로 관리합니다. Run 성공은 Task 완료가 아닙니다. 대기 요청의 거부·기한 만료는 실패·재계획·사용자 질문 중 계약에 정한 경로를 따릅니다.
+
+**전이 계약(H0):** 위 Task·Run 전이는 `telos_schema`의 `TaskStatus::can_transition_to`·`RunStatus::can_transition_to`가 원본이며 Scheduler는 그 밖의 전이를 만들지 않습니다. 상태 갱신은 `stateVersion`의 조건부 갱신으로만 합니다. Wait* 상태는 진입 시 복귀 상태(`Running`·`Executed`·`Validating`·`Verified` 중 하나)와 대기 대상·기한을 기록합니다. Run은 `Cancelling`에서도 실제 결과(`Succeeded`·`Failed`)를 기록할 수 있지만, 취소 의도가 확정된 Task는 그 결과로 Completed가 되지 않습니다(§9.5). `Unknown`은 종료 결과를 확정할 수 없는 상태이며 상태 대조로만 해소합니다.
 
 ### 9.5 경합과 재시도
 
@@ -1022,7 +1026,7 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 |---|---|---|
 | VS Code Reload·종료 | 독립 Core와 허용된 Run 지속, 재접속 후 상태 조회 | 이벤트 재전송·세부 화면 복원 |
 | RN 종료 | 통신 Degraded, Managed Run 추적·취소 유지 | 대기 메시지 재조정과 재연결 |
-| 마스터 세션 유실 | 미확정 결정 보류, 기존 허용 Run은 정책에 따라 지속 | Snapshot·결정 기록으로 새 마스터 재개 |
+| 마스터 세션 유실 | Plan을 `Held`로 두고 미확정 결정 보류, 기존 허용 Run은 정책에 따라 지속 | Snapshot·결정 기록으로 새 마스터 재개 |
 | Worker 프로세스 유실 | Interrupted, 종료·부작용 확인 후 복구 판단 | 지원 Provider의 Native Resume |
 | Core 비정상 종료 | 재시작 시 미완 의도·Run·Lock 확인, 불명확 상태 차단 | 분리된 실행 감독과 출력 회수로 지속 추적 |
 | Remote SSH 단절 | UI 연결과 원격 실제 실행 상태를 분리, 중복 실행 금지 | Heartbeat·재연결·대조 절차 강화 |
