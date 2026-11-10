@@ -1,9 +1,9 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.10)  
+> **문서 버전:** 1.5 (개정 1.5.11)  
 > **작성일:** 2026-10-23  
-> **수정일:** 2026-11-07  
+> **수정일:** 2026-11-10  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
 > **상태:** 구현 기준 설계안. 사용자 확정 결정과 이를 구체화한 설계를 포함하며 구현 완료를 뜻하지 않습니다.  
 > **초기 UI:** VS Code Extension  
@@ -43,6 +43,7 @@
 | v1.5.8 | 2026-10-26 | 지원 백로그 `docs/SUPPORT_BACKLOG.md` 신설(사용자 요청): 미지원·설계상 미지원·미구현·미검증 기능을 지원 조건·재확인 방법과 함께 한 목록으로 유지하고 CLI 버전 변화 때 재판정(§7.1). PH0-INTEGRATION 경로에 등록(§19.5.3) |
 | v1.5.9 | 2026-10-26 | Phase 0 완료(G3 통과 확정) 뒤 Phase 1 병렬 구현 절차 신설(§19.6, 사용자 결정: 병렬 절차·계약 게이트 먼저·통합 담당 유지·이월 과제는 관련 작업에 편입): 게이트 H0~H3, H0 공통 계약 10종, 작업 17종(PH1-*)과 독점 경로, 진행 순서, §19.5 규칙 재사용, Phase 0 임시 구성 대체 |
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
+| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1) |
 
 ## 목차
 
@@ -211,6 +212,8 @@ Phase 0의 실제 작업 분할과 파일 수정 권한은 §19.5를 따릅니�
 
 P0 마스터는 제한된 Task 목록과 하위 위임을 생성하며 기본 실행 순서는 명시적 의존성과 큐를 따릅니다. P1에서 복잡한 자동 계획, DAG 병렬화와 자원 최적화를 추가합니다. 마스터 총괄을 P1 Planner 도입까지 미루지 않습니다.
 
+기본 마스터는 Claude Code이며 모델은 설정값(기본 `sonnet`)입니다(H0 D6, 2026-11-10). 다른 Provider로 바꿀 수 있게 구현하고, 실환경 시험은 가벼운 모델을 씁니다.
+
 Plan별 활성 마스터 제어권은 하나입니다. 재개·교체 시 `controllerEpoch`를 올리고 이전 마스터의 뒤늦은 결정을 실행하지 않습니다. 마스터 실행도 별도 Run과 Usage를 가지며 Worker의 예산·슬롯과 구분해 기록합니다.
 
 마스터 실행은 Plan의 제어용 Task(`type: general`, `role: master`)로 기록하여 같은 Task/Run·Adapter 계약을 사용합니다. 제어용 Task의 수명은 Worker 완료 의존성과 분리하고, 마스터의 자식 대기가 Worker 실행을 막지 않도록 제어 슬롯과 실제 프로세스 상한을 함께 적용합니다.
@@ -242,6 +245,8 @@ pub enum MasterDecisionKind {
 이 타입은 공통 외형입니다. 각 `kind`의 Payload는 별도 JSON Schema로 검증합니다. `propose_completion`은 완료 판정을 요청할 뿐 검증을 우회하는 명령이 아닙니다. 설명에는 판단 근거와 선택 이유를 남기며 내부 추론 전문을 요구하지 않습니다.
 
 Core 집행 순서는 **호출자·소유권 확인 → Schema·Plan Revision·Epoch 확인 → 권한·DAG·예산·Capability 검사 → 결정 및 실행 의도 기록 → 집행 → 적용 결과 기록**입니다. 같은 멱등 키의 재요청은 같은 결정 결과를 반환합니다. 같은 키에 다른 Payload를 보내면 거부합니다.
+
+**전달 방식(H0 D3):** 마스터는 Turn 끝에 위 형식의 구조화 결정(JSON)을 출력하고, Core는 검증·집행 결과를 다음 Turn(Resume)의 입력으로 돌려줍니다. Phase 0에서 검증한 방식입니다. 마스터의 결정에는 Task MCP를 쓰지 않으며, Task MCP(§9.2)는 Worker의 위임·보고에 씁니다.
 
 ### 4.3 Worker 요청·승인·사용자 개입
 
@@ -403,6 +408,8 @@ Artifact Version은 불변입니다. 작업 디렉터리의 변경 가능한 파
 
 실행 결과와 논리 완료 상태는 다릅니다. `executionOutcome: succeeded`여도 필수 출력·검증·승인 조건이 부족하면 Task는 완료되지 않습니다. 기존 세션의 일반 자연어 답변도 자동으로 신뢰된 `TaskResult`가 되지 않습니다.
 
+**저장(H0 D2):** Artifact Version의 내용은 Core 상태 디렉터리(§14.1)의 `artifacts/` 아래에 내용 해시(SHA-256) 이름으로 저장하며, 같은 내용은 한 번만 저장합니다. Version 하나의 기본 상한은 64 MiB이며 설정으로 바꿀 수 있고, 상한을 넘으면 등록을 거부합니다.
+
 ## 6. 실행 전 맥락과 입력 준비
 
 ### 6.1 Context Snapshot
@@ -462,6 +469,8 @@ Capability는 `supported`·`unsupported`·`unverified`와 Provider 버전·Host�
 - Provider 고유 키는 `provider.<provider_id>.<feature>`(`snake_case`)를 씁니다. 공통 8개는 접두어 없는 예약 이름입니다. 알 수 없는 키를 공통 기능의 별칭으로 추측하지 않고, 공통 소비자는 이를 필수 기능 지원 근거로 삼지 않습니다. 공통 키의 추가·의미 변경은 CONTRACT 변경 요청과 이 절의 개정으로만 합니다.
 - RN의 `RnSessionCapabilities`와 실패 분류 `unsupported_capability`는 이 키 목록과 별개입니다.
 - `unsupported`·`unverified`로 판정하거나 미구현으로 남긴 기능은 [지원 백로그](SUPPORT_BACKLOG.md)에 지원 조건·재확인 방법과 함께 기록하고, Provider CLI·확장 버전이 바뀌면 다시 판정합니다.
+
+- **판정 기준(H0 D11·D14, 2026-11-10):** 해당 Host·CLI 버전에서 기능의 실환경 시험을 통과하면 `supported`로 보고하고, 특정 Turn 지정 불가처럼 키보다 좁은 제한은 `reason`과 실행 전 거부로 표현합니다(Provider 간 같은 증거에 같은 상태). CLI 버전이 바뀌면 같은 major.minor 안의 변경은 기존 판정을 유지하되, Core가 시작할 때와 버전 변화를 감지할 때 모델을 호출하지 않는 점검(버전 출력, 사용하는 옵션의 수용, `--help`의 필수 옵션)을 실행합니다. 점검이 실패하거나 major.minor가 바뀌면 `unverified`로 두고 실환경 시험을 다시 요구합니다. 자동 업데이트되는 CLI(Antigravity)도 같은 규칙을 따릅니다.
 
 ### 7.2 공통 실행·제어 계약
 
@@ -771,6 +780,16 @@ P0부터 의존성 검사와 상한을 적용하고 P1에서 Ready Task의 병�
 
 MCP 인자의 Task ID만으로 호출자를 신뢰하지 않습니다. Core가 발급한 연결 자격·Scope를 Run에 연결합니다. Worker의 자식 생성은 마스터가 허용한 범위에서 처리합니다. P0의 제한된 자식 생성과 P2의 임의 DAG 재계획을 구분합니다.
 
+**연결 방식(H0 D4·D5):** Run마다 `telos-weaver`의 stdio MCP 하위 명령을 Provider가 띄우게 하고, 이 프로세스는 Run 범위 연결 자격으로 Local API(§17)에 접속합니다. 연결 설정은 그 Run에만 주입하며 사용자 전역 설정을 바꾸지 않습니다.
+
+| Provider | Run 단위 주입 수단 |
+|---|---|
+| Claude Code | `--mcp-config <Run 상태 파일>` |
+| Codex | App Server Thread 시작의 설정 재정의(`mcp_servers`) |
+| Antigravity | Run Workspace의 `.agents/plugins/<이름>/{plugin.json, mcp_config.json}`과 세션 한정 `--settings`의 `permissions.allow`(`mcp(<server>/<tool>)`). 1.5.3에서 확인(H0 A2) |
+
+연결 자격 원문은 Workspace나 MCP 설정 파일에 쓰지 않고, Core 상태 디렉터리의 자격 파일 경로만 넘깁니다. 주입용 `.agents/` 파일은 Diff·Artifact 수집과 원본 Branch 반영에서 제외합니다. Provider가 남기는 도구 Schema 캐시(예: Antigravity `~/.gemini/antigravity-cli/mcp/<server>/`)는 고정 서버 이름으로 재사용합니다.
+
 ### 9.3 동기 대기와 교착 방지
 
 `delegate_task`는 비동기 등록입니다. 동기 이용은 Core의 `WaitingChild`로 추적하고 무제한 상태 조회를 반복시키지 않습니다.
@@ -821,6 +840,8 @@ P0부터 모든 쓰기 Workspace에 소유권 제어를 적용합니다. Git Wor
 
 시작 시 기존 변경을 기록하고 staged/unstaged/untracked 변경을 자동 초기화하지 않습니다. Diff는 Base와 대상 Revision에 연결합니다. 원본 Branch Merge/Push는 별도 행위 정책을 거칩니다. P1 Integration Workspace는 통합된 Revision을 다시 검증합니다.
 
+**Git Worktree와 반영(H0 D9):** Task별 Worktree는 Core 상태 디렉터리(§14.1)의 `worktrees/` 아래에 만듭니다. 원본 Branch 반영은 개별 행위 승인 뒤 로컬 원본 Branch에 Merge Commit을 만드는 방식이며, 반영 직전에 승인된 Revision과 일치하는지 다시 확인합니다. 원격 push는 P0에서 하지 않습니다.
+
 산출물의 이름·개수·형식 계약을 검사합니다. 큰 로그·Diff·바이너리는 메시지 본문 대신 Artifact로 참조하고 접근권·Checksum·Host를 확인합니다. 사용 중인 산출물과 미완 Run의 Workspace는 보존 규칙에 따라 정리하며 장애 조사 전에 자동 삭제하지 않습니다.
 
 ## 11. Validation·승인·재작업
@@ -837,6 +858,8 @@ P0부터 모든 쓰기 Workspace에 소유권 제어를 적용합니다. Git Wor
 명령 성공과 내용 정확성은 별개입니다. 검증 결과는 passed·failed·error·inconclusive·skipped를 구분하고 필수 검사는 passed만 통과로 인정합니다. 검증 실행 오류와 판정 불가를 성공으로 표시하지 않습니다. 생략 허용 조건은 계약에 명시합니다.
 
 검증 계약과 명령은 Core가 Version을 고정합니다. Worker가 허용 조건이나 테스트를 완화하여 같은 검증을 통과했다고 처리하지 않습니다. 중간 Checkpoint는 자식 Task 또는 검증 Job으로 표현하며 재작업의 영향 범위와 최종 통합 검사를 구분합니다.
+
+**검증 명령(H0 D8):** `command` 검증은 사용자·프로젝트 설정에 이름을 붙여 등록한 명령만 실행합니다. Task 계약은 등록된 이름과 그 명령이 허용한 인자로만 참조하며, 마스터·Worker가 임의 명령 문자열을 검증으로 제안하거나 실행하지 않습니다.
 
 표준 시각 검증 확장은 P1입니다. P0의 특정 작업이 시각 검증을 요구하면 기존 도구나 사용자 검토로 증거를 확보하고, 이미지 존재만으로 검토 완료 처리하지 않습니다. 전용 편집기는 만들지 않습니다.
 
@@ -948,6 +971,8 @@ DEC-07의 제거 대상은 아래 표의 **제거** 세 분류입니다. 설정�
 
 Run에 최종 설정, 각 항목의 출처, Policy Revision과 해시를 저장합니다. 일반 설정 변경은 새 Run부터 적용합니다. 긴급 취소·권한 철회는 활성 실행에도 반영할 수 있도록 별도 제어 이벤트로 처리하며 적용 불가 시 실행을 중단합니다. 새 실행을 위해 필요한 권한 확대는 사용자 결정으로 기록합니다.
 
+**파일 형식·위치(H0 D7):** 설정은 TOML입니다. 사용자/Host 설정은 `%APPDATA%\telos-weaver\config.toml`(Linux `$XDG_CONFIG_HOME/telos-weaver/config.toml`), 프로젝트 설정은 `<프로젝트>/.telos-weaver/config.toml`입니다. 프로젝트 설정은 저장소에 커밋할 수 있지만 권한 상한을 넓히지 못하고 좁히기만 합니다. Phase 0의 운영자 정책 JSON은 이 설정으로 대체합니다(H0 D13).
+
 ### 13.2 예산과 제어 상한
 
 | 범주 | 제어 기준 |
@@ -988,6 +1013,8 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 | P1 `knowledge_entries`, `workflow_templates` | 출처·검토·대체 관계와 템플릿 Version |
 
 인증 토큰·비밀 원문은 Task DB에 복사하지 않습니다. CLI의 인증 경로와 OS 보안 저장소를 참조하고 RN 키는 RN 소유로 유지합니다. DB Schema Version, Migration 이력, Backup·호환 실패·Rollback 절차를 둡니다.
+
+**위치(H0 D1):** Core DB는 프로젝트별 SQLite 파일 하나이며 사용자 상태 디렉터리(`%LOCALAPPDATA%\telos-weaver\<projectKey>\`, Linux `$XDG_STATE_HOME/telos-weaver/<projectKey>/`)에 둡니다. Phase 0의 API 토큰과 같은 디렉터리이며, Artifact 내용(§5.3)과 Git Worktree(§10)도 이 아래에 둡니다. 프로젝트 저장소 안에는 Core 상태를 만들지 않습니다.
 
 ### 14.2 장애별 기본 동작
 
@@ -1071,6 +1098,8 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 TreeView·OutputChannel·내장 Diff/파일 Editor를 우선 사용합니다. Webview는 표시 계층이며 실행 권한을 갖지 않습니다. 사용자에게 모든 Worker 승인을 직접 처리하게 하지 않고 마스터의 판단과 필요한 개입을 보여줍니다. UI 재연결 시 Snapshot과 이벤트 커서로 상태를 갱신합니다.
 
 Extension은 TypeScript로 구현하며 Rust Core의 코드를 직접 포함하거나 호출하지 않습니다. Local Core API의 요청·응답·이벤트 타입은 §3.4에 따라 공통 Schema에서 생성한 정의를 사용합니다. Extension은 Core Daemon 실행 파일을 찾아 시작·연결·상태 확인만 담당하며 Core 수명을 소유하지 않습니다.
+
+**Master View 입력(H0 D12):** P0는 VS Code 명령·QuickInput으로 목표·답변을 입력받고 TreeView·OutputChannel·내장 Diff로 보여 줍니다. P0에서 Webview를 쓰지 않습니다.
 
 ## 18. 기능 요구사항과 수용 기준
 
@@ -1489,6 +1518,8 @@ PH0-RN은 DEC-07에 따라 원본 조사·제거·재구성부터 수용 시험�
 §19.5.7에서는 완료 결과·대응 시험·제외 범위를 명시하는 원칙만 이어받습니다. Phase 0 표의 기능 제외(예산 엔진·마스터 UI·Artifact UI 등)는 Phase 1에 적용하지 않습니다. Phase 1의 기능 범위는 §19.2·§18의 P0 및 혼합 항목의 P0 부분, 이월 과제는 §19.6.6을 따릅니다. `P1-1~6`은 이월 기록 ID이며 제품 우선순위 P1이나 Phase 1 전체 구현을 뜻하지 않습니다.
 
 Phase 0 구현은 확장·대체할 기준선입니다. §19.2의 기존 코드 호환 제외와 DEC-04를 Phase 0에서 검증한 안전 경계를 제거하는 근거로 쓰지 않습니다. Phase 0 API·정책 형식을 바꿀 경우 H0에서 호환·전환·회귀 시험 범위를 명시합니다. Phase 0의 임시 구성(`core/integration`의 운영자 정책·메모리 Snapshot)은 해당 PH1 작업이 정식 구현으로 대체하고, 대체가 끝나면 INTEGRATION이 임시 경로를 정리합니다. Phase 0에서 이월한 과제(G3 대조표 §3 P1-1~6)와 [지원 백로그](SUPPORT_BACKLOG.md)의 관련 항목은 아래 담당 작업에 포함합니다.
+
+**호환(H0 D13):** Phase 1은 Phase 0의 Local API·운영자 정책 형식과 호환하지 않습니다. API 버전을 올리고 Extension을 같은 변경에서 갱신하며, 정책 JSON은 §13.1 설정으로 대체합니다. Phase 0에서 검증한 안전 경계(토큰 인증, 사용자 전용 권한, 승인되지 않은 실행 거부 등)는 회귀 시험으로 유지합니다.
 
 #### 19.6.2 H0 — Phase 1 공통 계약 확정
 
