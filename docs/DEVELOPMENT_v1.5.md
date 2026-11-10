@@ -43,7 +43,7 @@
 | v1.5.8 | 2026-10-26 | 지원 백로그 `docs/SUPPORT_BACKLOG.md` 신설(사용자 요청): 미지원·설계상 미지원·미구현·미검증 기능을 지원 조건·재확인 방법과 함께 한 목록으로 유지하고 CLI 버전 변화 때 재판정(§7.1). PH0-INTEGRATION 경로에 등록(§19.5.3) |
 | v1.5.9 | 2026-10-26 | Phase 0 완료(G3 통과 확정) 뒤 Phase 1 병렬 구현 절차 신설(§19.6, 사용자 결정: 병렬 절차·계약 게이트 먼저·통합 담당 유지·이월 과제는 관련 작업에 편입): 게이트 H0~H3, H0 공통 계약 10종, 작업 17종(PH1-*)과 독점 경로, 진행 순서, §19.5 규칙 재사용, Phase 0 임시 구성 대체 |
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
-| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2) |
+| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2) |
 
 ## 목차
 
@@ -409,6 +409,8 @@ Artifact Version은 불변입니다. 작업 디렉터리의 변경 가능한 파
 실행 결과와 논리 완료 상태는 다릅니다. `executionOutcome: succeeded`여도 필수 출력·검증·승인 조건이 부족하면 Task는 완료되지 않습니다. 기존 세션의 일반 자연어 답변도 자동으로 신뢰된 `TaskResult`가 되지 않습니다.
 
 **저장(H0 D2):** Artifact Version의 내용은 Core 상태 디렉터리(§14.1)의 `artifacts/` 아래에 내용 해시(SHA-256) 이름으로 저장하며, 같은 내용은 한 번만 저장합니다. Version 하나의 기본 상한은 64 MiB이며 설정으로 바꿀 수 있고, 상한을 넘으면 등록을 거부합니다.
+
+**표기와 참조(H0 계약):** `checksum`은 `sha256:<hex>`, 저장 위치는 `artifact://sha256/<hex>`이며 Version에 `sizeBytes`를 기록합니다. Version을 쓰는 곳(Run 입력·Task 결과·검증·승인)은 `ArtifactReference`로 기록하고, 참조가 남은 Version의 저장 내용은 정리하지 않습니다.
 
 ## 6. 실행 전 맥락과 입력 준비
 
@@ -867,6 +869,8 @@ P0부터 모든 쓰기 Workspace에 소유권 제어를 적용합니다. Git Wor
 
 **검증 명령(H0 D8):** `command` 검증은 사용자·프로젝트 설정에 이름을 붙여 등록한 명령만 실행합니다. Task 계약은 등록된 이름과 그 명령이 허용한 인자로만 참조하며, 마스터·Worker가 임의 명령 문자열을 검증으로 제안하거나 실행하지 않습니다.
 
+**검증 Job(H0 계약 `ValidationJob`):** 상태는 `Queued`·`Running`·`Cancelling`·`Cancelled`·`Finished`이며, 판정(`passed`·`failed`·`error`·`inconclusive`·`skipped`)은 `Finished`에 기록합니다. Job은 시작 때의 계약 Revision과 대상 Artifact Version을 고정하고, 근거 로그·보고서는 Artifact로 연결합니다. `command` 검증의 매개변수는 `{command: <등록 이름>, args}`만 받습니다.
+
 표준 시각 검증 확장은 P1입니다. P0의 특정 작업이 시각 검증을 요구하면 기존 도구나 사용자 검토로 증거를 확보하고, 이미지 존재만으로 검토 완료 처리하지 않습니다. 전용 편집기는 만들지 않습니다.
 
 ### 11.2 승인 대상 고정
@@ -876,6 +880,8 @@ P0부터 모든 쓰기 Workspace에 소유권 제어를 적용합니다. Git Wor
 마스터는 위임 범위에서 판단하며 매번 사용자 승인을 요구하지 않습니다. 반려·만료·철회·중복 클릭을 처리하고 바뀐 내용에 과거 승인을 적용하지 않습니다. 실행 직전에도 대상 Version과 현재 정책을 확인합니다.
 
 Validation Contract가 `human`으로 명시한 검사는 실제 사용자 판단을 요구하므로 마스터가 대신 통과시키지 않습니다. 일반적인 마스터 검토·완료 판단과 사용자 전용 검사를 구분하고 작업 시작 시 선택한 정책을 고정합니다.
+
+**승인 기록(H0 계약 `ApprovalDecision`):** 종류(`plan`·`result-review`·`action`), Plan·Task·Run, 계약 Revision, 대상 Version 목록, 행위(`action`·`target`·`argsDigest`), 결정 주체(`user` 또는 `master`), 답(allow/deny), 사용자 전용 여부, Policy Revision, 기한, 상태(`Pending`·`Granted`·`Denied`·`Expired`·`Revoked`·`Consumed`)를 저장합니다. 실행 직전에는 허용된 `Granted` 승인이고 대상 Version 집합·행위·인자 Digest·Policy Revision이 모두 같을 때만 적용하며, 사용자 전용 승인은 사용자가 결정한 경우에만 인정합니다. 한 번 쓰는 승인은 사용 뒤 `Consumed`로 바꿉니다.
 
 ### 11.3 결과 변경과 독립 리뷰
 

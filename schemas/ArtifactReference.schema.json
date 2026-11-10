@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArtifactReference",
+  "type": "object",
+  "properties": {
+    "createdAt": {
+      "type": "string"
+    },
+    "holder": {
+      "$ref": "#/$defs/ArtifactHolder"
+    },
+    "target": {
+      "$ref": "#/$defs/ArtifactVersionRef"
+    }
+  },
+  "required": [
+    "target",
+    "holder",
+    "createdAt"
+  ],
+  "$defs": {
+    "ArtifactHolder": {
+      "description": "Artifact Version을 쓰는 곳입니다. 참조가 남아 있는 Version의 저장 내용은 정리하지 않습니다 (ART-03, §10).",
+      "oneOf": [
+        {
+          "description": "Run 시작 때 고정한 입력",
+          "type": "object",
+          "properties": {
+            "holder": {
+              "type": "string",
+              "const": "run-input"
+            },
+            "runId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "holder",
+            "runId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "holder": {
+              "type": "string",
+              "const": "task-result"
+            },
+            "runId": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "taskRevision": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "holder",
+            "taskId",
+            "taskRevision",
+            "runId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "holder": {
+              "type": "string",
+              "const": "validation"
+            },
+            "validationId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "holder",
+            "validationId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "approvalId": {
+              "type": "string"
+            },
+            "holder": {
+              "type": "string",
+              "const": "approval"
+            }
+          },
+          "required": [
+            "holder",
+            "approvalId"
+          ]
+        }
+      ]
+    },
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    }
+  }
+}

@@ -92,6 +92,14 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
             schema_for!(ReportTaskResultOutput),
         ),
         ("McpTaskToolError", schema_for!(TaskToolError)),
+        // Phase 1 H0: 산출물·검증 (§5.3, §11)
+        ("ArtifactReference", schema_for!(ArtifactReference)),
+        ("ValidationJob", schema_for!(ValidationJob)),
+        (
+            "CommandValidationParameters",
+            schema_for!(CommandValidationParameters),
+        ),
+        ("ApprovalDecision", schema_for!(ApprovalDecision)),
         // 마스터 결정 검증 (§4.2)
         ("DecisionPayload", schema_for!(DecisionPayload)),
         ("DecisionContext", schema_for!(DecisionContext)),
