@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResourceLock",
+  "type": "object",
+  "properties": {
+    "acquiredAt": {
+      "type": "string"
+    },
+    "expiresAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "holderRunId": {
+      "type": "string"
+    },
+    "holderTaskId": {
+      "type": "string"
+    },
+    "lockId": {
+      "type": "string"
+    },
+    "mode": {
+      "$ref": "#/$defs/LockMode"
+    },
+    "ownerEpoch": {
+      "description": "소유권 세대. 넘겨받을 때 올리고 이전 소유자의 갱신을 거부합니다 (§14.3).",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "process": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProcessEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resource": {
+      "$ref": "#/$defs/LockResource"
+    }
+  },
+  "required": [
+    "lockId",
+    "resource",
+    "mode",
+    "holderTaskId",
+    "holderRunId",
+    "ownerEpoch",
+    "acquiredAt"
+  ],
+  "$defs": {
+    "LockMode": {
+      "type": "string",
+      "enum": [
+        "writer",
+        "reader"
+      ]
+    },
+    "LockResource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "workspace"
+            },
+            "workspaceId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspaceId"
+          ]
+        },
+        {
+          "description": "같은 Session의 쓰기 Turn은 한 번에 하나입니다 (§8.1).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "session"
+            },
+            "sessionId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "sessionId"
+          ]
+        },
+        {
+          "description": "장치·포트·공유 출력 위치 등 (§9.1)",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "named"
+            },
+            "resourceId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "resourceId"
+          ]
+        }
+      ]
+    },
+    "ProcessEvidence": {
+      "description": "실행 중인 프로세스를 다시 찾을 때 쓰는 증거입니다. PID만으로 정체성을 확정하지 않습니다 (§14.3).",
+      "type": "object",
+      "properties": {
+        "hostId": {
+          "type": "string"
+        },
+        "pid": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "processStartedAt": {
+          "description": "OS가 보고한 프로세스 시작 시각",
+          "type": "string"
+        },
+        "runTokenDigest": {
+          "description": "Run별 실행 토큰의 SHA-256. 토큰 원문은 저장하지 않습니다 (§14.1).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostId",
+        "pid",
+        "processStartedAt",
+        "runTokenDigest"
+      ]
+    }
+  }
+}

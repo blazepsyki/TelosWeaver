@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DiffSummary",
+  "description": "대상 Revision의 변경 요약입니다. 전체 Diff는 Artifact로 둡니다 (GIT-04, §10).",
+  "type": "object",
+  "properties": {
+    "baseRevision": {
+      "type": "string"
+    },
+    "diff": {
+      "$ref": "#/$defs/ArtifactVersionRef"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FileChange"
+      }
+    },
+    "targetRevision": {
+      "type": "string"
+    },
+    "workspaceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "workspaceId",
+    "baseRevision",
+    "targetRevision",
+    "files",
+    "diff"
+  ],
+  "$defs": {
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    },
+    "FileChange": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "change": {
+              "type": "string",
+              "const": "added"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "change",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "change": {
+              "type": "string",
+              "const": "modified"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "change",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "change": {
+              "type": "string",
+              "const": "deleted"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "change",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "change": {
+              "type": "string",
+              "const": "renamed"
+            },
+            "from": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "change",
+            "from",
+            "path"
+          ]
+        }
+      ]
+    }
+  }
+}

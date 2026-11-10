@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkspaceRecord",
+  "type": "object",
+  "properties": {
+    "baseline": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GitBaseline"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "branch": {
+      "description": "`git-worktree`의 Task 전용 Branch",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "createdByRunId": {
+      "type": "string"
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "mode": {
+      "$ref": "#/$defs/WorkspaceMode"
+    },
+    "ownerTaskId": {
+      "type": "string"
+    },
+    "readOnly": {
+      "type": "boolean"
+    },
+    "rootPath": {
+      "description": "정규화한 절대 경로. `none` 모드는 비어 있습니다.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "state": {
+      "$ref": "#/$defs/WorkspaceState"
+    },
+    "stateVersion": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "workspaceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "workspaceId",
+    "mode",
+    "hostId",
+    "ownerTaskId",
+    "createdByRunId",
+    "readOnly",
+    "state",
+    "stateVersion",
+    "createdAt"
+  ],
+  "$defs": {
+    "GitBaseline": {
+      "description": "시작 시점의 Git 상태입니다. staged/unstaged/untracked 변경을 자동 초기화하지 않습니다 (GIT-03).",
+      "type": "object",
+      "properties": {
+        "baseCommit": {
+          "type": "string"
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gitRoot": {
+          "type": "string"
+        },
+        "recordedAt": {
+          "type": "string"
+        },
+        "staged": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unstaged": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "untracked": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "gitRoot",
+        "baseCommit",
+        "staged",
+        "unstaged",
+        "untracked",
+        "recordedAt"
+      ]
+    },
+    "WorkspaceMode": {
+      "description": "P0 실행 대상은 None·Directory·GitWorktree입니다 (§10).",
+      "type": "string",
+      "enum": [
+        "none",
+        "directory",
+        "git-worktree",
+        "sandbox",
+        "remote"
+      ]
+    },
+    "WorkspaceState": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Active",
+            "Cleaned"
+          ]
+        },
+        {
+          "description": "사용이 끝났지만 미완 Run·장애 조사·참조 때문에 남겨 둡니다. 자동 삭제하지 않습니다 (§10).",
+          "type": "string",
+          "const": "Retained"
+        }
+      ]
+    }
+  }
+}

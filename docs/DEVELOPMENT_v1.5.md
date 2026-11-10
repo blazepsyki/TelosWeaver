@@ -43,7 +43,7 @@
 | v1.5.8 | 2026-10-26 | 지원 백로그 `docs/SUPPORT_BACKLOG.md` 신설(사용자 요청): 미지원·설계상 미지원·미구현·미검증 기능을 지원 조건·재확인 방법과 함께 한 목록으로 유지하고 CLI 버전 변화 때 재판정(§7.1). PH0-INTEGRATION 경로에 등록(§19.5.3) |
 | v1.5.9 | 2026-10-26 | Phase 0 완료(G3 통과 확정) 뒤 Phase 1 병렬 구현 절차 신설(§19.6, 사용자 결정: 병렬 절차·계약 게이트 먼저·통합 담당 유지·이월 과제는 관련 작업에 편입): 게이트 H0~H3, H0 공통 계약 10종, 작업 17종(PH1-*)과 독점 경로, 진행 순서, §19.5 규칙 재사용, Phase 0 임시 구성 대체 |
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
-| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2) |
+| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2), Workspace 기록·Git 기준선·잠금 충돌·Diff·원본 반영 요청(§10), Lock 인수 조건(§14.3) |
 
 ## 목차
 
@@ -850,6 +850,8 @@ P0부터 모든 쓰기 Workspace에 소유권 제어를 적용합니다. Git Wor
 
 **Git Worktree와 반영(H0 D9):** Task별 Worktree는 Core 상태 디렉터리(§14.1)의 `worktrees/` 아래에 만듭니다. 원본 Branch 반영은 개별 행위 승인 뒤 로컬 원본 Branch에 Merge Commit을 만드는 방식이며, 반영 직전에 승인된 Revision과 일치하는지 다시 확인합니다. 원격 push는 P0에서 하지 않습니다.
 
+**Workspace 계약(H0 계약 `workspace`):** Workspace 기록은 모드·Host·정규화 경로·Task Branch·소유 Task/Run·읽기 전용 여부와 상태(`Active`·`Retained`·`Cleaned`)를 가지며, 미완 Run·장애 조사·Artifact 참조가 남으면 `Retained`로 두고 자동 삭제하지 않습니다. `git-worktree`는 시작 때 Git 루트·Base Commit·Branch·staged/unstaged/untracked 목록(`GitBaseline`)을 기록합니다. 잠금은 Workspace·Session·이름 붙인 자원 단위이며 Writer는 다른 모든 잠금과, Reader끼리는 겹치지 않습니다. Diff는 Base·대상 Revision과 변경 파일 목록, 전체 Diff Artifact로 남깁니다. 원본 반영 요청은 승인된 Revision과 승인 ID를 묶고, Task MCP 주입 경로(`.agents/`)는 Diff·Artifact·반영에서 제외합니다.
+
 산출물의 이름·개수·형식 계약을 검사합니다. 큰 로그·Diff·바이너리는 메시지 본문 대신 Artifact로 참조하고 접근권·Checksum·Host를 확인합니다. 사용 중인 산출물과 미완 Run의 Workspace는 보존 규칙에 따라 정리하며 장애 조사 전에 자동 삭제하지 않습니다.
 
 ## 11. Validation·승인·재작업
@@ -1046,6 +1048,8 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 ### 14.3 재조정과 중복 방지
 
 재시작은 DB의 미완 실행 의도와 실제 프로세스·Session을 대조합니다. PID만으로 정체성을 확정하지 않고 Host·시작 시점·실행 토큰·Native ID 등 가용한 증거를 함께 확인합니다. Lock의 기한이 끝났다는 이유만으로 살아 있는 Writer에게 새 Writer를 겹쳐 실행하지 않습니다.
+
+**Lock 인수(H0 계약 `ResourceLock`):** 잠금은 소유 Task/Run·소유 Epoch·프로세스 증거·기한을 가집니다. 다른 Run은 기한이 지났고 소유자가 살아 있지 않음을 확인한 경우에만 넘겨받으며 그때 Epoch를 올립니다. 생존을 확인하지 못하면 넘겨받지 않고 대조로 보냅니다.
 
 스케줄러 소유권과 `controllerEpoch`를 조건부 갱신하여 이전 제어자의 결정을 차단합니다. 실행 의도 기록 후 실제 시작 전 장애와 시작 후 응답 유실을 구분할 수 있도록 Adapter의 멱등성·상태 확인을 시험합니다. 외부 변경의 결과를 확정할 수 없으면 NeedsReconciliation으로 두고 무조건 재실행하지 않습니다.
 

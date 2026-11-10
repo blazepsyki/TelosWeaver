@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SourceMergeRequest",
+  "description": "승인된 Revision을 로컬 원본 Branch에 Merge Commit으로 반영하는 요청입니다. push는 하지 않습니다 (H0 D9, GIT-05·08).",
+  "type": "object",
+  "properties": {
+    "approvalId": {
+      "type": "string"
+    },
+    "approvedRevision": {
+      "description": "검증·승인한 Revision. 반영 직전 Worktree의 현재 Revision과 다르면 거부합니다.",
+      "type": "string"
+    },
+    "sourceBranch": {
+      "type": "string"
+    },
+    "workspaceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "workspaceId",
+    "sourceBranch",
+    "approvedRevision",
+    "approvalId"
+  ]
+}

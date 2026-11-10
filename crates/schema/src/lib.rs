@@ -24,6 +24,7 @@ mod secret;
 mod state;
 mod task;
 mod validation;
+mod workspace;
 
 pub use artifact::*;
 pub use decision::*;
@@ -40,6 +41,7 @@ pub use secret::*;
 pub use state::*;
 pub use task::*;
 pub use validation::*;
+pub use workspace::*;
 
 /// 구조가 정해지지 않은 JSON 객체 (`Record<string, unknown>`에 해당).
 pub type JsonObject = serde_json::Map<String, serde_json::Value>;
@@ -100,6 +102,12 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
             schema_for!(CommandValidationParameters),
         ),
         ("ApprovalDecision", schema_for!(ApprovalDecision)),
+        // Phase 1 H0: Workspace (§10)
+        ("WorkspaceRecord", schema_for!(WorkspaceRecord)),
+        ("ResourceLock", schema_for!(ResourceLock)),
+        ("DiffSummary", schema_for!(DiffSummary)),
+        ("SourceMergeRequest", schema_for!(SourceMergeRequest)),
+        ("SourceMergeResult", schema_for!(SourceMergeResult)),
         // 마스터 결정 검증 (§4.2)
         ("DecisionPayload", schema_for!(DecisionPayload)),
         ("DecisionContext", schema_for!(DecisionContext)),
