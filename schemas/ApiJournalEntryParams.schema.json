@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JournalEntryParams",
+  "type": "object",
+  "properties": {
+    "entry": {
+      "$ref": "#/$defs/JournalEntry"
+    },
+    "subscriptionId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "subscriptionId",
+    "entry"
+  ],
+  "$defs": {
+    "JournalEntry": {
+      "description": "상태 변경 기록입니다. `sequence`는 프로젝트 DB 안에서 1부터 빈틈없이 올라가며 구독 커서로 씁니다.",
+      "type": "object",
+      "properties": {
+        "entityVersion": {
+          "description": "변경 뒤 대상의 `stateVersion`",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "kind": {
+          "$ref": "#/$defs/JournalKind"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "recordedAt": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/JournalScope"
+        },
+        "sequence": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "sequence",
+        "recordedAt",
+        "scope",
+        "kind",
+        "entityVersion",
+        "payload"
+      ]
+    },
+    "JournalKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "plan-changed",
+            "task-changed",
+            "run-changed",
+            "intent-changed",
+            "session-changed",
+            "decision-applied",
+            "artifact-registered",
+            "validation-recorded",
+            "approval-recorded",
+            "lock-changed"
+          ]
+        },
+        {
+          "description": "긴급 취소·권한 철회 등 활성 실행에 적용하는 제어 이벤트 (§13.1)",
+          "type": "string",
+          "const": "control"
+        }
+      ]
+    },
+    "JournalScope": {
+      "description": "Journal 항목이 가리키는 범위입니다.",
+      "type": "object",
+      "properties": {
+        "planId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "taskId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

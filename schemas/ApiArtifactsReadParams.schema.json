@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArtifactsReadParams",
+  "type": "object",
+  "properties": {
+    "artifact": {
+      "$ref": "#/$defs/ArtifactVersionRef"
+    },
+    "limit": {
+      "description": "[`MAX_ARTIFACT_READ_BYTES`] 이하",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "offset": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "artifact",
+    "offset",
+    "limit"
+  ],
+  "$defs": {
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    }
+  }
+}

@@ -15,6 +15,17 @@
     "protocolVersion": {
       "type": "string"
     },
+    "scope": {
+      "description": "인증한 자격의 범위입니다. 없으면 Phase 0과 같은 Client 범위입니다 (Phase 1 H0).",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ConnectionScope"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "serverVersion": {
       "type": "string"
     }
@@ -25,5 +36,41 @@
     "projectId",
     "hostId",
     "connectionId"
-  ]
+  ],
+  "$defs": {
+    "ConnectionScope": {
+      "description": "연결의 접근 범위입니다. 프로젝트 API 토큰은 `client`, Run 범위 Task MCP 자격은 `task-mcp`입니다.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "client"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "`tasks.tool`만 허용하며 호출자는 이 Run으로 고정됩니다.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "task-mcp"
+            },
+            "runId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "runId"
+          ]
+        }
+      ]
+    }
+  }
 }

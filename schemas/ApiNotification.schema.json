@@ -28,6 +28,11 @@
           "description": "[`SubscriptionClosedParams`]",
           "type": "string",
           "const": "runs.subscriptionClosed"
+        },
+        {
+          "description": "[`JournalEntryParams`] (Phase 1 H0)",
+          "type": "string",
+          "const": "journal.entry"
         }
       ]
     }

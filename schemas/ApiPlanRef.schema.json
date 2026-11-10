@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlanRef",
+  "type": "object",
+  "properties": {
+    "planId": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "planId"
+  ]
+}

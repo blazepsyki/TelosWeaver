@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArtifactsReadResult",
+  "type": "object",
+  "properties": {
+    "contentType": {
+      "type": "string"
+    },
+    "dataBase64": {
+      "type": "string"
+    },
+    "eof": {
+      "type": "boolean"
+    },
+    "offset": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "totalBytes": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "contentType",
+    "totalBytes",
+    "offset",
+    "dataBase64",
+    "eof"
+  ]
+}

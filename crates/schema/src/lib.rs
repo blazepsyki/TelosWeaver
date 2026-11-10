@@ -155,6 +155,63 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
             "ApiSubscriptionClosedParams",
             schema_for!(api::SubscriptionClosedParams),
         ),
+        // Phase 1 H0: Local Core API (§17)
+        ("ApiPlansCreateParams", schema_for!(api::PlansCreateParams)),
+        ("ApiPlansCreateResult", schema_for!(api::PlansCreateResult)),
+        ("ApiPlanRef", schema_for!(api::PlanRef)),
+        (
+            "ApiPlansInspectResult",
+            schema_for!(api::PlansInspectResult),
+        ),
+        ("ApiPlansCancelParams", schema_for!(api::PlansCancelParams)),
+        (
+            "ApiPlansMessageParams",
+            schema_for!(api::PlansMessageParams),
+        ),
+        (
+            "ApiPlansMessageResult",
+            schema_for!(api::PlansMessageResult),
+        ),
+        ("ApiAcceptedResult", schema_for!(api::AcceptedResult)),
+        ("ApiTaskRef", schema_for!(api::TaskRef)),
+        (
+            "ApiTasksInspectResult",
+            schema_for!(api::TasksInspectResult),
+        ),
+        ("ApiTasksCancelParams", schema_for!(api::TasksCancelParams)),
+        ("ApiTasksToolParams", schema_for!(api::TasksToolParams)),
+        (
+            "ApiArtifactsReadParams",
+            schema_for!(api::ArtifactsReadParams),
+        ),
+        (
+            "ApiArtifactsReadResult",
+            schema_for!(api::ArtifactsReadResult),
+        ),
+        ("ApiIntervention", schema_for!(api::Intervention)),
+        (
+            "ApiInterventionsListResult",
+            schema_for!(api::InterventionsListResult),
+        ),
+        (
+            "ApiInterventionsAnswerParams",
+            schema_for!(api::InterventionsAnswerParams),
+        ),
+        (
+            "ApiJournalSubscribeParams",
+            schema_for!(api::JournalSubscribeParams),
+        ),
+        (
+            "ApiJournalSubscribeResult",
+            schema_for!(api::JournalSubscribeResult),
+        ),
+        (
+            "ApiJournalEntryParams",
+            schema_for!(api::JournalEntryParams),
+        ),
+        ("ApiRnStatusResult", schema_for!(api::RnStatusResult)),
+        ("ApiRnSendParams", schema_for!(api::RnSendParams)),
+        ("ApiRnSendResult", schema_for!(api::RnSendResult)),
         // RN RPC (§12)
         ("RnRequest", schema_for!(rn::RnRequest)),
         ("RnResponse", schema_for!(rn::RnResponse)),

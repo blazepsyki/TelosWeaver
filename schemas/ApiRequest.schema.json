@@ -57,6 +57,76 @@
           "description": "[`SubscriptionRef`] → 빈 객체",
           "type": "string",
           "const": "runs.unsubscribe"
+        },
+        {
+          "description": "[`PlansCreateParams`] → [`PlansCreateResult`]",
+          "type": "string",
+          "const": "plans.create"
+        },
+        {
+          "description": "[`PlanRef`] → [`PlansInspectResult`] (Snapshot과 Journal 커서)",
+          "type": "string",
+          "const": "plans.inspect"
+        },
+        {
+          "description": "[`PlansCancelParams`] → [`AcceptedResult`]",
+          "type": "string",
+          "const": "plans.cancel"
+        },
+        {
+          "description": "[`PlansMessageParams`] → [`PlansMessageResult`]. 사용자가 마스터에게 보내는 목표·답변",
+          "type": "string",
+          "const": "plans.message"
+        },
+        {
+          "description": "[`TaskRef`] → [`TasksInspectResult`]",
+          "type": "string",
+          "const": "tasks.inspect"
+        },
+        {
+          "description": "[`TasksCancelParams`] → [`AcceptedResult`]",
+          "type": "string",
+          "const": "tasks.cancel"
+        },
+        {
+          "description": "[`TasksToolParams`] → 도구 출력 또는 `TaskToolError`. Run 범위 자격 연결에서만 허용합니다 (§9.2).",
+          "type": "string",
+          "const": "tasks.tool"
+        },
+        {
+          "description": "[`ArtifactsReadParams`] → [`ArtifactsReadResult`]",
+          "type": "string",
+          "const": "artifacts.read"
+        },
+        {
+          "description": "[`PlanRef`] → [`InterventionsListResult`]",
+          "type": "string",
+          "const": "interventions.list"
+        },
+        {
+          "description": "[`InterventionsAnswerParams`] → [`AcceptedResult`]",
+          "type": "string",
+          "const": "interventions.answer"
+        },
+        {
+          "description": "[`JournalSubscribeParams`] → [`JournalSubscribeResult`], 이후 `journal.entry` 알림",
+          "type": "string",
+          "const": "journal.subscribe"
+        },
+        {
+          "description": "[`SubscriptionRef`] → 빈 객체",
+          "type": "string",
+          "const": "journal.unsubscribe"
+        },
+        {
+          "description": "빈 객체 → [`RnStatusResult`] (COMM-01·08)",
+          "type": "string",
+          "const": "rn.status"
+        },
+        {
+          "description": "[`RnSendParams`] → [`RnSendResult`]. 통제된 RPC 전송, 중복·TTL 검사 (COMM-03·07)",
+          "type": "string",
+          "const": "rn.send"
         }
       ]
     }

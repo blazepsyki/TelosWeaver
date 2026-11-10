@@ -352,6 +352,8 @@ async fn connection<S: AsyncRead + AsyncWrite + Unpin + Send + 'static>(
                                         project_id: execution.project_id().into(),
                                         host_id: execution.host_id().into(),
                                         connection_id,
+                                        // Phase 1 H0: Run 범위 자격 구분은 PH1-HOST가 구현합니다.
+                                        scope: None,
                                     })
                                 })
                             }
@@ -516,6 +518,11 @@ async fn connection<S: AsyncRead + AsyncWrite + Unpin + Send + 'static>(
                             },
                         }
                     }
+                    // Phase 1 H0: 계약만 정했고 PH1-HOST가 구현합니다.
+                    _ => Err(api_error(
+                        ApiErrorCode::UnsupportedMethod,
+                        "method is not implemented yet",
+                    )),
                 },
             }
         };

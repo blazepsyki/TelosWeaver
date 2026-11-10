@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Intervention",
+  "description": "사용자 개입 요청입니다 (UI-03, §17 Approval / Intervention).",
+  "type": "object",
+  "properties": {
+    "approvalId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "expiresAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "interventionId": {
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/InterventionKind"
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "planId": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "taskId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "interventionId",
+    "planId",
+    "kind",
+    "summary",
+    "reason",
+    "options",
+    "createdAt"
+  ],
+  "$defs": {
+    "InterventionKind": {
+      "oneOf": [
+        {
+          "description": "마스터의 `ask_user`",
+          "type": "string",
+          "const": "question"
+        },
+        {
+          "description": "사용자 경로로 올라온 승인 (`ProviderApprovalRequest`·`ApprovalDecision`)",
+          "type": "string",
+          "const": "approval"
+        }
+      ]
+    }
+  }
+}
