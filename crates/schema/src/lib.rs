@@ -13,6 +13,7 @@ mod events;
 mod failure;
 #[cfg(feature = "fixtures")]
 pub mod fixtures;
+mod journal;
 mod limits;
 mod master;
 mod messaging;
@@ -28,6 +29,7 @@ pub use decision::*;
 pub use discovery::*;
 pub use events::*;
 pub use failure::*;
+pub use journal::*;
 pub use limits::*;
 pub use master::*;
 pub use messaging::*;
@@ -63,6 +65,10 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
         ("RunRecord", schema_for!(RunRecord)),
         ("SessionRecord", schema_for!(SessionRecord)),
         ("RunSession", schema_for!(RunSession)),
+        // Phase 1 H0: 영속 기록 (§14)
+        ("RunIntent", schema_for!(RunIntent)),
+        ("JournalEntry", schema_for!(JournalEntry)),
+        ("IdempotencyRecord", schema_for!(IdempotencyRecord)),
         // 마스터 결정 검증 (§4.2)
         ("DecisionPayload", schema_for!(DecisionPayload)),
         ("DecisionContext", schema_for!(DecisionContext)),

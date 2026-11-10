@@ -43,7 +43,7 @@
 | v1.5.8 | 2026-10-26 | 지원 백로그 `docs/SUPPORT_BACKLOG.md` 신설(사용자 요청): 미지원·설계상 미지원·미구현·미검증 기능을 지원 조건·재확인 방법과 함께 한 목록으로 유지하고 CLI 버전 변화 때 재판정(§7.1). PH0-INTEGRATION 경로에 등록(§19.5.3) |
 | v1.5.9 | 2026-10-26 | Phase 0 완료(G3 통과 확정) 뒤 Phase 1 병렬 구현 절차 신설(§19.6, 사용자 결정: 병렬 절차·계약 게이트 먼저·통합 담당 유지·이월 과제는 관련 작업에 편입): 게이트 H0~H3, H0 공통 계약 10종, 작업 17종(PH1-*)과 독점 경로, 진행 순서, §19.5 규칙 재사용, Phase 0 임시 구성 대체 |
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
-| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4) |
+| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 정체성·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1) |
 
 ## 목차
 
@@ -1020,6 +1020,8 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 
 **위치(H0 D1):** Core DB는 프로젝트별 SQLite 파일 하나이며 사용자 상태 디렉터리(`%LOCALAPPDATA%\telos-weaver\<projectKey>\`, Linux `$XDG_STATE_HOME/telos-weaver/<projectKey>/`)에 둡니다. Phase 0의 API 토큰과 같은 디렉터리이며, Artifact 내용(§5.3)과 Git Worktree(§10)도 이 아래에 둡니다. 프로젝트 저장소 안에는 Core 상태를 만들지 않습니다.
 
+**Schema 버전(H0 계약):** DB에 Schema 버전을 기록하고, 현재 버전이면 열고, 이전 버전이면 백업을 만든 뒤 Migration하며(백업 실패 시 열지 않음), Core보다 새 버전이면 열지 않고 오류를 보고합니다.
+
 ### 14.2 장애별 기본 동작
 
 | 장애 | P0 최소 동작 | P1 고도화 |
@@ -1038,6 +1040,8 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 재시작은 DB의 미완 실행 의도와 실제 프로세스·Session을 대조합니다. PID만으로 정체성을 확정하지 않고 Host·시작 시점·실행 토큰·Native ID 등 가용한 증거를 함께 확인합니다. Lock의 기한이 끝났다는 이유만으로 살아 있는 Writer에게 새 Writer를 겹쳐 실행하지 않습니다.
 
 스케줄러 소유권과 `controllerEpoch`를 조건부 갱신하여 이전 제어자의 결정을 차단합니다. 실행 의도 기록 후 실제 시작 전 장애와 시작 후 응답 유실을 구분할 수 있도록 Adapter의 멱등성·상태 확인을 시험합니다. 외부 변경의 결과를 확정할 수 없으면 NeedsReconciliation으로 두고 무조건 재실행하지 않습니다.
+
+**실행 의도 단계(H0 계약 `RunIntent`):** `recorded`(전달 전) → `dispatched`(Adapter에 요청, 시작 결과 미수신) → `started`(시작 결과·Native ID·프로세스 정체성 수신) → `settled`(종료 확정), 전달 전 취소는 `abandoned`입니다. 재시작 때 `recorded`는 다시 전달할 수 있고, `dispatched`·`started`는 실제 프로세스·Session을 대조합니다. 프로세스 정체성은 Host·PID·OS의 프로세스 시작 시각·Run 실행 토큰의 SHA-256으로 기록합니다. 멱등 키는 기능 범위별로 입력 Digest와 함께 저장하고, 같은 키·같은 Digest는 처음 결과를 재생, 다른 Digest는 거부합니다. 상태 변경 기록(`JournalEntry`)은 프로젝트 DB 안에서 1부터 빈틈없이 올라가는 `sequence`를 가지며 UI·API 구독 커서로 씁니다. Provider 원본 이벤트는 Run별 `sequence`로 따로 저장합니다.
 
 ## 15. 로그·스트림·운영 진단
 

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IdempotencyRecord",
+  "description": "멱등 키 기록입니다. 범위(`scope`)는 키를 쓰는 기능 단위(예: `runs.start`, `decision`)입니다.",
+  "type": "object",
+  "properties": {
+    "createdAt": {
+      "type": "string"
+    },
+    "key": {
+      "type": "string"
+    },
+    "payloadDigest": {
+      "type": "string"
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "scope": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "scope",
+    "key",
+    "payloadDigest",
+    "result",
+    "createdAt"
+  ]
+}
