@@ -19,6 +19,7 @@ mod limits;
 mod master;
 mod mcp;
 mod messaging;
+mod policy;
 mod provider;
 pub mod rn;
 mod secret;
@@ -38,6 +39,7 @@ pub use limits::*;
 pub use master::*;
 pub use mcp::*;
 pub use messaging::*;
+pub use policy::*;
 pub use provider::*;
 pub use secret::*;
 pub use state::*;
@@ -114,6 +116,14 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
         ("ContextSnapshot", schema_for!(ContextSnapshot)),
         ("CapsuleContent", schema_for!(CapsuleContent)),
         ("UsageRecord", schema_for!(UsageRecord)),
+        // Phase 1 H0: 마스터 결정·정책 (§4.3, §13)
+        ("PermissionSet", schema_for!(PermissionSet)),
+        ("BudgetProfile", schema_for!(BudgetProfile)),
+        ("BudgetLedger", schema_for!(BudgetLedger)),
+        (
+            "ProviderApprovalRequest",
+            schema_for!(ProviderApprovalRequest),
+        ),
         // 마스터 결정 검증 (§4.2)
         ("DecisionPayload", schema_for!(DecisionPayload)),
         ("DecisionContext", schema_for!(DecisionContext)),

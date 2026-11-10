@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BudgetLedger",
+  "description": "Plan 예산 장부입니다. 새 작업은 예약하고, 끝나면 실제 소비로 바꿉니다.",
+  "type": "object",
+  "properties": {
+    "planId": {
+      "type": "string"
+    },
+    "tasksConsumed": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "tasksReserved": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "tokensConsumed": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "tokensMeasurable": {
+      "description": "보고되지 않은 사용량이 있으면 거짓입니다. 이때 토큰 합계를 정확한 집행 근거로 쓰지 않습니다.",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "planId",
+    "tasksReserved",
+    "tasksConsumed",
+    "tokensMeasurable",
+    "tokensConsumed"
+  ]
+}

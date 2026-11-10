@@ -43,7 +43,7 @@
 | v1.5.8 | 2026-10-26 | 지원 백로그 `docs/SUPPORT_BACKLOG.md` 신설(사용자 요청): 미지원·설계상 미지원·미구현·미검증 기능을 지원 조건·재확인 방법과 함께 한 목록으로 유지하고 CLI 버전 변화 때 재판정(§7.1). PH0-INTEGRATION 경로에 등록(§19.5.3) |
 | v1.5.9 | 2026-10-26 | Phase 0 완료(G3 통과 확정) 뒤 Phase 1 병렬 구현 절차 신설(§19.6, 사용자 결정: 병렬 절차·계약 게이트 먼저·통합 담당 유지·이월 과제는 관련 작업에 편입): 게이트 H0~H3, H0 공통 계약 10종, 작업 17종(PH1-*)과 독점 경로, 진행 순서, §19.5 규칙 재사용, Phase 0 임시 구성 대체 |
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
-| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2), Workspace 기록·Git 기준선·잠금 충돌·Diff·원본 반영 요청(§10), Lock 인수 조건(§14.3), Context Snapshot 필드·입력 문제·신뢰 구분(§6.1), 전략 대체·Capsule 내용(§8.2), 사용량 기록 역할·Unknown·중복 합산 방지(§8.3) |
+| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2), Workspace 기록·Git 기준선·잠금 충돌·Diff·원본 반영 요청(§10), Lock 인수 조건(§14.3), Context Snapshot 필드·입력 문제·신뢰 구분(§6.1), 전략 대체·Capsule 내용(§8.2), 사용량 기록 역할·Unknown·중복 합산 방지(§8.3), Provider 승인 요청의 상관·경로·기한(§4.3, `approval_required`에 대상·인자 Digest 추가), 권한 집합 교집합과 사용자 전용 행위(§13.1), 예산 Profile·장부와 마스터 예약분(§13.2) |
 
 ## 목차
 
@@ -258,6 +258,8 @@ Core 집행 순서는 **호출자·소유권 확인 → Schema·Plan Revision·E
 | 미지원 Provider 제어 요청 | 지원 가능한 재계획 또는 명시적 미지원 결과를 반환합니다. |
 
 마스터가 판단해도 사용자의 권한 상한을 바꾸지 못합니다. 승인 주체는 `user` 또는 위임받은 `master`로 기록합니다. 원본 브랜치 반영·외부 변경은 별도 행위 정책을 적용하며, 사용자가 위임한 범위와 사용자 전용 결정을 구분합니다. 포괄적인 승인 생략 옵션을 기본값으로 삼지 않습니다.
+
+**Provider 승인 요청(H0 계약 `ProviderApprovalRequest`):** Worker Run 중 Provider의 승인 요청(`approval_required`, 대상·인자 Digest 포함)은 Core가 요청 ID를 발급해 기록하고 경로를 정합니다. 응답 경로가 없으면 `unanswerable`로 거부·재계획하고, 최종 권한의 `masterApprovableActions`에 있는 행위면 마스터가 `answer_action`으로, 그 밖은 사용자에게 올립니다. 기한이 지나면 거부로 처리하며, 응답은 `ApprovalDecision`으로 기록한 뒤 실행 직전 대상·Digest·정책을 다시 확인해 Adapter에 전달합니다.
 
 ## 5. 공통 도메인 및 Task·Artifact 계약
 
@@ -989,6 +991,8 @@ DEC-07의 제거 대상은 아래 표의 **제거** 세 분류입니다. 설정�
 
 권한은 단순한 후순위 덮어쓰기가 아닙니다. 최종 허용 범위는 사용자·Host·프로젝트 상한, Plan에서 부여한 권한, 부모의 위임 범위, Task 요청의 교집합입니다. 저장소 설정과 외부 메시지만으로 상한을 확대하지 않습니다.
 
+**권한 집합(H0 계약 `PermissionSet`):** 각 범위는 Provider·Host·Workspace 모드·쓰기 Workspace·검증 명령 이름·네트워크·마스터가 대신 승인할 수 있는 행위를 가지며, 최종 권한은 목록의 교집합과 불리언의 AND입니다. 범위가 없으면 아무것도 허용하지 않습니다. 마스터 승인 가능 목록에 없는 행위는 사용자 전용입니다.
+
 Run에 최종 설정, 각 항목의 출처, Policy Revision과 해시를 저장합니다. 일반 설정 변경은 새 Run부터 적용합니다. 긴급 취소·권한 철회는 활성 실행에도 반영할 수 있도록 별도 제어 이벤트로 처리하며 적용 불가 시 실행을 중단합니다. 새 실행을 위해 필요한 권한 확대는 사용자 결정으로 기록합니다.
 
 **파일 형식·위치(H0 D7):** 설정은 TOML입니다. 사용자/Host 설정은 `%APPDATA%\telos-weaver\config.toml`(Linux `$XDG_CONFIG_HOME/telos-weaver/config.toml`), 프로젝트 설정은 `<프로젝트>/.telos-weaver/config.toml`입니다. 프로젝트 설정은 저장소에 커밋할 수 있지만 권한 상한을 넓히지 못하고 좁히기만 합니다. Phase 0의 운영자 정책 JSON은 이 설정으로 대체합니다(H0 D13).
@@ -1007,6 +1011,8 @@ Run에 최종 설정, 각 항목의 출처, Policy Revision과 해시를 저장�
 초기 설정 제안은 `providerConcurrency=1`, `maxDelegationDepth=3`, `maxPlanTasks=32`, `executionRetryLimit=1`, `reworkLimit=2`입니다. 제품에서 검증된 권장 수치가 아니라 PoC 시작값이며 설정으로 바꿀 수 있습니다. Timeout은 작업 프로파일별 필수 양수로 지정하고 전 작업에 동일한 짧은 값을 강제하지 않습니다.
 
 마스터 판단 자체에도 예산을 부여하고 Worker가 전부 소진하지 못하도록 제어용 여유를 예약합니다. 남은 예산을 초과하는 새 작업은 거부·축소·사용자 요청 중 하나로 처리합니다.
+
+**예산 계약(H0 계약 `BudgetProfile`·`BudgetLedger`):** Profile은 위 상한, Run·대기·Plan 시간, 토큰·비용 상한, 정확한 비용 필수 여부, 마스터 예약분(Task 수·토큰)을 가집니다. 장부는 Plan별 예약·소비와 토큰 계측 가능 여부를 기록하고, Worker 요청은 마스터 예약분을 뺀 범위에서만 예약합니다. 정확한 비용이 필수인 Plan은 사용량을 계측할 수 없으면 시작하지 않습니다.
 
 토큰·구독 사용량이 제공되지 않으면 비용 상한을 정확히 집행했다고 주장하지 않습니다. 계측 불가를 표시하고 시간·호출·Task 상한을 적용합니다. 정확한 비용 상한이 필수인 Plan은 계측 불가 상태로 시작하지 않습니다. Provider의 보고 지연으로 인한 초과 가능성도 표시합니다.
 

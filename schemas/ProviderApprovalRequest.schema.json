@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProviderApprovalRequest",
+  "description": "Worker Run 중 Provider가 보낸 승인 요청입니다 (`ApprovalRequired` 이벤트, 이월 P1-2).\n응답은 실행 직전에 대상·인자 Digest·정책을 다시 확인한 뒤 Adapter `answer_approval`로 보냅니다.",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string"
+    },
+    "answer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalAnswer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "approvalId": {
+      "description": "답을 기록한 `ApprovalDecision`",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "argsDigest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "expiresAt": {
+      "type": "string"
+    },
+    "nativeRequestId": {
+      "description": "Provider 이벤트의 요청 ID (`ApprovalRequiredPayload::request_id`)",
+      "type": "string"
+    },
+    "requestId": {
+      "description": "Core가 발급하는 ID. 마스터의 `answer_action.requestId`가 가리킵니다.",
+      "type": "string"
+    },
+    "route": {
+      "$ref": "#/$defs/ApprovalRoute"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/ProviderApprovalState"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "target": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "taskId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "requestId",
+    "runId",
+    "taskId",
+    "nativeRequestId",
+    "action",
+    "summary",
+    "route",
+    "state",
+    "expiresAt",
+    "createdAt"
+  ],
+  "$defs": {
+    "ApprovalAnswer": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "deny"
+      ]
+    },
+    "ApprovalRoute": {
+      "oneOf": [
+        {
+          "description": "위임 범위 안: 마스터가 `answer_action`으로 답합니다.",
+          "type": "string",
+          "const": "master"
+        },
+        {
+          "description": "사용자 전용·권한 확대: 마스터가 사용자에게 올립니다.",
+          "type": "string",
+          "const": "user"
+        },
+        {
+          "description": "Provider가 실행 중 응답을 받을 수 없음: 거부·재계획합니다 (§7.4).",
+          "type": "string",
+          "const": "unanswerable"
+        }
+      ]
+    },
+    "ProviderApprovalState": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Pending",
+            "Answered"
+          ]
+        },
+        {
+          "description": "기한 안에 답이 없어 거부로 처리했습니다.",
+          "type": "string",
+          "const": "Expired"
+        },
+        {
+          "description": "응답 전에 Run이 끝났습니다.",
+          "type": "string",
+          "const": "Abandoned"
+        }
+      ]
+    }
+  }
+}

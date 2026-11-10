@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BudgetProfile",
+  "description": "실행 시간·대기·재시도·토큰·비용의 상한입니다. Timeout은 작업 프로파일별 필수 양수입니다 (§13.2).",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/ControlLimits"
+    },
+    "masterReserveTasks": {
+      "description": "마스터 판단용으로 예약하는 몫(Task 수·토큰). Worker가 쓰지 못합니다.",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "masterReserveTokens": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
+    "maxCostUsd": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "maxTokens": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
+    "planTimeoutSecs": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
+    "requireExactCost": {
+      "description": "참이면 사용량을 정확히 잴 수 없는 Provider로 이 Plan을 시작하지 않습니다.",
+      "type": "boolean"
+    },
+    "runTimeoutSecs": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "waitTimeoutSecs": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "id",
+    "limits",
+    "runTimeoutSecs",
+    "waitTimeoutSecs",
+    "requireExactCost",
+    "masterReserveTasks"
+  ],
+  "$defs": {
+    "ControlLimits": {
+      "type": "object",
+      "properties": {
+        "executionRetryLimit": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "maxDelegationDepth": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "maxPlanTasks": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "providerConcurrency": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "reworkLimit": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "providerConcurrency",
+        "maxDelegationDepth",
+        "maxPlanTasks",
+        "executionRetryLimit",
+        "reworkLimit"
+      ]
+    }
+  }
+}

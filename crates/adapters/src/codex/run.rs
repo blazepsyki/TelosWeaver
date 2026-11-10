@@ -332,6 +332,9 @@ impl RunEntry {
                 action: name.into(),
                 summary: "Codex requested permission for a tool operation".into(),
                 answerable,
+                // Phase 1 H0: 대상·인자 Digest는 PH1-CODEX가 채웁니다.
+                target: None,
+                args_digest: None,
             })
             .into(),
             false,
