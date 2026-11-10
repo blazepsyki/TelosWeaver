@@ -19,6 +19,7 @@ mod messaging;
 mod provider;
 pub mod rn;
 mod secret;
+mod state;
 mod task;
 mod validation;
 
@@ -32,6 +33,7 @@ pub use master::*;
 pub use messaging::*;
 pub use provider::*;
 pub use secret::*;
+pub use state::*;
 pub use task::*;
 pub use validation::*;
 
@@ -55,6 +57,12 @@ pub fn json_schemas() -> Vec<(&'static str, schemars::Schema)> {
         ("ProviderEvent", schema_for!(ProviderEvent)),
         ("ProviderEventPayload", schema_for!(ProviderEventPayload)),
         ("CliDiscovery", schema_for!(CliDiscovery)),
+        // Phase 1 H0: Task·Run·Session 모델 (§5.1, §8.1, §9.4)
+        ("Plan", schema_for!(Plan)),
+        ("TaskRecord", schema_for!(TaskRecord)),
+        ("RunRecord", schema_for!(RunRecord)),
+        ("SessionRecord", schema_for!(SessionRecord)),
+        ("RunSession", schema_for!(RunSession)),
         // 마스터 결정 검증 (§4.2)
         ("DecisionPayload", schema_for!(DecisionPayload)),
         ("DecisionContext", schema_for!(DecisionContext)),

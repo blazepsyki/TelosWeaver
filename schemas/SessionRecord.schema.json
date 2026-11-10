@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SessionRecord",
+  "description": "Provider 대화입니다. 여러 Run이 재사용할 수 있고 Run과 1:1로 가정하지 않습니다 (§5.1, §8.1).",
+  "type": "object",
+  "properties": {
+    "createdAt": {
+      "type": "string"
+    },
+    "createdByRunId": {
+      "type": "string"
+    },
+    "forkBasis": {
+      "description": "Native Fork의 분기 기준. Provider가 지정하지 못하면 지원 가능한 기준을 적습니다 (§8.2).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "nativeSessionId": {
+      "type": "string"
+    },
+    "ownerTaskId": {
+      "description": "이 Session에 쓸 수 있는 Task입니다. 다른 Task의 Resume은 소유권 확인을 거칩니다 (§8.1).",
+      "type": "string"
+    },
+    "parentSessionId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "provider": {
+      "type": "string"
+    },
+    "sessionId": {
+      "description": "Core가 발급하는 ID",
+      "type": "string"
+    }
+  },
+  "required": [
+    "sessionId",
+    "provider",
+    "hostId",
+    "nativeSessionId",
+    "ownerTaskId",
+    "createdByRunId",
+    "createdAt"
+  ]
+}
