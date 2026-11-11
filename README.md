@@ -48,11 +48,13 @@ crates/
                  policy/        마스터 결정 검증, 신뢰된 정책 조회
                  master/        Master Controller
                  integration/   Phase 0 통합 구성: 운영자 정책 승인, Provider 탐지·등록, 종료 정리
+                 persistence/ scheduler/ context/ workspace/ artifact/ validation/ mcp/ config/
+                                Phase 1 모듈 — H0에서 공개 Trait만 정의, 구현은 각 PH1 작업
 schemas/       telos-schema에서 생성한 JSON Schema (커밋 대상)
 extension/     VS Code Extension, TypeScript (§17) — 생성 타입만 사용, Core 연결·최소 상태 UI
 rn-fork/       Reason Network Fork `telos-rn`(원본 v0.12.11, subtree) — DEC-07 정리 완료(PH0-RN-08), 독립 Cargo Workspace
 (docs/archive/의 이전 설계 문서는 로컬에만 보관하며 원격 저장소에 올리지 않습니다)
-docs/          설계 문서, phase-0/에 배정표·WSL 절차·작업별 검증 증거
+docs/          설계 문서, phase-0/·phase-1/에 배정표·결정·작업별 검증 증거
 ```
 
 의존 방향은 `schema ← adapters, rn-client ← core`이며 Cargo 의존 선언으로 강제합니다. Extension은 Rust 코드에 의존하지 않고 `schemas/`에서 생성한 TypeScript 타입만 사용합니다.
@@ -127,7 +129,7 @@ npm test        # 단위 시험 (실제 Core·Extension Host 시험은 extension
 
 ### 병렬 작업
 
-Phase 0은 작업 ID(PH0-*)별 독점 경로로 나누어 여러 에이전트가 병렬로 구현합니다(Spec §19.5). 착수 전 [배정표](docs/phase-0/WORK_ALLOCATION.md)에 자기 행을 기록하고, Worktree는 `D:\worktree\TelosWeaver\` 아래에 만듭니다. 공통 파일·계약 변경은 변경 요청(REQ-xxx)으로 처리합니다.
+Phase 1은 작업 ID(PH1-*)별 독점 경로로 나누어 여러 에이전트가 병렬로 구현합니다(Spec §19.6, Phase 0은 §19.5). 착수 전 [배정표](docs/phase-1/WORK_ALLOCATION.md)에 자기 행을 기록하고, Worktree는 `D:\worktree\TelosWeaver\` 아래에 만듭니다. 공통 파일·계약 변경은 변경 요청(REQ-xxx)으로 처리합니다.
 
 ## 라이선스
 

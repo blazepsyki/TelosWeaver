@@ -1,4 +1,4 @@
-//! 설정 (Spec §16, PH1-CONFIG). H0 공개 인터페이스입니다.
+//! 설정 (Spec §13.1, PH1-CONFIG). H0 공개 인터페이스입니다.
 //!
 //! 사용자(`%APPDATA%\telos-weaver\config.toml`)와 프로젝트(`.telos-weaver/config.toml`) TOML을 합칩니다(H0 D7).
 //! 프로젝트 층이 Host 한정 설정을 바꾸려 하면(`ConfigFile::host_bound_violations`) 무시하고 경고합니다.
