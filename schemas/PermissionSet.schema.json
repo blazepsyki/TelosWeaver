@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PermissionSet",
+  "description": "한 범위(사용자·Host·프로젝트·Plan·부모 위임·Task 요청)가 허용하는 것입니다.\n최종 권한은 모든 범위의 교집합이며 저장소 설정·외부 메시지만으로 넓히지 않습니다 (§13.1, CFG-02).",
+  "type": "object",
+  "properties": {
+    "commands": {
+      "description": "실행해도 되는 검증 명령 이름 (H0 D8)",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hostIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "masterApprovableActions": {
+      "description": "마스터가 사용자 대신 승인할 수 있는 개별 행위(예: `git-merge`). 여기 없는 행위는 사용자 전용입니다 (§4.3).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "network": {
+      "type": "boolean"
+    },
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "workspaceModes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/WorkspaceMode"
+      }
+    },
+    "writableWorkspaceIds": {
+      "description": "쓰기를 허용하는 Workspace ID. 없으면 읽기 전용입니다.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "providers",
+    "hostIds",
+    "workspaceModes",
+    "writableWorkspaceIds",
+    "commands",
+    "network",
+    "masterApprovableActions"
+  ],
+  "$defs": {
+    "WorkspaceMode": {
+      "description": "P0 실행 대상은 None·Directory·GitWorktree입니다 (§10).",
+      "type": "string",
+      "enum": [
+        "none",
+        "directory",
+        "git-worktree",
+        "sandbox",
+        "remote"
+      ]
+    }
+  }
+}

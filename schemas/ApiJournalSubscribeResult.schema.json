@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JournalSubscribeResult",
+  "type": "object",
+  "properties": {
+    "subscriptionId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "subscriptionId"
+  ]
+}

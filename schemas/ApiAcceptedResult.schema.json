@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AcceptedResult",
+  "description": "접수 여부입니다. 실제 정지·적용 결과는 Journal로 확인합니다.",
+  "type": "object",
+  "properties": {
+    "accepted": {
+      "type": "boolean"
+    },
+    "requestId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "requestId",
+    "accepted"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SourceMergeResult",
+  "type": "object",
+  "properties": {
+    "mergeCommit": {
+      "type": "string"
+    },
+    "mergedRevision": {
+      "type": "string"
+    },
+    "sourceBranch": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "mergeCommit",
+    "sourceBranch",
+    "mergedRevision"
+  ]
+}

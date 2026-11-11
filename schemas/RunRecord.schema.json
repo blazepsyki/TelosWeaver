@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunRecord",
+  "description": "Run 하나는 Task의 실행 시도 하나입니다. 재시도는 같은 Task의 새 Run입니다 (§5.1).",
+  "type": "object",
+  "properties": {
+    "attempt": {
+      "description": "같은 Task Revision 안에서 1부터 올립니다.",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "finishedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExecutionOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provider": {
+      "type": "string"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "sessionMode": {
+      "$ref": "#/$defs/SessionMode"
+    },
+    "stateVersion": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus"
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "taskRevision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "runId",
+    "taskId",
+    "taskRevision",
+    "attempt",
+    "status",
+    "stateVersion",
+    "provider",
+    "hostId",
+    "sessionMode",
+    "createdAt"
+  ],
+  "$defs": {
+    "ExecutionOutcome": {
+      "type": "string",
+      "enum": [
+        "succeeded",
+        "failed",
+        "cancelled",
+        "unknown"
+      ]
+    },
+    "RunStatus": {
+      "description": "Run 성공은 Task 완료가 아닙니다 (§9.4).",
+      "type": "string",
+      "enum": [
+        "Starting",
+        "Running",
+        "Waiting",
+        "Succeeded",
+        "Failed",
+        "Cancelling",
+        "Cancelled",
+        "Interrupted",
+        "Unknown"
+      ]
+    },
+    "SessionMode": {
+      "description": "Spec §8.1 문맥 전략.",
+      "type": "string",
+      "enum": [
+        "fresh",
+        "resume",
+        "native-fork",
+        "capsule"
+      ]
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommandValidationParameters",
+  "description": "`command` 검증의 `ValidationContract::parameters` 형식입니다. 설정에 등록된 명령 이름과 그 명령이 허용한 인자만 씁니다 (H0 D8).",
+  "type": "object",
+  "properties": {
+    "args": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "command": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "command"
+  ]
+}

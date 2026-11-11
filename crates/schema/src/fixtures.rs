@@ -70,6 +70,7 @@ pub fn run_context(task: &TaskSpec) -> RunContext {
             source_turn_id: None,
             capsule_version_id: None,
         },
+        task_mcp: None,
     }
 }
 

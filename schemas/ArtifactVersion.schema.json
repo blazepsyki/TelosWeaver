@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ArtifactVersion",
-  "description": "불변입니다. 변경 가능한 작업 디렉터리 경로를 검증된 버전으로 간주하지 않습니다.",
+  "description": "불변입니다. 변경 가능한 작업 디렉터리 경로를 검증된 버전으로 간주하지 않습니다.\n\n`checksum`은 `sha256:<hex>`, Core 저장소의 내용은 `storage_uri` = `artifact://sha256/<hex>`입니다 (H0 D2).\n같은 내용의 Version은 저장 내용을 공유하지만 Version 기록은 따로 둡니다.",
   "type": "object",
   "properties": {
     "artifactId": {
@@ -25,7 +25,13 @@
     "runId": {
       "type": "string"
     },
+    "sizeBytes": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
     "sourceRevision": {
+      "description": "Git 작업이면 내용을 고정한 Commit, 파일 출력이면 원래 Workspace 상대 경로 등 출처입니다.",
       "type": [
         "string",
         "null"
@@ -57,6 +63,7 @@
     "contentType",
     "storageUri",
     "checksum",
+    "sizeBytes",
     "createdAt"
   ],
   "$defs": {

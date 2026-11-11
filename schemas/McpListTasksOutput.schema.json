@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ListTasksOutput",
+  "type": "object",
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TaskListItem"
+      }
+    }
+  },
+  "required": [
+    "tasks"
+  ],
+  "$defs": {
+    "TaskListItem": {
+      "type": "object",
+      "properties": {
+        "objective": {
+          "type": "string"
+        },
+        "parentTaskId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "taskRevision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "type": {
+          "$ref": "#/$defs/TaskType"
+        }
+      },
+      "required": [
+        "taskId",
+        "taskRevision",
+        "type",
+        "objective",
+        "provider",
+        "status"
+      ]
+    },
+    "TaskStatus": {
+      "description": "기본 경로: Created → Ready → Running → Executed → Validating → Verified → Completed.\n전이 규칙은 §9.4 표를 따르며 Core Scheduler가 소유합니다.",
+      "type": "string",
+      "enum": [
+        "Created",
+        "Blocked",
+        "Ready",
+        "Running",
+        "WaitingChild",
+        "WaitingMaster",
+        "WaitingUser",
+        "Executed",
+        "Validating",
+        "Verified",
+        "Completed",
+        "Failed",
+        "Skipped",
+        "Cancelling",
+        "Cancelled",
+        "Interrupted",
+        "NeedsReconciliation"
+      ]
+    },
+    "TaskType": {
+      "type": "string",
+      "enum": [
+        "general",
+        "research",
+        "analysis",
+        "document",
+        "coding",
+        "automation",
+        "review",
+        "custom"
+      ]
+    }
+  }
+}

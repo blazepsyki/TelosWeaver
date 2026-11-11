@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GetAgentStatusOutput",
+  "type": "object",
+  "properties": {
+    "agents": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/AgentStatus"
+      }
+    }
+  },
+  "required": [
+    "agents"
+  ],
+  "$defs": {
+    "AgentStatus": {
+      "type": "object",
+      "properties": {
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Capability"
+          }
+        },
+        "cliVersion": {
+          "type": "string"
+        },
+        "hostId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "hostId",
+        "cliVersion",
+        "capabilities"
+      ]
+    },
+    "Capability": {
+      "type": "object",
+      "properties": {
+        "checkedAt": {
+          "type": "string"
+        },
+        "evidenceLevel": {
+          "$ref": "#/$defs/EvidenceLevel"
+        },
+        "hostId": {
+          "type": "string"
+        },
+        "providerVersion": {
+          "type": "string"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/CapabilityState"
+        }
+      },
+      "required": [
+        "state",
+        "providerVersion",
+        "hostId",
+        "checkedAt",
+        "evidenceLevel"
+      ]
+    },
+    "CapabilityState": {
+      "type": "string",
+      "enum": [
+        "supported",
+        "unsupported",
+        "unverified"
+      ]
+    },
+    "EvidenceLevel": {
+      "type": "string",
+      "enum": [
+        "documented",
+        "contract-tested",
+        "mock-tested",
+        "environment-tested"
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlansCreateResult",
+  "type": "object",
+  "properties": {
+    "masterTaskId": {
+      "type": "string"
+    },
+    "planId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "planId",
+    "masterTaskId"
+  ]
+}

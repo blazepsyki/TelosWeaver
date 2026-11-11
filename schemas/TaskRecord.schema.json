@@ -1,0 +1,473 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskRecord",
+  "description": "영속 Task 기록입니다. 상태 변경은 `state_version`의 조건부 갱신으로만 합니다 (§9.5, §14.3).",
+  "type": "object",
+  "properties": {
+    "cancelPropagation": {
+      "$ref": "#/$defs/CancelPropagation",
+      "default": "descendants"
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "delegationDepth": {
+      "description": "위임 깊이. 최상위 Task는 0입니다(`TaskSummary::delegation_depth`와 같은 기준, `ControlLimits::max_delegation_depth`).",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "spec": {
+      "$ref": "#/$defs/TaskSpec"
+    },
+    "stateVersion": {
+      "description": "상태가 바뀔 때마다 1씩 올립니다. 갱신 요청은 읽은 값과 같을 때만 적용합니다.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "status": {
+      "$ref": "#/$defs/TaskStatus"
+    },
+    "updatedAt": {
+      "type": "string"
+    },
+    "wait": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WaitState"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "spec",
+    "status",
+    "stateVersion",
+    "delegationDepth",
+    "createdAt",
+    "updatedAt"
+  ],
+  "$defs": {
+    "AgentSelection": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "role"
+      ]
+    },
+    "ArtifactKind": {
+      "type": "string",
+      "enum": [
+        "text",
+        "file",
+        "document",
+        "dataset",
+        "code",
+        "diff",
+        "structured"
+      ]
+    },
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    },
+    "CancelPropagation": {
+      "description": "부모 취소 시 자식 처리입니다. 기본은 자손 전파이며 예외는 계약에 기록합니다 (§9.3).",
+      "type": "string",
+      "enum": [
+        "descendants",
+        "independent"
+      ]
+    },
+    "InputBinding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "ref": {
+              "$ref": "#/$defs/ArtifactVersionRef"
+            },
+            "source": {
+              "type": "string",
+              "const": "artifact"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "name",
+            "ref"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "outputName": {
+              "type": "string"
+            },
+            "producerTaskId": {
+              "type": "string"
+            },
+            "producerTaskRevision": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "source": {
+              "type": "string",
+              "const": "task-output"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "name",
+            "producerTaskId",
+            "producerTaskRevision",
+            "outputName"
+          ]
+        }
+      ]
+    },
+    "OutputContract": {
+      "type": "object",
+      "properties": {
+        "contentType": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "maxCount": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "minCount": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "description": "Task Revision 안에서 유일합니다.",
+          "type": "string"
+        },
+        "relativePath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "schemaId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "required",
+        "minCount",
+        "maxCount"
+      ]
+    },
+    "TaskSpec": {
+      "type": "object",
+      "properties": {
+        "agent": {
+          "$ref": "#/$defs/AgentSelection"
+        },
+        "budgetProfileId": {
+          "type": "string"
+        },
+        "completionPolicyId": {
+          "type": "string"
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InputBinding"
+          }
+        },
+        "objective": {
+          "type": "string"
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OutputContract"
+          }
+        },
+        "parentTaskId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "permissionProfileId": {
+          "type": "string"
+        },
+        "planId": {
+          "type": "string"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "type": {
+          "$ref": "#/$defs/TaskType"
+        },
+        "validation": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ValidationContract"
+          }
+        },
+        "workspace": {
+          "$ref": "#/$defs/WorkspaceRequest"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "revision",
+        "projectId",
+        "planId",
+        "type",
+        "objective",
+        "constraints",
+        "dependencies",
+        "agent",
+        "workspace",
+        "inputs",
+        "outputs",
+        "validation",
+        "permissionProfileId",
+        "budgetProfileId",
+        "completionPolicyId"
+      ]
+    },
+    "TaskStatus": {
+      "description": "기본 경로: Created → Ready → Running → Executed → Validating → Verified → Completed.\n전이 규칙은 §9.4 표를 따르며 Core Scheduler가 소유합니다.",
+      "type": "string",
+      "enum": [
+        "Created",
+        "Blocked",
+        "Ready",
+        "Running",
+        "WaitingChild",
+        "WaitingMaster",
+        "WaitingUser",
+        "Executed",
+        "Validating",
+        "Verified",
+        "Completed",
+        "Failed",
+        "Skipped",
+        "Cancelling",
+        "Cancelled",
+        "Interrupted",
+        "NeedsReconciliation"
+      ]
+    },
+    "TaskType": {
+      "type": "string",
+      "enum": [
+        "general",
+        "research",
+        "analysis",
+        "document",
+        "coding",
+        "automation",
+        "review",
+        "custom"
+      ]
+    },
+    "ValidationContract": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ValidationKind"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "targetOutputNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "revision",
+        "kind",
+        "targetOutputNames",
+        "parameters",
+        "required"
+      ]
+    },
+    "ValidationKind": {
+      "type": "string",
+      "enum": [
+        "schema",
+        "file",
+        "checksum",
+        "command",
+        "assertion",
+        "ai-review",
+        "human",
+        "visual",
+        "custom"
+      ]
+    },
+    "WaitState": {
+      "description": "Wait* 상태에서 무엇을 기다리는지와 응답 뒤 돌아갈 상태입니다 (§9.3, §9.4).",
+      "type": "object",
+      "properties": {
+        "deadline": {
+          "description": "기한이 지나면 계약에 정한 경로(실패·재계획·사용자 질문)를 따릅니다.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resumeStatus": {
+          "description": "응답 뒤 복귀할 상태. `Running`·`Executed`·`Validating`·`Verified` 중 하나입니다.",
+          "$ref": "#/$defs/TaskStatus"
+        },
+        "waitingFor": {
+          "description": "기다리는 대상(자식 Task ID, 결정·질문 ID 등)",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "resumeStatus",
+        "waitingFor"
+      ]
+    },
+    "WorkspaceMode": {
+      "description": "P0 실행 대상은 None·Directory·GitWorktree입니다 (§10).",
+      "type": "string",
+      "enum": [
+        "none",
+        "directory",
+        "git-worktree",
+        "sandbox",
+        "remote"
+      ]
+    },
+    "WorkspaceRequest": {
+      "type": "object",
+      "properties": {
+        "hostId": {
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/WorkspaceMode"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "workspaceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "hostId",
+        "readOnly"
+      ]
+    }
+  }
+}

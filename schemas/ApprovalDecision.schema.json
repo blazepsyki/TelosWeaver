@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ApprovalDecision",
+  "type": "object",
+  "properties": {
+    "action": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalAction"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "answer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalAnswer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "approvalId": {
+      "type": "string"
+    },
+    "contractRevision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "decidedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "decidedBy": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalActor"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "expiresAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "kind": {
+      "$ref": "#/$defs/ApprovalKind"
+    },
+    "planId": {
+      "type": "string"
+    },
+    "policyRevision": {
+      "type": "string"
+    },
+    "runId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "state": {
+      "$ref": "#/$defs/ApprovalState"
+    },
+    "stateVersion": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ArtifactVersionRef"
+      }
+    },
+    "taskId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "userOnly": {
+      "description": "`human`으로 요구된 검토 등 사용자만 결정할 수 있는 승인입니다. 마스터가 대신하지 않습니다 (§11.2).",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "approvalId",
+    "kind",
+    "planId",
+    "targets",
+    "userOnly",
+    "policyRevision",
+    "state",
+    "stateVersion",
+    "createdAt"
+  ],
+  "$defs": {
+    "ApprovalAction": {
+      "description": "개별 행위의 대상과 인자입니다. 인자 원문 대신 Digest를 고정합니다.",
+      "type": "object",
+      "properties": {
+        "action": {
+          "description": "예: `git-merge`, `provider-tool`, `workspace-write`",
+          "type": "string"
+        },
+        "argsDigest": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "target",
+        "argsDigest"
+      ]
+    },
+    "ApprovalActor": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "actor": {
+              "type": "string",
+              "const": "user"
+            }
+          },
+          "required": [
+            "actor"
+          ]
+        },
+        {
+          "description": "위임받은 범위의 마스터 판단 (§4.3)",
+          "type": "object",
+          "properties": {
+            "actor": {
+              "type": "string",
+              "const": "master"
+            },
+            "masterRunId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "actor",
+            "masterRunId"
+          ]
+        }
+      ]
+    },
+    "ApprovalAnswer": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "deny"
+      ]
+    },
+    "ApprovalKind": {
+      "description": "계획 승인·결과 검토·개별 행위 실행 승인을 구분합니다 (§11.2).",
+      "type": "string",
+      "enum": [
+        "plan",
+        "result-review",
+        "action"
+      ]
+    },
+    "ApprovalState": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Pending",
+            "Granted",
+            "Denied",
+            "Expired",
+            "Revoked"
+          ]
+        },
+        {
+          "description": "한 번 쓰는 승인을 사용했습니다. 같은 승인을 다시 적용하지 않습니다.",
+          "type": "string",
+          "const": "Consumed"
+        }
+      ]
+    },
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    }
+  }
+}

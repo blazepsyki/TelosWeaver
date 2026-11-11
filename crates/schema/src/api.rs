@@ -127,6 +127,49 @@ pub enum ApiMethod {
     /// [`SubscriptionRef`] → 빈 객체
     #[serde(rename = "runs.unsubscribe")]
     RunsUnsubscribe,
+    // --- Phase 1 H0 (§17, §19.6.2). 구현 전에는 Core가 `unsupported_method`로 답합니다. ---
+    /// [`PlansCreateParams`] → [`PlansCreateResult`]
+    #[serde(rename = "plans.create")]
+    PlansCreate,
+    /// [`PlanRef`] → [`PlansInspectResult`] (Snapshot과 Journal 커서)
+    #[serde(rename = "plans.inspect")]
+    PlansInspect,
+    /// [`PlansCancelParams`] → [`AcceptedResult`]
+    #[serde(rename = "plans.cancel")]
+    PlansCancel,
+    /// [`PlansMessageParams`] → [`PlansMessageResult`]. 사용자가 마스터에게 보내는 목표·답변
+    #[serde(rename = "plans.message")]
+    PlansMessage,
+    /// [`TaskRef`] → [`TasksInspectResult`]
+    #[serde(rename = "tasks.inspect")]
+    TasksInspect,
+    /// [`TasksCancelParams`] → [`AcceptedResult`]
+    #[serde(rename = "tasks.cancel")]
+    TasksCancel,
+    /// [`TasksToolParams`] → 도구 출력 또는 `TaskToolError`. Run 범위 자격 연결에서만 허용합니다 (§9.2).
+    #[serde(rename = "tasks.tool")]
+    TasksTool,
+    /// [`ArtifactsReadParams`] → [`ArtifactsReadResult`]
+    #[serde(rename = "artifacts.read")]
+    ArtifactsRead,
+    /// [`PlanRef`] → [`InterventionsListResult`]
+    #[serde(rename = "interventions.list")]
+    InterventionsList,
+    /// [`InterventionsAnswerParams`] → [`AcceptedResult`]
+    #[serde(rename = "interventions.answer")]
+    InterventionsAnswer,
+    /// [`JournalSubscribeParams`] → [`JournalSubscribeResult`], 이후 `journal.entry` 알림
+    #[serde(rename = "journal.subscribe")]
+    JournalSubscribe,
+    /// [`SubscriptionRef`] → 빈 객체
+    #[serde(rename = "journal.unsubscribe")]
+    JournalUnsubscribe,
+    /// 빈 객체 → [`RnStatusResult`] (COMM-01·08)
+    #[serde(rename = "rn.status")]
+    RnStatus,
+    /// [`RnSendParams`] → [`RnSendResult`]. 통제된 RPC 전송, 중복·TTL 검사 (COMM-03·07)
+    #[serde(rename = "rn.send")]
+    RnSend,
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -186,6 +229,8 @@ pub enum ApiErrorCode {
     /// 필요한 구성 요소(Provider, RN 등)를 지금 쓸 수 없음
     Unavailable,
     Internal,
+    /// 구독 커서가 보존 범위 밖입니다. `plans.inspect`로 Snapshot을 다시 받고 그 커서부터 구독합니다 (Phase 1 H0).
+    CursorExpired,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -205,6 +250,9 @@ pub enum ApiNotificationMethod {
     /// [`SubscriptionClosedParams`]
     #[serde(rename = "runs.subscriptionClosed")]
     SubscriptionClosed,
+    /// [`JournalEntryParams`] (Phase 1 H0)
+    #[serde(rename = "journal.entry")]
+    JournalEntry,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -231,6 +279,9 @@ pub struct HelloResult {
     pub project_id: String,
     pub host_id: String,
     pub connection_id: String,
+    /// 인증한 자격의 범위입니다. 없으면 Phase 0과 같은 Client 범위입니다 (Phase 1 H0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<ConnectionScope>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
@@ -354,4 +405,257 @@ pub struct SubscriptionClosedParams {
     pub reason: SubscriptionCloseReason,
     /// 마지막으로 보낸 이벤트 순서. 재구독의 `afterSequence`로 씁니다.
     pub last_sequence: u64,
+}
+
+// --- Phase 1 H0 Local Core API (§17, §19.6.2) ---
+//
+// Phase 1 API는 호환 없이 버전을 올립니다(H0 D13). 버전 상향(`1.0`)은 HOST·EXT가 새 메서드를 연결하는 같은 변경에서 합니다.
+// 모든 변경 요청은 `idempotencyKey`를 받고 같은 키·다른 내용은 `conflict`로 거부합니다.
+
+/// 연결의 접근 범위입니다. 프로젝트 API 토큰은 `client`, Run 범위 Task MCP 자격은 `task-mcp`입니다.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum ConnectionScope {
+    Client,
+    /// `tasks.tool`만 허용하며 호출자는 이 Run으로 고정됩니다.
+    TaskMcp {
+        run_id: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlansCreateParams {
+    pub idempotency_key: String,
+    pub goal: String,
+    #[serde(default)]
+    pub constraints: Vec<String>,
+    /// 비우면 설정의 기본 마스터(Claude `sonnet`, H0 D6)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub master: Option<crate::AgentSelection>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PlansCreateResult {
+    pub plan_id: String,
+    pub master_task_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlanRef {
+    pub plan_id: String,
+}
+
+/// Plan의 현재 상태 Snapshot입니다. `cursor`부터 `journal.subscribe`하면 빠짐없이 이어집니다 (§14.1, UI-07).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PlansInspectResult {
+    pub plan: crate::Plan,
+    pub tasks: Vec<crate::TaskRecord>,
+    pub runs: Vec<crate::RunRecord>,
+    pub pending_interventions: u32,
+    pub cursor: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlansCancelParams {
+    pub idempotency_key: String,
+    pub plan_id: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlansMessageParams {
+    pub idempotency_key: String,
+    pub plan_id: String,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PlansMessageResult {
+    pub message_id: String,
+}
+
+/// 접수 여부입니다. 실제 정지·적용 결과는 Journal로 확인합니다.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AcceptedResult {
+    pub request_id: String,
+    pub accepted: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TaskRef {
+    pub task_id: String,
+}
+
+/// Task 상세입니다 (UI-06). 계약·입출력 Version·Snapshot·실행·검증·승인 기록을 한 번에 돌려줍니다.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TasksInspectResult {
+    pub task: crate::TaskRecord,
+    pub runs: Vec<crate::RunRecord>,
+    pub results: Vec<crate::TaskResult>,
+    pub artifacts: Vec<crate::ArtifactVersion>,
+    pub validations: Vec<crate::ValidationJob>,
+    pub approvals: Vec<crate::ApprovalDecision>,
+    pub snapshots: Vec<crate::ContextSnapshot>,
+    pub diffs: Vec<crate::DiffSummary>,
+    pub cursor: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TasksCancelParams {
+    pub idempotency_key: String,
+    pub task_id: String,
+    pub reason: String,
+}
+
+/// Task MCP 도구 호출 중계입니다. 입력·출력 형식은 도구별 `Mcp*` Schema를 따릅니다.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TasksToolParams {
+    pub tool: crate::TaskTool,
+    pub input: crate::JsonObject,
+}
+
+/// 한 번에 읽는 최대 바이트입니다. Base64 확장 뒤에도 프레임 상한 안에 들어가게 둡니다.
+pub const MAX_ARTIFACT_READ_BYTES: u32 = 512 * 1024;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ArtifactsReadParams {
+    pub artifact: crate::ArtifactVersionRef,
+    pub offset: u64,
+    /// [`MAX_ARTIFACT_READ_BYTES`] 이하
+    pub limit: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtifactsReadResult {
+    pub content_type: String,
+    pub total_bytes: u64,
+    pub offset: u64,
+    pub data_base64: String,
+    pub eof: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum InterventionKind {
+    /// 마스터의 `ask_user`
+    Question,
+    /// 사용자 경로로 올라온 승인 (`ProviderApprovalRequest`·`ApprovalDecision`)
+    Approval,
+}
+
+/// 사용자 개입 요청입니다 (UI-03, §17 Approval / Intervention).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Intervention {
+    pub intervention_id: String,
+    pub plan_id: String,
+    pub kind: InterventionKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_id: Option<String>,
+    pub summary: String,
+    pub reason: String,
+    pub options: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct InterventionsListResult {
+    pub interventions: Vec<Intervention>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum InterventionAnswer {
+    Choice { option: String },
+    Text { text: String },
+    Approval { answer: crate::ApprovalAnswer },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InterventionsAnswerParams {
+    pub idempotency_key: String,
+    pub intervention_id: String,
+    pub answer: InterventionAnswer,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct JournalSubscribeParams {
+    /// 비우면 프로젝트 전체입니다.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plan_id: Option<String>,
+    /// 이 값보다 큰 `sequence`부터 보냅니다. 보존 범위 밖이면 `cursor_expired`입니다.
+    pub after_sequence: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalSubscribeResult {
+    pub subscription_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalEntryParams {
+    pub subscription_id: String,
+    pub entry: crate::JournalEntry,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RnStatusResult {
+    pub available: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub health: Option<crate::rn::RnHealth>,
+    /// 비호환·Degraded 사유 (COMM-08)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RnSendParams {
+    pub idempotency_key: String,
+    pub endpoint: crate::rn::EndpointRef,
+    pub text: String,
+    /// 이 시간이 지나면 전달하지 않습니다 (COMM-07).
+    pub ttl_secs: u32,
+}
+
+/// 전송 접수와 실제 전달·실행·검증은 다른 상태입니다 (COMM-05).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RnSendResult {
+    pub message: crate::rn::MessageRef,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub receipt: Option<crate::rn::DeliveryReceipt>,
 }

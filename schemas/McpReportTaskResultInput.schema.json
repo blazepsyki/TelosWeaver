@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReportTaskResultInput",
+  "type": "object",
+  "properties": {
+    "idempotencyKey": {
+      "type": "string"
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ReportedOutput"
+      }
+    },
+    "summary": {
+      "type": "string"
+    },
+    "unresolved": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "idempotencyKey",
+    "summary",
+    "outputs"
+  ],
+  "$defs": {
+    "ReportedOutput": {
+      "description": "Workspace 안의 파일 또는 본문으로 출력을 보고합니다. Core가 경로 범위·소유권·출력 계약을 검사해 불변 Artifact로 등록합니다.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outputName": {
+              "type": "string"
+            },
+            "relativePath": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string",
+              "const": "workspace-file"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "outputName",
+            "relativePath"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "contentType": {
+              "type": "string"
+            },
+            "outputName": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string",
+              "const": "inline"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "outputName",
+            "contentType",
+            "text"
+          ]
+        }
+      ]
+    }
+  }
+}

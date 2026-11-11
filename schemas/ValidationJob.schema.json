@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ValidationJob",
+  "description": "Core가 실행하는 검증 하나입니다. 계약은 시작 때의 Revision으로 고정합니다 (§11.1).",
+  "type": "object",
+  "properties": {
+    "contract": {
+      "$ref": "#/$defs/ValidationContract"
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "evidence": {
+      "description": "근거(로그·보고서) Artifact",
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ArtifactVersionRef"
+      }
+    },
+    "finishedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "message": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "stateVersion": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "status": {
+      "$ref": "#/$defs/ValidationJobStatus"
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ArtifactVersionRef"
+      }
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "taskRevision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "validationId": {
+      "type": "string"
+    },
+    "verdict": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ValidationVerdict"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "validationId",
+    "taskId",
+    "taskRevision",
+    "contract",
+    "targets",
+    "status",
+    "stateVersion",
+    "createdAt"
+  ],
+  "$defs": {
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    },
+    "ValidationContract": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ValidationKind"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "targetOutputNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "revision",
+        "kind",
+        "targetOutputNames",
+        "parameters",
+        "required"
+      ]
+    },
+    "ValidationJobStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Queued",
+            "Running",
+            "Cancelling",
+            "Cancelled"
+          ]
+        },
+        {
+          "description": "판정이 나왔습니다(`verdict`). 실행 오류·판정 불가도 이 상태에서 `Error`·`Inconclusive`로 기록합니다.",
+          "type": "string",
+          "const": "Finished"
+        }
+      ]
+    },
+    "ValidationKind": {
+      "type": "string",
+      "enum": [
+        "schema",
+        "file",
+        "checksum",
+        "command",
+        "assertion",
+        "ai-review",
+        "human",
+        "visual",
+        "custom"
+      ]
+    },
+    "ValidationVerdict": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "error",
+        "inconclusive",
+        "skipped"
+      ]
+    }
+  }
+}

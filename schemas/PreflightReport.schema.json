@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PreflightReport",
+  "description": "Core 시작 때와 CLI 버전 변화를 감지했을 때 모델을 호출하지 않고 실행하는 점검입니다 (H0 D14).",
+  "type": "object",
+  "properties": {
+    "checkedAt": {
+      "type": "string"
+    },
+    "cliVersion": {
+      "type": "string"
+    },
+    "hostId": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PreflightResult"
+      }
+    }
+  },
+  "required": [
+    "provider",
+    "hostId",
+    "cliVersion",
+    "results",
+    "checkedAt"
+  ],
+  "$defs": {
+    "PreflightCheck": {
+      "oneOf": [
+        {
+          "description": "`--version` 출력이 기대 형식인지",
+          "type": "object",
+          "properties": {
+            "check": {
+              "type": "string",
+              "const": "version-output"
+            }
+          },
+          "required": [
+            "check"
+          ]
+        },
+        {
+          "description": "사용하는 옵션을 CLI가 받아들이는지(예: `--app_data_dir=antigravity --version`)",
+          "type": "object",
+          "properties": {
+            "check": {
+              "type": "string",
+              "const": "option-accepted"
+            },
+            "option": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "check",
+            "option"
+          ]
+        },
+        {
+          "description": "`--help`에 필수 옵션이 있는지",
+          "type": "object",
+          "properties": {
+            "check": {
+              "type": "string",
+              "const": "help-contains"
+            },
+            "flag": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "check",
+            "flag"
+          ]
+        }
+      ]
+    },
+    "PreflightResult": {
+      "type": "object",
+      "properties": {
+        "check": {
+          "$ref": "#/$defs/PreflightCheck"
+        },
+        "detail": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "passed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "check",
+        "passed"
+      ]
+    }
+  }
+}

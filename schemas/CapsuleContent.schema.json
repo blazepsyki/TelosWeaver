@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CapsuleContent",
+  "description": "다른 Provider 인계·Fork 미지원·긴 이력 축소에 쓰는 Capsule 내용입니다. Artifact(`structured`)로 저장합니다 (§8.1).",
+  "type": "object",
+  "properties": {
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ArtifactVersionRef"
+      }
+    },
+    "goal": {
+      "type": "string"
+    },
+    "openQuestions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sourceSummary": {
+      "description": "원래 이력의 출처와 생략 범위",
+      "type": "string"
+    }
+  },
+  "required": [
+    "goal",
+    "decisions",
+    "evidence",
+    "constraints",
+    "openQuestions",
+    "sourceSummary"
+  ],
+  "$defs": {
+    "ArtifactVersionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "versionId"
+      ]
+    }
+  }
+}

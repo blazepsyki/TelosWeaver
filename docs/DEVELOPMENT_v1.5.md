@@ -1,9 +1,9 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.10)  
+> **문서 버전:** 1.5 (개정 1.5.11)  
 > **작성일:** 2026-10-23  
-> **수정일:** 2026-11-07  
+> **수정일:** 2026-11-10  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
 > **상태:** 구현 기준 설계안. 사용자 확정 결정과 이를 구체화한 설계를 포함하며 구현 완료를 뜻하지 않습니다.  
 > **초기 UI:** VS Code Extension  
@@ -43,6 +43,7 @@
 | v1.5.8 | 2026-10-26 | 지원 백로그 `docs/SUPPORT_BACKLOG.md` 신설(사용자 요청): 미지원·설계상 미지원·미구현·미검증 기능을 지원 조건·재확인 방법과 함께 한 목록으로 유지하고 CLI 버전 변화 때 재판정(§7.1). PH0-INTEGRATION 경로에 등록(§19.5.3) |
 | v1.5.9 | 2026-10-26 | Phase 0 완료(G3 통과 확정) 뒤 Phase 1 병렬 구현 절차 신설(§19.6, 사용자 결정: 병렬 절차·계약 게이트 먼저·통합 담당 유지·이월 과제는 관련 작업에 편입): 게이트 H0~H3, H0 공통 계약 10종, 작업 17종(PH1-*)과 독점 경로, 진행 순서, §19.5 규칙 재사용, Phase 0 임시 구성 대체 |
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
+| v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2), Workspace 기록·Git 기준선·잠금 충돌·Diff·원본 반영 요청(§10), Lock 인수 조건(§14.3), Context Snapshot 필드·입력 문제·신뢰 구분(§6.1), 전략 대체·Capsule 내용(§8.2), 사용량 기록 역할·Unknown·중복 합산 방지(§8.3), Provider 승인 요청의 상관·경로·기한(§4.3, `approval_required`에 대상·인자 Digest 추가), 권한 집합 교집합과 사용자 전용 행위(§13.1), 예산 Profile·장부와 마스터 예약분(§13.2), Local API Phase 1 메서드·Snapshot+커서 재접속·`cursor_expired`·연결 범위·버전 상향 시점(§17), 설정 파일 형식·항목 종류별 계층 규칙·출처 기록·설치 설정 소유권과 보존(§13.1), Capability 증거 기록·판정 함수·사전 점검·Core 사용 조건과 Capsule 대체(§7.1), Core 서비스 인터페이스 배치와 모듈 사이 주입 방식, Scheduler↔HOST 실행 Port(§19.6.2) |
 
 ## 목차
 
@@ -211,6 +212,8 @@ Phase 0의 실제 작업 분할과 파일 수정 권한은 §19.5를 따릅니�
 
 P0 마스터는 제한된 Task 목록과 하위 위임을 생성하며 기본 실행 순서는 명시적 의존성과 큐를 따릅니다. P1에서 복잡한 자동 계획, DAG 병렬화와 자원 최적화를 추가합니다. 마스터 총괄을 P1 Planner 도입까지 미루지 않습니다.
 
+기본 마스터는 Claude Code이며 모델은 설정값(기본 `sonnet`)입니다(H0 D6, 2026-11-10). 다른 Provider로 바꿀 수 있게 구현하고, 실환경 시험은 가벼운 모델을 씁니다.
+
 Plan별 활성 마스터 제어권은 하나입니다. 재개·교체 시 `controllerEpoch`를 올리고 이전 마스터의 뒤늦은 결정을 실행하지 않습니다. 마스터 실행도 별도 Run과 Usage를 가지며 Worker의 예산·슬롯과 구분해 기록합니다.
 
 마스터 실행은 Plan의 제어용 Task(`type: general`, `role: master`)로 기록하여 같은 Task/Run·Adapter 계약을 사용합니다. 제어용 Task의 수명은 Worker 완료 의존성과 분리하고, 마스터의 자식 대기가 Worker 실행을 막지 않도록 제어 슬롯과 실제 프로세스 상한을 함께 적용합니다.
@@ -243,6 +246,8 @@ pub enum MasterDecisionKind {
 
 Core 집행 순서는 **호출자·소유권 확인 → Schema·Plan Revision·Epoch 확인 → 권한·DAG·예산·Capability 검사 → 결정 및 실행 의도 기록 → 집행 → 적용 결과 기록**입니다. 같은 멱등 키의 재요청은 같은 결정 결과를 반환합니다. 같은 키에 다른 Payload를 보내면 거부합니다.
 
+**전달 방식(H0 D3):** 마스터는 Turn 끝에 위 형식의 구조화 결정(JSON)을 출력하고, Core는 검증·집행 결과를 다음 Turn(Resume)의 입력으로 돌려줍니다. Phase 0에서 검증한 방식입니다. 마스터의 결정에는 Task MCP를 쓰지 않으며, Task MCP(§9.2)는 Worker의 위임·보고에 씁니다.
+
 ### 4.3 Worker 요청·승인·사용자 개입
 
 | 요청 | 처리 |
@@ -253,6 +258,8 @@ Core 집행 순서는 **호출자·소유권 확인 → Schema·Plan Revision·E
 | 미지원 Provider 제어 요청 | 지원 가능한 재계획 또는 명시적 미지원 결과를 반환합니다. |
 
 마스터가 판단해도 사용자의 권한 상한을 바꾸지 못합니다. 승인 주체는 `user` 또는 위임받은 `master`로 기록합니다. 원본 브랜치 반영·외부 변경은 별도 행위 정책을 적용하며, 사용자가 위임한 범위와 사용자 전용 결정을 구분합니다. 포괄적인 승인 생략 옵션을 기본값으로 삼지 않습니다.
+
+**Provider 승인 요청(H0 계약 `ProviderApprovalRequest`):** Worker Run 중 Provider의 승인 요청(`approval_required`, 대상·인자 Digest 포함)은 Core가 요청 ID를 발급해 기록하고 경로를 정합니다. 응답 경로가 없으면 `unanswerable`로 거부·재계획하고, 최종 권한의 `masterApprovableActions`에 있는 행위면 마스터가 `answer_action`으로, 그 밖은 사용자에게 올립니다. 기한이 지나면 거부로 처리하며, 응답은 `ApprovalDecision`으로 기록한 뒤 실행 직전 대상·Digest·정책을 다시 확인해 Adapter에 전달합니다.
 
 ## 5. 공통 도메인 및 Task·Artifact 계약
 
@@ -403,6 +410,10 @@ Artifact Version은 불변입니다. 작업 디렉터리의 변경 가능한 파
 
 실행 결과와 논리 완료 상태는 다릅니다. `executionOutcome: succeeded`여도 필수 출력·검증·승인 조건이 부족하면 Task는 완료되지 않습니다. 기존 세션의 일반 자연어 답변도 자동으로 신뢰된 `TaskResult`가 되지 않습니다.
 
+**저장(H0 D2):** Artifact Version의 내용은 Core 상태 디렉터리(§14.1)의 `artifacts/` 아래에 내용 해시(SHA-256) 이름으로 저장하며, 같은 내용은 한 번만 저장합니다. Version 하나의 기본 상한은 64 MiB이며 설정으로 바꿀 수 있고, 상한을 넘으면 등록을 거부합니다.
+
+**표기와 참조(H0 계약):** `checksum`은 `sha256:<hex>`, 저장 위치는 `artifact://sha256/<hex>`이며 Version에 `sizeBytes`를 기록합니다. Version을 쓰는 곳(Run 입력·Task 결과·검증·승인)은 `ArtifactReference`로 기록하고, 참조가 남은 Version의 저장 내용은 정리하지 않습니다.
+
 ## 6. 실행 전 맥락과 입력 준비
 
 ### 6.1 Context Snapshot
@@ -419,6 +430,8 @@ Run 시작 전에 다음 내용을 `ContextSnapshot`으로 고정합니다.
 | 불확실성 | 누락·충돌·오래된 입력, 알려진 가정과 미해결 질문 |
 
 Workspace 전체를 무조건 모델 입력에 넣지 않습니다. 관련 파일·자료의 선택 이유와 제외 범위를 남깁니다. 필수 지침이나 입력을 읽지 못하면 조용히 생략하지 않습니다. Core가 판정 가능한 누락은 실행을 보류하고, 판단이 필요한 경우 마스터가 질문·제한적 실행·실패를 결정합니다.
+
+**Snapshot 계약(H0 계약 `ContextSnapshot`):** 위 범주를 지침 출처(경로·Digest·범위), 해석한 입력 Version과 Producer, 고른 자료와 이유·신뢰 구분(`instruction`·`material`·`tool-output`·`external-message`), 제외 범위, 환경(Host·Workspace·cwd·실행 파일·CLI 버전), Git 기준선, 계약 Digest(Plan/Task Revision·Policy Revision·설정·권한·예산·검증), 입력 문제, 가정으로 기록합니다. 입력 문제는 `missing`·`conflict`·`stale`·`unreadable`로 구분하고, Core가 판정할 수 있는 문제는 `blocking`으로 표시해 실행을 보류합니다.
 
 ### 6.2 출처와 신뢰 경계
 
@@ -462,6 +475,10 @@ Capability는 `supported`·`unsupported`·`unverified`와 Provider 버전·Host�
 - Provider 고유 키는 `provider.<provider_id>.<feature>`(`snake_case`)를 씁니다. 공통 8개는 접두어 없는 예약 이름입니다. 알 수 없는 키를 공통 기능의 별칭으로 추측하지 않고, 공통 소비자는 이를 필수 기능 지원 근거로 삼지 않습니다. 공통 키의 추가·의미 변경은 CONTRACT 변경 요청과 이 절의 개정으로만 합니다.
 - RN의 `RnSessionCapabilities`와 실패 분류 `unsupported_capability`는 이 키 목록과 별개입니다.
 - `unsupported`·`unverified`로 판정하거나 미구현으로 남긴 기능은 [지원 백로그](SUPPORT_BACKLOG.md)에 지원 조건·재확인 방법과 함께 기록하고, Provider CLI·확장 버전이 바뀌면 다시 판정합니다.
+
+- **판정 기준(H0 D11·D14, 2026-11-10):** 해당 Host·CLI 버전에서 기능의 실환경 시험을 통과하면 `supported`로 보고하고, 특정 Turn 지정 불가처럼 키보다 좁은 제한은 `reason`과 실행 전 거부로 표현합니다(Provider 간 같은 증거에 같은 상태). CLI 버전이 바뀌면 같은 major.minor 안의 변경은 기존 판정을 유지하되, Core가 시작할 때와 버전 변화를 감지할 때 모델을 호출하지 않는 점검(버전 출력, 사용하는 옵션의 수용, `--help`의 필수 옵션)을 실행합니다. 점검이 실패하거나 major.minor가 바뀌면 `unverified`로 두고 실환경 시험을 다시 요구합니다. 자동 업데이트되는 CLI(Antigravity)도 같은 규칙을 따릅니다.
+
+- **판정 계약(H0 계약 `judgment`):** 실환경 시험 결과는 키·Provider·Host·플랫폼·CLI/확장 버전·시험 이름·결과·근거로 기록합니다(`CapabilityEvidence`). 수단이 있는 기능의 상태는 같은 Host·플랫폼에서 통과한 증거의 버전과 현재 버전으로 정합니다. 같은 버전이면 `supported`, 같은 major.minor이고 사전 점검(`PreflightReport`: 버전 출력·사용 옵션 수용·`--help` 필수 옵션, 결과가 하나 이상이고 모두 통과)을 통과하면 `supported`, 그 밖에는 `unverified`입니다. 버전의 major.minor는 문자열에서 처음 나오는 `숫자.숫자`로 읽습니다(예: `codex-cli 0.164.0-alpha.11.1` → 0.164). Core는 `supported`만 사용하며, `resume`·`native-fork`를 쓸 수 없으면 `capsule`로 대체하고 Snapshot의 `fallback`에 거부된 키와 함께 기록합니다(필수 입력·권한은 유지).
 
 ### 7.2 공통 실행·제어 계약
 
@@ -707,6 +724,8 @@ DEC-08에 따라 Adapter가 시작한 Managed Run의 세션은 각 Provider의 V
 
 Session은 여러 Run에서 재사용할 수 있습니다. 동일 Session의 쓰기 Turn은 한 번에 하나로 제한하고 `run_sessions`에 Run·Session·Native Turn의 관계를 저장합니다. 재개 시 Task·입력·권한·예산을 다시 확인합니다.
 
+각 Session에는 소유 Task가 있습니다. 다른 Task가 그 Session을 `resume`하려면 소유권 확인과 위 재확인을 거칩니다. Native Fork로 만든 Session은 새 소유 Task를 갖고 부모 Session과 분기 기준을 기록합니다(H0 계약 `SessionRecord`).
+
 | 전략 | 선택 조건 | 확인 사항 |
 |---|---|---|
 | `fresh` | 작은 작업, 독립 Review, 과거 문맥 불필요 | 필수 입력 포함 |
@@ -725,6 +744,8 @@ Session은 여러 Run에서 재사용할 수 있습니다. 동일 Session의 쓰
 5. 완료된 부작용을 재실행하지 않도록 결과와 실행 의도를 확인합니다. 분기 깊이·개수·동시성·전체 예산에 상한을 적용합니다.
 6. 실패하면 이유와 선택한 Capsule/Fresh 대체 경로를 기록합니다. Native Fork에 성공한 것처럼 표시하지 않습니다.
 
+대체는 Snapshot의 `fallback`(요청 전략·사용 전략·사유·거부된 Capability 키)으로 남깁니다. Capsule 내용(목표·결정·근거 Artifact·제약·미해결 질문·원래 이력의 출처와 생략 범위)은 `structured` Artifact로 저장하고 Snapshot에서 참조합니다(H0 계약 `CapsuleContent`).
+
 독립 Reviewer에는 대상 Artifact와 검증 계약을 우선 전달합니다. 구현자의 결론과 전체 이력 상속은 검토 독립성과 필요한 문맥을 고려해 선택합니다. 모든 Worker의 전체 대화를 마스터에 반복 전달하지 않습니다.
 
 ### 8.3 토큰 효율과 Prompt Cache
@@ -742,6 +763,8 @@ Session은 여러 Run에서 재사용할 수 있습니다. 동일 Session의 쓰
 | 품질 | 동일 Validation Contract의 통과 여부와 재작업 횟수 |
 
 누적값과 Turn별 증가량을 구분합니다. 부모 사용량에 자식 값이 포함되면 중복 집계하지 않습니다. 다른 Provider의 독자적인 크레딧을 단순 합산하지 않습니다. API 비용 규칙을 CLI 구독에 그대로 적용하지 않습니다.
+
+사용량 기록(H0 계약 `UsageRecord`)은 Provider 이벤트의 `UsagePayload`에 Plan·Task·Run·Native Turn·역할(`master`·`worker`·`validator`)을 붙여 저장합니다. 보고되지 않은 값은 0이 아니라 없음(Unknown)으로 두고, 부모 기록에 이미 포함된 값(`includedInParent`)은 다시 합산하지 않습니다.
 
 P0는 전략 계약과 PoC, P1은 검증된 Native Fork와 측정 기반 최적화입니다. 세 Provider 모두의 포크 성공을 MVP 선행 조건으로 두지 않습니다.
 
@@ -770,6 +793,18 @@ P0부터 의존성 검사와 상한을 적용하고 P1에서 Ready Task의 병�
 | `report_task_result` | 호출자와 Run 관계, Schema, Artifact 소유권 검사 |
 
 MCP 인자의 Task ID만으로 호출자를 신뢰하지 않습니다. Core가 발급한 연결 자격·Scope를 Run에 연결합니다. Worker의 자식 생성은 마스터가 허용한 범위에서 처리합니다. P0의 제한된 자식 생성과 P2의 임의 DAG 재계획을 구분합니다.
+
+**연결 방식(H0 D4·D5):** Run마다 `telos-weaver`의 stdio MCP 하위 명령을 Provider가 띄우게 하고, 이 프로세스는 Run 범위 연결 자격으로 Local API(§17)에 접속합니다. 연결 설정은 그 Run에만 주입하며 사용자 전역 설정을 바꾸지 않습니다.
+
+| Provider | Run 단위 주입 수단 |
+|---|---|
+| Claude Code | `--mcp-config <Run 상태 파일>` |
+| Codex | App Server Thread 시작의 설정 재정의(`mcp_servers`) |
+| Antigravity | Run Workspace의 `.agents/plugins/<이름>/{plugin.json, mcp_config.json}`과 세션 한정 `--settings`의 `permissions.allow`(`mcp(<server>/<tool>)`). 1.5.3에서 확인(H0 A2) |
+
+연결 자격 원문은 Workspace나 MCP 설정 파일에 쓰지 않고, Core 상태 디렉터리의 자격 파일 경로만 넘깁니다. 주입용 `.agents/` 파일은 Diff·Artifact 수집과 원본 Branch 반영에서 제외합니다. Provider가 남기는 도구 Schema 캐시(예: Antigravity `~/.gemini/antigravity-cli/mcp/<server>/`)는 고정 서버 이름으로 재사용합니다.
+
+**도구 계약(H0 계약 `mcp`):** `delegate_task`는 권한·예산·완료 정책 Profile을 입력으로 받지 않고 Core가 부모의 남은 범위 안에서 정합니다. 등록은 항상 비동기이며 `waitForResult`가 참이면 호출자를 `WaitingChild`로 둡니다. `report_task_result`는 Workspace 안 파일 경로 또는 본문으로 출력을 보고하고, Core가 경로 범위·소유권·출력 계약을 검사해 불변 Artifact로 등록합니다. `cancel_task`의 접수와 실제 정지는 구분합니다. Run 단위 허용 범위(Project·Plan·호출 Task/Run·허용 도구·남은 자식 수·만료)는 Core만 보관하며, 연결 자격 파일은 현재 사용자만 읽을 수 있게 만들고 Run 종료 때 폐기합니다. 지금 실행할 수 없는 위임은 `unavailable` 오류로 즉시 거부하고 무한 대기하지 않습니다. Adapter에는 `RunContext.taskMcp`(서버 이름·명령·자격 파일 경로)로 전달합니다.
 
 ### 9.3 동기 대기와 교착 방지
 
@@ -801,6 +836,8 @@ Task의 기본 경로는 `Created → Ready → Running → Executed → Validat
 
 Run은 Starting·Running·Waiting·Succeeded·Failed·Cancelling·Cancelled·Interrupted·Unknown을 별도로 관리합니다. Run 성공은 Task 완료가 아닙니다. 대기 요청의 거부·기한 만료는 실패·재계획·사용자 질문 중 계약에 정한 경로를 따릅니다.
 
+**전이 계약(H0):** 위 Task·Run 전이는 `telos_schema`의 `TaskStatus::can_transition_to`·`RunStatus::can_transition_to`가 원본이며 Scheduler는 그 밖의 전이를 만들지 않습니다. 상태 갱신은 `stateVersion`의 조건부 갱신으로만 합니다. Wait* 상태는 진입 시 복귀 상태(`Running`·`Executed`·`Validating`·`Verified` 중 하나)와 대기 대상·기한을 기록합니다. Run은 `Cancelling`에서도 실제 결과(`Succeeded`·`Failed`)를 기록할 수 있지만, 취소 의도가 확정된 Task는 그 결과로 Completed가 되지 않습니다(§9.5). `Unknown`은 종료 결과를 확정할 수 없는 상태이며 상태 대조로만 해소합니다.
+
 ### 9.5 경합과 재시도
 
 취소 의도 확정 뒤 늦은 완료 이벤트는 이력으로 보존하되 Task를 자동으로 Completed로 되돌리지 않습니다. 이전 Run의 출력은 새 Run 결과로 채택하지 않습니다. 이미 발생한 변경은 취소로 되돌렸다고 가정하지 않고 필요한 상태 대조를 수행합니다.
@@ -821,6 +858,10 @@ P0부터 모든 쓰기 Workspace에 소유권 제어를 적용합니다. Git Wor
 
 시작 시 기존 변경을 기록하고 staged/unstaged/untracked 변경을 자동 초기화하지 않습니다. Diff는 Base와 대상 Revision에 연결합니다. 원본 Branch Merge/Push는 별도 행위 정책을 거칩니다. P1 Integration Workspace는 통합된 Revision을 다시 검증합니다.
 
+**Git Worktree와 반영(H0 D9):** Task별 Worktree는 Core 상태 디렉터리(§14.1)의 `worktrees/` 아래에 만듭니다. 원본 Branch 반영은 개별 행위 승인 뒤 로컬 원본 Branch에 Merge Commit을 만드는 방식이며, 반영 직전에 승인된 Revision과 일치하는지 다시 확인합니다. 원격 push는 P0에서 하지 않습니다.
+
+**Workspace 계약(H0 계약 `workspace`):** Workspace 기록은 모드·Host·정규화 경로·Task Branch·소유 Task/Run·읽기 전용 여부와 상태(`Active`·`Retained`·`Cleaned`)를 가지며, 미완 Run·장애 조사·Artifact 참조가 남으면 `Retained`로 두고 자동 삭제하지 않습니다. `git-worktree`는 시작 때 Git 루트·Base Commit·Branch·staged/unstaged/untracked 목록(`GitBaseline`)을 기록합니다. 잠금은 Workspace·Session·이름 붙인 자원 단위이며 Writer는 다른 모든 잠금과, Reader끼리는 겹치지 않습니다. Diff는 Base·대상 Revision과 변경 파일 목록, 전체 Diff Artifact로 남깁니다. 원본 반영 요청은 승인된 Revision과 승인 ID를 묶고, Task MCP 주입 경로(`.agents/`)는 Diff·Artifact·반영에서 제외합니다.
+
 산출물의 이름·개수·형식 계약을 검사합니다. 큰 로그·Diff·바이너리는 메시지 본문 대신 Artifact로 참조하고 접근권·Checksum·Host를 확인합니다. 사용 중인 산출물과 미완 Run의 Workspace는 보존 규칙에 따라 정리하며 장애 조사 전에 자동 삭제하지 않습니다.
 
 ## 11. Validation·승인·재작업
@@ -838,6 +879,10 @@ P0부터 모든 쓰기 Workspace에 소유권 제어를 적용합니다. Git Wor
 
 검증 계약과 명령은 Core가 Version을 고정합니다. Worker가 허용 조건이나 테스트를 완화하여 같은 검증을 통과했다고 처리하지 않습니다. 중간 Checkpoint는 자식 Task 또는 검증 Job으로 표현하며 재작업의 영향 범위와 최종 통합 검사를 구분합니다.
 
+**검증 명령(H0 D8):** `command` 검증은 사용자·프로젝트 설정에 이름을 붙여 등록한 명령만 실행합니다. Task 계약은 등록된 이름과 그 명령이 허용한 인자로만 참조하며, 마스터·Worker가 임의 명령 문자열을 검증으로 제안하거나 실행하지 않습니다.
+
+**검증 Job(H0 계약 `ValidationJob`):** 상태는 `Queued`·`Running`·`Cancelling`·`Cancelled`·`Finished`이며, 판정(`passed`·`failed`·`error`·`inconclusive`·`skipped`)은 `Finished`에 기록합니다. Job은 시작 때의 계약 Revision과 대상 Artifact Version을 고정하고, 근거 로그·보고서는 Artifact로 연결합니다. `command` 검증의 매개변수는 `{command: <등록 이름>, args}`만 받습니다.
+
 표준 시각 검증 확장은 P1입니다. P0의 특정 작업이 시각 검증을 요구하면 기존 도구나 사용자 검토로 증거를 확보하고, 이미지 존재만으로 검토 완료 처리하지 않습니다. 전용 편집기는 만들지 않습니다.
 
 ### 11.2 승인 대상 고정
@@ -847,6 +892,8 @@ P0부터 모든 쓰기 Workspace에 소유권 제어를 적용합니다. Git Wor
 마스터는 위임 범위에서 판단하며 매번 사용자 승인을 요구하지 않습니다. 반려·만료·철회·중복 클릭을 처리하고 바뀐 내용에 과거 승인을 적용하지 않습니다. 실행 직전에도 대상 Version과 현재 정책을 확인합니다.
 
 Validation Contract가 `human`으로 명시한 검사는 실제 사용자 판단을 요구하므로 마스터가 대신 통과시키지 않습니다. 일반적인 마스터 검토·완료 판단과 사용자 전용 검사를 구분하고 작업 시작 시 선택한 정책을 고정합니다.
+
+**승인 기록(H0 계약 `ApprovalDecision`):** 종류(`plan`·`result-review`·`action`), Plan·Task·Run, 계약 Revision, 대상 Version 목록, 행위(`action`·`target`·`argsDigest`), 결정 주체(`user` 또는 `master`), 답(allow/deny), 사용자 전용 여부, Policy Revision, 기한, 상태(`Pending`·`Granted`·`Denied`·`Expired`·`Revoked`·`Consumed`)를 저장합니다. 실행 직전에는 허용된 `Granted` 승인이고 대상 Version 집합·행위·인자 Digest·Policy Revision이 모두 같을 때만 적용하며, 사용자 전용 승인은 사용자가 결정한 경우에만 인정합니다. 한 번 쓰는 승인은 사용 뒤 `Consumed`로 바꿉니다.
 
 ### 11.3 결과 변경과 독립 리뷰
 
@@ -946,7 +993,13 @@ DEC-07의 제거 대상은 아래 표의 **제거** 세 분류입니다. 설정�
 
 권한은 단순한 후순위 덮어쓰기가 아닙니다. 최종 허용 범위는 사용자·Host·프로젝트 상한, Plan에서 부여한 권한, 부모의 위임 범위, Task 요청의 교집합입니다. 저장소 설정과 외부 메시지만으로 상한을 확대하지 않습니다.
 
+**권한 집합(H0 계약 `PermissionSet`):** 각 범위는 Provider·Host·Workspace 모드·쓰기 Workspace·검증 명령 이름·네트워크·마스터가 대신 승인할 수 있는 행위를 가지며, 최종 권한은 목록의 교집합과 불리언의 AND입니다. 범위가 없으면 아무것도 허용하지 않습니다. 마스터 승인 가능 목록에 없는 행위는 사용자 전용입니다.
+
 Run에 최종 설정, 각 항목의 출처, Policy Revision과 해시를 저장합니다. 일반 설정 변경은 새 Run부터 적용합니다. 긴급 취소·권한 철회는 활성 실행에도 반영할 수 있도록 별도 제어 이벤트로 처리하며 적용 불가 시 실행을 중단합니다. 새 실행을 위해 필요한 권한 확대는 사용자 결정으로 기록합니다.
+
+**파일 형식·위치(H0 D7):** 설정은 TOML입니다. 사용자/Host 설정은 `%APPDATA%\telos-weaver\config.toml`(Linux `$XDG_CONFIG_HOME/telos-weaver/config.toml`), 프로젝트 설정은 `<프로젝트>/.telos-weaver/config.toml`입니다. 프로젝트 설정은 저장소에 커밋할 수 있지만 권한 상한을 넓히지 못하고 좁히기만 합니다. Phase 0의 운영자 정책 JSON은 이 설정으로 대체합니다(H0 D13).
+
+**설정 계약(H0 계약 `config`):** 각 계층 파일은 기본 마스터·Provider별 설정(실행 파일·모델·목록 표시)·권한 상한·예산 Profile·이름 붙인 검증 명령(프로그램·기본 인자·추가 허용 인자·Timeout)·Artifact 상한·RN 실행 파일을 가지며 정의되지 않은 키는 거부합니다. 항목은 세 종류입니다. 일반 설정은 뒤 계층이 덮어쓰고, 권한 상한은 모든 계층의 교집합만 쓰며, 실행 파일·인증 같은 Host 귀속 항목은 제품 기본값·사용자/Host 계층에서만 정할 수 있어 프로젝트·Task 계층에 있으면 로드를 거부합니다. 최종 설정은 항목별 값·계층·출처 파일과 전체 Digest로 Run에 기록합니다. TelosWeaver가 사용자 설정 파일에 써 넣는 항목(RN·Task MCP)은 소유자·파일·키·값 Digest를 기록하고, 사용자 값이 이미 있으면 덮어쓰지 않고 충돌로 보고하며, 제거할 때 설치 뒤 사용자가 바꾼 값은 보존합니다(CFG-03).
 
 ### 13.2 예산과 제어 상한
 
@@ -962,6 +1015,8 @@ Run에 최종 설정, 각 항목의 출처, Policy Revision과 해시를 저장�
 초기 설정 제안은 `providerConcurrency=1`, `maxDelegationDepth=3`, `maxPlanTasks=32`, `executionRetryLimit=1`, `reworkLimit=2`입니다. 제품에서 검증된 권장 수치가 아니라 PoC 시작값이며 설정으로 바꿀 수 있습니다. Timeout은 작업 프로파일별 필수 양수로 지정하고 전 작업에 동일한 짧은 값을 강제하지 않습니다.
 
 마스터 판단 자체에도 예산을 부여하고 Worker가 전부 소진하지 못하도록 제어용 여유를 예약합니다. 남은 예산을 초과하는 새 작업은 거부·축소·사용자 요청 중 하나로 처리합니다.
+
+**예산 계약(H0 계약 `BudgetProfile`·`BudgetLedger`):** Profile은 위 상한, Run·대기·Plan 시간, 토큰·비용 상한, 정확한 비용 필수 여부, 마스터 예약분(Task 수·토큰)을 가집니다. 장부는 Plan별 예약·소비와 토큰 계측 가능 여부를 기록하고, Worker 요청은 마스터 예약분을 뺀 범위에서만 예약합니다. 정확한 비용이 필수인 Plan은 사용량을 계측할 수 없으면 시작하지 않습니다.
 
 토큰·구독 사용량이 제공되지 않으면 비용 상한을 정확히 집행했다고 주장하지 않습니다. 계측 불가를 표시하고 시간·호출·Task 상한을 적용합니다. 정확한 비용 상한이 필수인 Plan은 계측 불가 상태로 시작하지 않습니다. Provider의 보고 지연으로 인한 초과 가능성도 표시합니다.
 
@@ -989,13 +1044,17 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 
 인증 토큰·비밀 원문은 Task DB에 복사하지 않습니다. CLI의 인증 경로와 OS 보안 저장소를 참조하고 RN 키는 RN 소유로 유지합니다. DB Schema Version, Migration 이력, Backup·호환 실패·Rollback 절차를 둡니다.
 
+**위치(H0 D1):** Core DB는 프로젝트별 SQLite 파일 하나이며 사용자 상태 디렉터리(`%LOCALAPPDATA%\telos-weaver\<projectKey>\`, Linux `$XDG_STATE_HOME/telos-weaver/<projectKey>/`)에 둡니다. Phase 0의 API 토큰과 같은 디렉터리이며, Artifact 내용(§5.3)과 Git Worktree(§10)도 이 아래에 둡니다. 프로젝트 저장소 안에는 Core 상태를 만들지 않습니다.
+
+**Schema 버전(H0 계약):** DB에 Schema 버전을 기록하고, 현재 버전이면 열고, 이전 버전이면 백업을 만든 뒤 Migration하며(백업 실패 시 열지 않음), Core보다 새 버전이면 열지 않고 오류를 보고합니다.
+
 ### 14.2 장애별 기본 동작
 
 | 장애 | P0 최소 동작 | P1 고도화 |
 |---|---|---|
 | VS Code Reload·종료 | 독립 Core와 허용된 Run 지속, 재접속 후 상태 조회 | 이벤트 재전송·세부 화면 복원 |
 | RN 종료 | 통신 Degraded, Managed Run 추적·취소 유지 | 대기 메시지 재조정과 재연결 |
-| 마스터 세션 유실 | 미확정 결정 보류, 기존 허용 Run은 정책에 따라 지속 | Snapshot·결정 기록으로 새 마스터 재개 |
+| 마스터 세션 유실 | Plan을 `Held`로 두고 미확정 결정 보류, 기존 허용 Run은 정책에 따라 지속 | Snapshot·결정 기록으로 새 마스터 재개 |
 | Worker 프로세스 유실 | Interrupted, 종료·부작용 확인 후 복구 판단 | 지원 Provider의 Native Resume |
 | Core 비정상 종료 | 재시작 시 미완 의도·Run·Lock 확인, 불명확 상태 차단 | 분리된 실행 감독과 출력 회수로 지속 추적 |
 | Remote SSH 단절 | UI 연결과 원격 실제 실행 상태를 분리, 중복 실행 금지 | Heartbeat·재연결·대조 절차 강화 |
@@ -1006,7 +1065,11 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 
 재시작은 DB의 미완 실행 의도와 실제 프로세스·Session을 대조합니다. PID만으로 정체성을 확정하지 않고 Host·시작 시점·실행 토큰·Native ID 등 가용한 증거를 함께 확인합니다. Lock의 기한이 끝났다는 이유만으로 살아 있는 Writer에게 새 Writer를 겹쳐 실행하지 않습니다.
 
+**Lock 인수(H0 계약 `ResourceLock`):** 잠금은 소유 Task/Run·소유 Epoch·프로세스 증거·기한을 가집니다. 다른 Run은 기한이 지났고 소유자가 살아 있지 않음을 확인한 경우에만 넘겨받으며 그때 Epoch를 올립니다. 생존을 확인하지 못하면 넘겨받지 않고 대조로 보냅니다.
+
 스케줄러 소유권과 `controllerEpoch`를 조건부 갱신하여 이전 제어자의 결정을 차단합니다. 실행 의도 기록 후 실제 시작 전 장애와 시작 후 응답 유실을 구분할 수 있도록 Adapter의 멱등성·상태 확인을 시험합니다. 외부 변경의 결과를 확정할 수 없으면 NeedsReconciliation으로 두고 무조건 재실행하지 않습니다.
+
+**실행 의도 단계(H0 계약 `RunIntent`):** `recorded`(전달 전) → `dispatched`(Adapter에 요청, 시작 결과 미수신) → `started`(시작 결과·Native ID·프로세스 정체성 수신) → `settled`(종료 확정), 전달 전 취소는 `abandoned`입니다. 재시작 때 `recorded`는 다시 전달할 수 있고, `dispatched`·`started`는 실제 프로세스·Session을 대조합니다. 프로세스 정체성은 Host·PID·OS의 프로세스 시작 시각·Run 실행 토큰의 SHA-256으로 기록합니다. 멱등 키는 기능 범위별로 입력 Digest와 함께 저장하고, 같은 키·같은 Digest는 처음 결과를 재생, 다른 Digest는 거부합니다. 상태 변경 기록(`JournalEntry`)은 프로젝트 DB 안에서 1부터 빈틈없이 올라가는 `sequence`를 가지며 UI·API 구독 커서로 씁니다. Provider 원본 이벤트는 Run별 `sequence`로 따로 저장합니다.
 
 ## 15. 로그·스트림·운영 진단
 
@@ -1071,6 +1134,10 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 TreeView·OutputChannel·내장 Diff/파일 Editor를 우선 사용합니다. Webview는 표시 계층이며 실행 권한을 갖지 않습니다. 사용자에게 모든 Worker 승인을 직접 처리하게 하지 않고 마스터의 판단과 필요한 개입을 보여줍니다. UI 재연결 시 Snapshot과 이벤트 커서로 상태를 갱신합니다.
 
 Extension은 TypeScript로 구현하며 Rust Core의 코드를 직접 포함하거나 호출하지 않습니다. Local Core API의 요청·응답·이벤트 타입은 §3.4에 따라 공통 Schema에서 생성한 정의를 사용합니다. Extension은 Core Daemon 실행 파일을 찾아 시작·연결·상태 확인만 담당하며 Core 수명을 소유하지 않습니다.
+
+**Master View 입력(H0 D12):** P0는 VS Code 명령·QuickInput으로 목표·답변을 입력받고 TreeView·OutputChannel·내장 Diff로 보여 줍니다. P0에서 Webview를 쓰지 않습니다.
+
+**Local Core API(H0 계약 `api`):** Phase 1 메서드는 `plans.create`·`plans.inspect`·`plans.cancel`·`plans.message`, `tasks.inspect`·`tasks.cancel`·`tasks.tool`(Task MCP 중계), `artifacts.read`(Base64 조각, 한 번에 512 KiB 이하), `interventions.list`·`interventions.answer`(질문·사용자 경로 승인), `journal.subscribe`·`journal.unsubscribe`(`journal.entry` 알림), `rn.status`·`rn.send`(통제된 RPC 전송, 중복·TTL)입니다. 변경 요청은 모두 멱등 키를 받습니다. 재접속은 `plans.inspect`의 Snapshot과 `cursor`로 하고, 커서가 보존 범위 밖이면 `cursor_expired`를 받아 Snapshot부터 다시 받습니다. `core.hello`는 프로젝트 API 토큰이면 Client 범위, Run 범위 Task MCP 자격이면 그 Run의 `tasks.tool`만 허용하는 범위로 연결하고 `HelloResult.scope`로 알립니다. 구현 전 메서드는 `unsupported_method`로 답합니다. API 버전 상향(`1.0`, H0 D13)은 HOST·EXT가 새 메서드를 연결하는 같은 변경에서 합니다.
 
 ## 18. 기능 요구사항과 수용 기준
 
@@ -1490,6 +1557,8 @@ PH0-RN은 DEC-07에 따라 원본 조사·제거·재구성부터 수용 시험�
 
 Phase 0 구현은 확장·대체할 기준선입니다. §19.2의 기존 코드 호환 제외와 DEC-04를 Phase 0에서 검증한 안전 경계를 제거하는 근거로 쓰지 않습니다. Phase 0 API·정책 형식을 바꿀 경우 H0에서 호환·전환·회귀 시험 범위를 명시합니다. Phase 0의 임시 구성(`core/integration`의 운영자 정책·메모리 Snapshot)은 해당 PH1 작업이 정식 구현으로 대체하고, 대체가 끝나면 INTEGRATION이 임시 경로를 정리합니다. Phase 0에서 이월한 과제(G3 대조표 §3 P1-1~6)와 [지원 백로그](SUPPORT_BACKLOG.md)의 관련 항목은 아래 담당 작업에 포함합니다.
 
+**호환(H0 D13):** Phase 1은 Phase 0의 Local API·운영자 정책 형식과 호환하지 않습니다. API 버전을 올리고 Extension을 같은 변경에서 갱신하며, 정책 JSON은 §13.1 설정으로 대체합니다. Phase 0에서 검증한 안전 경계(토큰 인증, 사용자 전용 권한, 승인되지 않은 실행 거부 등)는 회귀 시험으로 유지합니다.
+
 #### 19.6.2 H0 — Phase 1 공통 계약 확정
 
 `PH1-INTEGRATION`과 `PH1-CONTRACT`가 먼저 아래 계약과 계약 기준 Commit을 확정합니다. Wire·공유 도메인 타입은 `telos-schema`, Adapter 경계의 Trait은 `telos-adapters/src/lib.rs`, Core 내부 서비스 인터페이스는 해당 소유 모듈의 공개 경로에 둡니다. DB 구현·Core 서비스 Trait을 Schema Crate나 Adapter Crate에 넣지 않으며 §3.4 의존 방향을 유지합니다. 계약 초안이 있다는 이유로 H0를 통과하지 않습니다. 각 계약은 사용하는 작업의 확인을 받습니다.
@@ -1510,6 +1579,8 @@ Phase 0 구현은 확장·대체할 기준선입니다. §19.2의 기존 코드 
 H0에서는 각 계약의 정의 경로·제공/사용 작업·확인자·Contract 시험·기준 Commit을 배정표 §5에 기록합니다. 특히 SCHED↔PERSIST의 원자적 상태 변경, SCHED↔HOST의 실행 의도·시작·종료, SCHED↔WORKSPACE/CONTEXT/ARTIFACT/VALIDATION, MASTER/MCP/API↔SCHED의 호출·오류·취소 경계, MCP↔HOST/세 Provider의 Run별 연결 자격 주입, HOST↔MASTER/VALIDATION의 실시간 승인(`ApprovalRequested`→판단·기록→`answer_approval`) 및 진행 중 제어 라우팅을 정합니다. 의존 모듈 구현이 없어도 이 공개 계약의 테스트 대역으로 개발할 수 있어야 합니다. 각 모듈 담당은 자기 인터페이스를 작성하고 CONTRACT가 공유 타입을 검토하며 INTEGRATION이 등록·연결합니다. 미배정 작업의 확인은 통합 담당이 검토 대행자와 근거를 기록하며, 확인 없이 통과로 처리하지 않습니다.
 
 H0 완료 시 공통 인터페이스와 컴파일 가능한 등록 경로(명시적 Stub 포함), Schema·계약 시험을 계약 기준 Commit에 포함합니다. Stub은 가용 기능으로 표시하지 않습니다. 대표 저장소의 AGENTS.md·README.md와 `crates/core/README.md`도 Phase 1 배정표·모듈 배치(`config` 포함)와 일치시킵니다.
+
+**Core 서비스 인터페이스(H0, 2026-11-11):** 각 소유 모듈의 `mod.rs`에 Trait과 오류 타입만 두고, 모듈 사이는 `Arc<dyn Trait>`로 주입합니다(`crates/core/tests/phase1_h0_interfaces.rs`가 객체 안전성·`Send + Sync`를 확인). 미배정 모듈의 인터페이스는 통합 담당이 검토 대행자로 작성했으며 각 담당이 착수 때 확인합니다. `persistence::Store`는 동기 API이며 `apply(WriteBatch)` 한 번이 한 Transaction입니다(쓰기마다 예상 버전, 하나라도 어긋나면 전체 미적용, 같은 Transaction에 `JournalEntry` 추가). 조회는 미완 실행 의도·잠금·`journal_after`(보존 범위 밖이면 `cursor_expired`)를 포함합니다. `scheduler::Scheduler`는 Task 생성·Run 요청·취소·재작업·완료 판정·Provider 승인 응답과 HOST·VALIDATION 통지, 재시작 대조(`recover`)를 받고, 요청 주체(`Actor`: 사용자·마스터(Epoch 포함)·Worker Run·Core)를 함께 받습니다. HOST가 구현하는 `scheduler::RunExecutor` Port는 시작(시작 결과와 프로세스 증거)·취소 접수·승인 전달·증거로 프로세스 생존 확인(확인 불가는 `None`)을 제공합니다. `context::ContextBuilder`(Snapshot 생성·Capsule 저장·Provider 입력 본문), `workspace::WorkspaceManager`(준비·Diff·Revision 고정·승인 Revision 반영·정리·잠금), `artifact::ArtifactStore`(동기, 파일/바이트 등록·Checksum 확인 부분 읽기·참조 추가·참조 없는 내용 정리), `validation::Validator`·`ApprovalService`(요청·결정·실행 직전 소비·철회), `mcp::TaskMcpService`(Run 범위 연결 정보 발급·폐기·도구 처리), `config::ConfigService`(동기, 계층 합성과 경고·설치 항목 기록·Digest 일치 시 제거)를 둡니다. 구현 전 모듈은 Trait만 있고 등록된 구현이 없으므로 가용 기능으로 표시하지 않습니다.
 
 #### 19.6.3 작업 묶음과 독점 수정 경로
 

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TasksToolParams",
+  "description": "Task MCP 도구 호출 중계입니다. 입력·출력 형식은 도구별 `Mcp*` Schema를 따릅니다.",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "tool": {
+      "$ref": "#/$defs/TaskTool"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "tool",
+    "input"
+  ],
+  "$defs": {
+    "TaskTool": {
+      "description": "MCP 서버가 노출하는 도구 이름입니다.",
+      "type": "string",
+      "enum": [
+        "delegate_task",
+        "get_task_result",
+        "list_tasks",
+        "cancel_task",
+        "get_agent_status",
+        "report_task_result"
+      ]
+    }
+  }
+}

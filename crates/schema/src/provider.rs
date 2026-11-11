@@ -71,6 +71,9 @@ pub struct RunContext {
     pub policy_revision: String,
     pub idempotency_key: String,
     pub session: SessionRequest,
+    /// Task MCP 연결 정보 (§9.2, H0). Task MCP를 주지 않는 Run은 비워 둡니다.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_mcp: Option<crate::TaskMcpBinding>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]

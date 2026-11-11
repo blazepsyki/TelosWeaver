@@ -78,6 +78,11 @@
           "description": "필요한 구성 요소(Provider, RN 등)를 지금 쓸 수 없음",
           "type": "string",
           "const": "unavailable"
+        },
+        {
+          "description": "구독 커서가 보존 범위 밖입니다. `plans.inspect`로 Snapshot을 다시 받고 그 커서부터 구독합니다 (Phase 1 H0).",
+          "type": "string",
+          "const": "cursor_expired"
         }
       ]
     }

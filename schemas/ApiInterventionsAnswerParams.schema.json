@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InterventionsAnswerParams",
+  "type": "object",
+  "properties": {
+    "answer": {
+      "$ref": "#/$defs/InterventionAnswer"
+    },
+    "idempotencyKey": {
+      "type": "string"
+    },
+    "interventionId": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "idempotencyKey",
+    "interventionId",
+    "answer"
+  ],
+  "$defs": {
+    "ApprovalAnswer": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "deny"
+      ]
+    },
+    "InterventionAnswer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "choice"
+            },
+            "option": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "option"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "text"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "answer": {
+              "$ref": "#/$defs/ApprovalAnswer"
+            },
+            "kind": {
+              "type": "string",
+              "const": "approval"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "answer"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunSession",
+  "description": "Run이 Session을 어떻게 썼는지입니다 (`run_sessions`, §8.1·§14.1).",
+  "type": "object",
+  "properties": {
+    "nativeTurnIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "runId": {
+      "type": "string"
+    },
+    "sessionId": {
+      "type": "string"
+    },
+    "usage": {
+      "$ref": "#/$defs/SessionUse"
+    }
+  },
+  "required": [
+    "runId",
+    "sessionId",
+    "usage",
+    "nativeTurnIds"
+  ],
+  "$defs": {
+    "SessionUse": {
+      "type": "string",
+      "enum": [
+        "created",
+        "resumed",
+        "forked"
+      ]
+    }
+  }
+}

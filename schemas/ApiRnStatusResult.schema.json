@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RnStatusResult",
+  "type": "object",
+  "properties": {
+    "available": {
+      "type": "boolean"
+    },
+    "health": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RnHealth"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "message": {
+      "description": "비호환·Degraded 사유 (COMM-08)",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "available"
+  ],
+  "$defs": {
+    "RnHealth": {
+      "description": "`health.get` 결과. Fork 배포 메타데이터를 함께 보고합니다 (§12.3).",
+      "type": "object",
+      "properties": {
+        "forkCommit": {
+          "type": "string"
+        },
+        "hostId": {
+          "type": "string"
+        },
+        "rpcVersion": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/RnHealthStatus"
+        },
+        "upstreamCommit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "rpcVersion",
+        "upstreamCommit",
+        "forkCommit",
+        "hostId"
+      ]
+    },
+    "RnHealthStatus": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "degraded"
+      ]
+    }
+  }
+}

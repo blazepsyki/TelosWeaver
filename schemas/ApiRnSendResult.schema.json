@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RnSendResult",
+  "description": "전송 접수와 실제 전달·실행·검증은 다른 상태입니다 (COMM-05).",
+  "type": "object",
+  "properties": {
+    "message": {
+      "$ref": "#/$defs/MessageRef"
+    },
+    "receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DeliveryReceipt"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "message"
+  ],
+  "$defs": {
+    "DeliveryReceipt": {
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "type": "string"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/DeliveryReceiptStatus"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "messageId",
+        "status",
+        "updatedAt"
+      ]
+    },
+    "DeliveryReceiptStatus": {
+      "description": "전달 상태입니다. 어떤 값도 Task 완료를 뜻하지 않습니다 (DELEG-09).",
+      "type": "string",
+      "enum": [
+        "accepted",
+        "queued",
+        "delivered",
+        "held",
+        "refused",
+        "expired",
+        "failed"
+      ]
+    },
+    "MessageRef": {
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "messageId"
+      ]
+    }
+  }
+}

@@ -90,6 +90,12 @@ pub struct ApprovalRequiredPayload {
     pub summary: String,
     /// 실행 중 응답을 보낼 수 있는지. Agy처럼 응답 경로가 없으면 `false`입니다 (§7.4).
     pub answerable: bool,
+    /// 행위 대상(명령·파일 경로 등). 승인 대상 고정에 씁니다 (H0, §11.2).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target: Option<String>,
+    /// 행위 인자의 SHA-256. 원문 대신 고정합니다.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args_digest: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]

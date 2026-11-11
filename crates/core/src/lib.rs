@@ -2,10 +2,18 @@
 //! 모듈 등록은 PH0-INTEGRATION이 관리합니다 (Spec §19.5.4-3).
 
 pub mod api;
+pub mod artifact;
+pub mod config;
+pub mod context;
 pub mod execution;
 pub mod integration;
 pub mod master;
+pub mod mcp;
+pub mod persistence;
 pub mod policy;
+pub mod scheduler;
+pub mod validation;
+pub mod workspace;
 
 /// 실행 파일·상태 디렉터리·서비스 식별자 (Spec §3.3).
 pub const SERVICE_ID: &str = "telos-weaver";

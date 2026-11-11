@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlansCreateParams",
+  "type": "object",
+  "properties": {
+    "constraints": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "goal": {
+      "type": "string"
+    },
+    "idempotencyKey": {
+      "type": "string"
+    },
+    "master": {
+      "description": "비우면 설정의 기본 마스터(Claude `sonnet`, H0 D6)",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentSelection"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "idempotencyKey",
+    "goal"
+  ],
+  "$defs": {
+    "AgentSelection": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "role"
+      ]
+    }
+  }
+}

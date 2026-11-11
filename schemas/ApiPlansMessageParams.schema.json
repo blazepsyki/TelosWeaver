@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlansMessageParams",
+  "type": "object",
+  "properties": {
+    "idempotencyKey": {
+      "type": "string"
+    },
+    "planId": {
+      "type": "string"
+    },
+    "text": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "idempotencyKey",
+    "planId",
+    "text"
+  ]
+}
