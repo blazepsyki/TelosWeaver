@@ -14,39 +14,39 @@
 |---|---|
 | 대표 저장소 | `D:\Downloads\Vibe_dev\TelosWeaver`, Branch `master`. 공개 원격 `origin` = https://github.com/blazepsyki/TelosWeaver (`master`만 push) |
 | 통합 담당자 ID | `claude-opus-5.5/session-c9336d2c` (Phase 0에서 유지, 2026-10-26 사용자 결정) |
-| 공통 계약 기준 Commit | H0 후보 `bac970e`(`ph1/contract` 병합, 2026-11-11). 사용자 H0 판정 전까지는 Phase 0 최종 계약 `6a4f58a`가 기준 |
+| 공통 계약 기준 Commit | **`bac970e`** (H0 계약, `ph1/contract` 병합. 2026-11-16 사용자 확정). 이전: Phase 0 최종 계약 `6a4f58a` |
 | Phase 0 이월 | [G3 대조표](../phase-0/evidence/PH0-INTEGRATION/G3_ACCEPTANCE.md) §3 P1-1~6, [지원 백로그](../SUPPORT_BACKLOG.md). 사용자 결정: 관련 작업에 편입 |
 
 ## 2. 배정 상태
 
 | 작업 ID | 담당자 ID | 상태 | Branch / Worktree | 기준 Commit | 결과 Commit | 인계·요청 |
 |---|---|---|---|---|---|---|
-| PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `master` / 대표 저장소 작업 트리 | `c696cb4` | 계획 `56f6091`, 리뷰 반영 `9626249`(Codex)·`274ea35`(Antigravity), 정정 `b24120d`, 병합 `c696cb4` | Spec v1.5.10 §19.6·이 배정표 확정(2026-11-07 사용자 확정). 다음: PH1-CONTRACT 배정과 H0 계약 확정 |
-| PH1-CONTRACT | `claude-opus-5.5/session-c9336d2c` | review | `ph1/contract`(병합 뒤 삭제) / — | `b7655c1` | 계약 `b4032f6`·`880e5c3`·`f88fa84`·`5ef9484`·`5c65144`·`8d84b01`·`e891221`·`b81aaa3`·`f48eb27`·`d074957`, Spec `86d7c8b`·`b9c88cd`, 인터페이스 `de5fd51`, 문서 `12c59c5`, 병합 `bac970e` | 사용자 지정(2026-11-07, INTEGRATION 겸임). H0 결정 [H0_DECISIONS.md](H0_DECISIONS.md) D1~D15. 10종 계약·Core 인터페이스·[수용 대조표](H0_ACCEPTANCE_MAP.md) 등록 완료. 확인은 §5의 검토 대행 기록, 사용자 H0 판정 대기 |
-| PH1-PERSIST | — | unassigned | — | — | — | H0 뒤 |
-| PH1-SCHED | — | unassigned | — | — | — | H0 뒤. 단일 Scheduler 소유권, 대기 자원·취소 전파, 재시작 대조·안전 보류 |
-| PH1-CONTEXT | — | unassigned | — | — | — | H0 뒤. 지원 백로그 SB-11(Capsule) |
-| PH1-WORKSPACE | — | unassigned | — | — | — | H0 뒤. Writer·기존 변경 보존, 고정 Revision의 승인된 Git 반영 |
-| PH1-ARTIFACT | — | unassigned | — | — | — | H0 뒤 |
-| PH1-VALIDATION | — | unassigned | — | — | — | H0 뒤. SCHED·ARTIFACT 공개 인터페이스 통합 후 연결 |
-| PH1-MCP | — | unassigned | — | — | — | H0 뒤. SCHED 공개 인터페이스 통합 후 연결 |
-| PH1-MASTER | — | unassigned | — | — | — | H0 뒤. 정식 정책(SB-11 Capsule 허용 포함), 이월 P1-2의 Core 판단·제어 연결, VALIDATION 승인 기록·HOST API·Provider·EXT와 연계 |
-| PH1-HOST | — | unassigned | — | — | — | H0 뒤. PERSIST·SCHED 통합 후 연결. Task MCP 주입·승인/제어 라우팅, 이월 P1-5(Windows 정상 종료), SB-12·13·18 |
-| PH1-CODEX | — | unassigned | — | — | — | H0 뒤. 이월 P1-1 적용, SB-08·09 검토. SB-05 특정 Turn Resume는 제품 P1 범위의 백로그로 유지 |
-| PH1-CLAUDE | — | unassigned | — | — | — | H0 뒤. 이월 P1-1(SB-10)·P1-2(실시간 승인, SB-07)·P1-3(SB-06) 검토 |
-| PH1-AGY | — | unassigned | — | — | — | H0 뒤. 이월 P1-1(SB-10)·P1-3(SB-06) 검토 |
-| PH1-CONFIG | — | unassigned | — | — | — | H0 뒤 |
-| PH1-RN | — | unassigned | — | — | — | H0 뒤. 설치 설정 소유권·사용자 후속 변경 보존, P0 RPC·TTL·중복·Degraded |
-| PH1-EXT | — | unassigned | — | — | — | H0 뒤. HOST API 확장 통합 후 연결 |
+| PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `master` / 대표 저장소 작업 트리 | `bac970e` | 계획 `56f6091`, 리뷰 반영 `9626249`(Codex)·`274ea35`(Antigravity), 정정 `b24120d`, 병합 `c696cb4` | Spec v1.5.10 §19.6·이 배정표 확정(2026-11-07 사용자 확정). H0 통과 확정(2026-11-16). 다음: 1차 작업 배정(사용자 지정)·통합, H1 수직 경로 Harness. [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) |
+| PH1-CONTRACT | `claude-opus-5.5/session-c9336d2c` | integrated | `ph1/contract`(병합 뒤 삭제) / — | `b7655c1` | 계약 `b4032f6`·`880e5c3`·`f88fa84`·`5ef9484`·`5c65144`·`8d84b01`·`e891221`·`b81aaa3`·`f48eb27`·`d074957`, Spec `86d7c8b`·`b9c88cd`, 인터페이스 `de5fd51`, 문서 `12c59c5`, 병합 `bac970e` | 사용자 지정(2026-11-07, INTEGRATION 겸임). H0 결정 [H0_DECISIONS.md](H0_DECISIONS.md) D1~D15. 10종 계약·Core 인터페이스·[수용 대조표](H0_ACCEPTANCE_MAP.md) 등록 완료. 확인은 §5의 검토 대행 기록. H0 통과 확정(2026-11-16). 이후 계약 변경 요청(`REQ1-NNN`) 처리를 계속 맡음 |
+| PH1-PERSIST | — | unassigned | — | — | — | 착수 가능(1차) |
+| PH1-SCHED | — | unassigned | — | — | — | 착수 가능(1차). 단일 Scheduler 소유권, 대기 자원·취소 전파, 재시작 대조·안전 보류 |
+| PH1-CONTEXT | — | unassigned | — | — | — | 착수 가능(1차). 지원 백로그 SB-11(Capsule) |
+| PH1-WORKSPACE | — | unassigned | — | — | — | 착수 가능(1차). Writer·기존 변경 보존, 고정 Revision의 승인된 Git 반영 |
+| PH1-ARTIFACT | — | unassigned | — | — | — | 착수 가능(1차) |
+| PH1-VALIDATION | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). SCHED·ARTIFACT 공개 인터페이스 통합 후 연결 |
+| PH1-MCP | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). SCHED 공개 인터페이스 통합 후 연결 |
+| PH1-MASTER | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). 정식 정책(SB-11 Capsule 허용 포함), 이월 P1-2의 Core 판단·제어 연결, VALIDATION 승인 기록·HOST API·Provider·EXT와 연계 |
+| PH1-HOST | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). PERSIST·SCHED 통합 후 연결. Task MCP 주입·승인/제어 라우팅, 이월 P1-5(Windows 정상 종료), SB-12·13·18 |
+| PH1-CODEX | — | unassigned | — | — | — | 착수 가능(1차). 이월 P1-1 적용, SB-08·09 검토. SB-05 특정 Turn Resume는 제품 P1 범위의 백로그로 유지 |
+| PH1-CLAUDE | — | unassigned | — | — | — | 착수 가능(1차). 이월 P1-1(SB-10)·P1-2(실시간 승인, SB-07)·P1-3(SB-06) 검토 |
+| PH1-AGY | — | unassigned | — | — | — | 착수 가능(1차). 이월 P1-1(SB-10)·P1-3(SB-06) 검토 |
+| PH1-CONFIG | — | unassigned | — | — | — | 착수 가능(1차) |
+| PH1-RN | — | unassigned | — | — | — | 착수 가능(1차). 설치 설정 소유권·사용자 후속 변경 보존, P0 RPC·TTL·중복·Degraded |
+| PH1-EXT | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). HOST API 확장 통합 후 연결 |
 
-총 17개 작업입니다. 상태는 `unassigned → reserved → in-progress → review → integrated → verified`(Spec §19.5.5). H0 전 배정은 계약 검토·초안 제출 범위이며 기능 구현 허가가 아닙니다.
+총 17개 작업입니다. 상태는 `unassigned → reserved → in-progress → review → integrated → verified`(Spec §19.5.5). H0 통과(2026-11-16)로 기능 구현을 시작할 수 있습니다. 담당은 사용자가 지정하며, 지정된 담당은 [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md)를 읽고 자기 행을 기록한 뒤 계약 확인부터 합니다.
 
 ## 3. 통합 게이트
 
 | 게이트 | 상태 | 근거 |
 |---|---|---|
-| H0 Phase 1 공통 계약 | 사용자 판정 대기 | Spec §19.6.2. §5의 10종 계약·Core 공개 인터페이스·Contract 시험·기준 후보 `bac970e` 기록, [수용 대조표](H0_ACCEPTANCE_MAP.md) 등록. 확인은 모두 검토 대행(사용 작업 미배정), 각 담당이 착수 때 재확인 |
-| H1 수직 경로 | 대기 | Spec §19.6.4 3번. 실제 Provider 경로, 재시작 후 확정 결과 보존과 미완 실행 안전 보류를 각각 확인 |
+| H0 Phase 1 공통 계약 | **통과 확정** (2026-11-16 사용자 확정) | Spec §19.6.2. §5의 10종 계약·Core 공개 인터페이스·Contract 시험, 기준 Commit `bac970e`, [수용 대조표](H0_ACCEPTANCE_MAP.md). 확인은 검토 대행이며 각 담당이 착수 때 재확인(바꿀 점은 §4 변경 요청) |
+| H1 수직 경로 | 준비 중 | Spec §19.6.4 3번. 실제 Provider 경로, 재시작 후 확정 결과 보존과 미완 실행 안전 보류를 각각 확인 |
 | H2 구성 통합 | 대기 | — |
 | H3 Phase 1 수용 | 대기 | Spec §19.2, §18 P0 및 혼합 항목 P0 부분, E2E-01·04·05·06·08·09·13과 E2E-02·07·14의 P0 부분, 별도 코딩·실패 시나리오. 필수 환경 미검증 시 보류 |
 
@@ -57,7 +57,7 @@
 
 ## 5. H0 계약 범위와 등록 경로
 
-공유 타입은 `crates/schema/src/`, 시험은 `crates/schema/tests/`, Core 서비스 인터페이스는 `crates/core/src/<모듈>/mod.rs`입니다. 기준 후보는 모두 `bac970e`입니다. 사용 작업이 모두 미배정이라 확인은 통합 담당(`claude-opus-5.5/session-c9336d2c`)이 검토 대행으로 했습니다. 근거는 Spec의 해당 절과 대조한 Contract 시험의 통과입니다(Workspace 225개 통과·42개 무시, strict clippy·fmt, Extension 32개, Schema 118개 최신). 각 작업 담당은 착수 때 자기 계약을 다시 확인하고, 바꿀 점이 있으면 §4 변경 요청으로 올립니다. 확인 전에는 그 계약을 사용 작업이 승인한 것으로 보지 않습니다.
+공유 타입은 `crates/schema/src/`, 시험은 `crates/schema/tests/`, Core 서비스 인터페이스는 `crates/core/src/<모듈>/mod.rs`입니다. 기준 Commit은 모두 `bac970e`입니다(2026-11-16 확정). 사용 작업이 모두 미배정이라 확인은 통합 담당(`claude-opus-5.5/session-c9336d2c`)이 검토 대행으로 했습니다. 근거는 Spec의 해당 절과 대조한 Contract 시험의 통과입니다(Workspace 225개 통과·42개 무시, strict clippy·fmt, Extension 32개, Schema 118개 최신). 각 작업 담당은 착수 때 자기 계약을 다시 확인하고, 바꿀 점이 있으면 §4 변경 요청으로 올립니다. 확인 전에는 그 계약을 사용 작업이 승인한 것으로 보지 않습니다.
 
 | 계약 | 정의 경로 | 제공 / 사용 작업 | Contract 시험 | 계약 Commit |
 |---|---|---|---|---|
@@ -101,3 +101,4 @@ Phase 0 환경의 설치 버전·로그인 상태가 현재도 같다고 가정�
 | 2026-11-10 20:52 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시: H0 D15(b) 조사 완료. Antigravity 요약 DB는 `jetbox_summaries_proto.pb`에서 다시 만들어짐. 원본·DB·`last_conversations.json`의 시험 항목 52개를 백업 후 함께 삭제, CLI 시작·실제 세션 뒤에도 유지 확인. 정리 도구를 증거로 등록(`4a24f65`). 후속: PH1-AGY 시험 정리 함수에 반영 | `4a24f65` |
 | 2026-11-10 20:55 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시로 H0 계약 작업 착수. Branch `ph1/contract`, Worktree `D:\worktree\TelosWeaver\ph1-contract`, 기준 `b7655c1`. 첫 커밋 Spec v1.5.11(H0 결정 D1~D14 반영, `86d7c8b`) | `b7655c1` |
 | 2026-11-11 (시각 미기록) | `claude-opus-5.5/session-c9336d2c` | H0 계약 10종(`b4032f6`~`d074957`)과 Spec v1.5.11 반영, 사용자 결정(a)에 따라 미배정 모듈의 Core 서비스 인터페이스를 검토 대행으로 작성(`de5fd51`), 수용 대조표·문서 정합화(`12c59c5`) 뒤 `master`에 병합(`bac970e`). PH1-CONTRACT `in-progress → review`, H0 `준비 중 → 사용자 판정 대기`, §5 계약 기록 | `bac970e` |
+| 2026-11-16 (시각 미기록) | `claude-opus-5.5/session-c9336d2c` | **사용자 확정: H0 통과.** 공통 계약 기준 Commit `6a4f58a → bac970e`. PH1-CONTRACT `review → integrated`, H1 `대기 → 준비 중`. 1차(PERSIST·SCHED·CONTEXT·WORKSPACE·ARTIFACT·CONFIG·RN·세 Provider)·2차(MCP·VALIDATION·MASTER·HOST·EXT) 착수 가능 표시, 착수 지시 [H0_KICKOFF.md](evidence/PH1-INTEGRATION/H0_KICKOFF.md) 등록. 담당 지정은 사용자 몫이며 이 기록은 배정이 아님 | `bac970e` |
