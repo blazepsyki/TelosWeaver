@@ -8,7 +8,7 @@
 - 외부 에이전트가 실행한 CLI 세션 표시(Codex·Claude Code·Antigravity): [VS Code에서 세션 확인](docs/AGENT_CLI_VSCODE_SESSIONS.md)
 - 지원하지 않거나 아직 검증하지 않은 기능과 지원 조건: [지원 백로그](docs/SUPPORT_BACKLOG.md)
 
-## 현재 상태 — Phase 0 (기술 검증) 완료, Phase 1 H0(공통 계약) 준비 중
+## 현재 상태 — Phase 0 (기술 검증) 완료, Phase 1 H0(공통 계약) 통과·병렬 구현 단계
 
 | 게이트 | 상태 |
 |---|---|
@@ -16,6 +16,8 @@
 | G1 대표 Provider 실행 | 통과 (Claude, Windows) |
 | G2 전체 구성 통합 | 통과 확정 (Windows): 세 Provider·마스터 결정 검증·Extension·RN 연결, 각 담당 확인 완료 |
 | G3 Phase 0 수용 | **통과 확정** (2026-10-26, [대조표](docs/phase-0/evidence/PH0-INTEGRATION/G3_ACCEPTANCE.md)): Windows 로컬·Linux(`psyki-nas`)·단일 Remote SSH |
+| H0 Phase 1 공통 계약 | **통과 확정** (2026-11-16): 계약 10종·Core 서비스 인터페이스, 기준 Commit `bac970e`, [수용 대조표](docs/phase-1/H0_ACCEPTANCE_MAP.md) 등록. Phase 1 기능 구현은 [착수 지시](docs/phase-1/evidence/PH1-INTEGRATION/H0_KICKOFF.md)에 따라 진행 |
+| H1 수직 경로 · H2 구성 통합 · H3 Phase 1 수용 | 대기 |
 
 **동작하는 것 (Windows 로컬과 Linux·Remote SSH에서 실제 CLI로 검증)**
 
