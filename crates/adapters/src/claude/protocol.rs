@@ -274,7 +274,10 @@ impl StreamMapper {
             }));
         }
         let status = match (is_error, reason.as_deref()) {
-            (_, Some("aborted" | "interrupted")) => TurnStatus::Interrupted,
+            // `interrupt` 제어 요청으로 끊긴 Turn은 `aborted_tools` 등으로 보고됩니다(2.1.325 관찰).
+            (_, Some(reason)) if reason == "interrupted" || reason.starts_with("aborted") => {
+                TurnStatus::Interrupted
+            }
             (true, _) => TurnStatus::Failed,
             (false, _) => TurnStatus::Completed,
         };

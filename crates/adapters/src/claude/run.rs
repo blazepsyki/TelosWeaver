@@ -150,9 +150,20 @@ impl RunEntry {
             return false;
         }
         if !self.cancel_requested.swap(true, Ordering::SeqCst) {
-            let handle = self.handle.clone();
+            let entry = self.clone();
             tokio::spawn(async move {
-                let _ = handle.terminate(grace).await;
+                // stdin이 열려 있는 Run은 먼저 Turn을 끊습니다. stdin만 닫으면 CLI가 대기 중인 승인 요청을 버리고
+                // 모델을 다시 불러 Turn을 마저 진행합니다(2.1.325 관찰). `interrupt`는 Turn을 바로 끝냅니다.
+                if entry.approvals.is_some() {
+                    let _ = entry
+                        .write_control(json!({
+                            "type": "control_request",
+                            "request_id": "telos-cancel",
+                            "request": {"subtype": "interrupt"},
+                        }))
+                        .await;
+                }
+                let _ = entry.handle.terminate(grace).await;
             });
         }
         true
@@ -364,8 +375,26 @@ impl RunEntry {
                                         state.native_session_id = Some(id.to_owned());
                                     }
                                 }
+                                // 취소 요청으로 끊긴 Turn은 Provider 오류가 아니라 취소로 보고합니다.
+                                let cancelled_turn = self.cancel_requested.load(Ordering::SeqCst)
+                                    && items.iter().any(|item| {
+                                        matches!(item, Mapped::Event(ProviderEventPayload::TurnFinished(turn))
+                                            if turn.status == TurnStatus::Interrupted)
+                                    });
                                 for item in items {
                                     match item {
+                                        Mapped::Event(ProviderEventPayload::Error(_))
+                                            if cancelled_turn => {}
+                                        Mapped::Event(ProviderEventPayload::TurnFinished(turn))
+                                            if cancelled_turn =>
+                                        {
+                                            self.push(ProviderEventPayload::TurnFinished(
+                                                TurnFinishedPayload {
+                                                    status: TurnStatus::Cancelled,
+                                                    reason: turn.reason,
+                                                },
+                                            ))
+                                        }
                                         Mapped::Event(payload) => self.push(payload),
                                         Mapped::Approval(request) => {
                                             self.request_approval(request, grace)
@@ -373,8 +402,12 @@ impl RunEntry {
                                         Mapped::ApprovalWithdrawn { request_id } => {
                                             if let Some(approvals) = &self.approvals {
                                                 let mut state = approvals.lock().unwrap();
-                                                if state.pending.remove(&request_id).is_some() {
+                                                if let Some(pending) =
+                                                    state.pending.remove(&request_id)
+                                                {
                                                     state.closed.insert(request_id);
+                                                    // 승인을 받지 못해 실행되지 않은 도구 호출입니다.
+                                                    state.denied_tools.extend(pending.tool_use_id);
                                                 }
                                             }
                                         }

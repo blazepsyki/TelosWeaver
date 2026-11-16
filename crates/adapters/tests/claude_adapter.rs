@@ -212,6 +212,8 @@ struct FakeHandle {
     output: Mutex<Option<BoxStream<'static, OutputEvent>>>,
     exit: watch::Sender<Option<ExitStatus>>,
     stdin: watch::Sender<Stdin>,
+    /// stdin이 닫히면 스스로 끝나는 프로세스인지
+    exits_on_close: bool,
 }
 
 #[async_trait]
@@ -235,6 +237,10 @@ impl ProcessRuntime for FakeRuntime {
         };
         let (exit, _) = watch::channel(None);
         let (tx, rx) = mpsc::unbounded_channel();
+        let exits_on_close = script
+            .waits
+            .iter()
+            .any(|(at, wait)| *at == script.lines.len() && matches!(wait, Wait::StdinClosed));
         tokio::spawn({
             let exit = exit.clone();
             let stdin = self.stdin.subscribe();
@@ -308,6 +314,7 @@ impl ProcessRuntime for FakeRuntime {
             output: Mutex::new(Some(output.boxed())),
             exit,
             stdin: self.stdin.clone(),
+            exits_on_close,
         }))
     }
 }
@@ -342,6 +349,13 @@ impl ProcessHandle for FakeHandle {
         Ok((*status).unwrap())
     }
     async fn terminate(&self, _grace: Duration) -> Result<TerminationReport, RuntimeError> {
+        // 실제 런타임처럼 먼저 stdin을 닫고 스스로 끝나기를 기다립니다.
+        if self.exits_on_close {
+            self.stdin.send_modify(|s| s.closed = true);
+            let mut exited = self.exit.subscribe();
+            let _ = tokio::time::timeout(Duration::from_secs(2), exited.wait_for(Option::is_some))
+                .await;
+        }
         self.exit.send_if_modified(|exit| {
             if exit.is_none() {
                 *exit = Some(ExitStatus {
@@ -1723,6 +1737,70 @@ async fn cancel_before_the_answer_closes_the_approval_request() {
                 if message.contains("no longer pending")
         ));
     }
+    assert!(control_responses(&runtime).is_empty());
+    // 프로세스를 끝내기 전에 Turn을 끊는 제어 요청을 보냈습니다.
+    assert!(runtime.stdin_text().contains(r#""subtype":"interrupt""#));
+}
+
+/// 승인 대기 중 취소: `interrupt`를 받은 CLI가 요청을 거두고 Turn을 끝냅니다(2.1.325 출력 재생).
+/// 끊긴 Turn은 Provider 오류가 아니라 취소로, 실행되지 않은 도구는 `denied`로 보고합니다.
+#[tokio::test]
+async fn cancel_interrupts_the_turn_that_waits_for_an_approval() {
+    let mut script = Script::fixture("approval-interrupt.jsonl", 1);
+    script.waits = vec![
+        (
+            script.index_of("control_cancel_request"),
+            Wait::Stdin("interrupt"),
+        ),
+        (script.lines.len(), Wait::StdinClosed),
+    ];
+    let runtime = FakeRuntime::new(script);
+    let adapter = prompting(runtime.clone());
+    adapter
+        .start_run(&fixtures::task_spec(), &context("run-interrupt"))
+        .await
+        .unwrap();
+    let request = approval(
+        &events_until(
+            &adapter,
+            "run-interrupt",
+            ProviderEventKind::ApprovalRequired,
+        )
+        .await,
+    );
+    assert_eq!(adapter.cancel_run("run-interrupt").await, Ok(true));
+    let events = collect(&adapter, "run-interrupt", 0).await;
+    assert_eq!(check_run_events(&events), Ok(RunTermination::ProcessExited));
+    use ProviderEventKind::*;
+    assert_eq!(
+        kinds(&events),
+        [
+            SessionStarted,
+            ToolStarted,
+            ApprovalRequired,
+            ToolCompleted,
+            Usage,
+            TurnFinished,
+            ProcessExited
+        ]
+    );
+    let p = payloads(&events);
+    assert!(
+        matches!(&p[3], ProviderEventPayload::ToolCompleted(t) if t.outcome == ToolOutcome::Denied)
+    );
+    assert!(matches!(&p[5], ProviderEventPayload::TurnFinished(t)
+        if t.status == TurnStatus::Cancelled && t.reason.as_deref() == Some("aborted_tools")));
+    assert!(matches!(&p[6], ProviderEventPayload::ProcessExited(e)
+        if e.exit_code == Some(1) && e.termination == ProcessTermination::Exited));
+    assert!(matches!(
+        adapter
+            .answer_approval("run-interrupt", &request.request_id, ApprovalAnswer::Allow)
+            .await,
+        Err(AdapterError::Failure {
+            kind: FailureKind::Configuration,
+            ..
+        })
+    ));
     assert!(control_responses(&runtime).is_empty());
 }
 
