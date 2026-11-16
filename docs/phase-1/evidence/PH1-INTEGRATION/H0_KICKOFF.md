@@ -90,13 +90,52 @@ H1에 가장 먼저 필요한 것은 PERSIST와 SCHED입니다. 담당 수가 �
 
 ### 3.8 PH1-CODEX · PH1-CLAUDE · PH1-AGY
 
-- **경로:** Spec §19.5.3의 각 Provider 경로(`crates/adapters/src/<provider>/**` 등)
-- **계약:** `provider.rs`(`RunContext.taskMcp`), `mcp.rs`(`TaskMcpBinding`), `judgment.rs`(`judge`·`PreflightReport`), `policy.rs`(`ApprovalRequiredPayload`의 대상·인자 Digest), `capability_keys`. Spec §7, §19.6.6.
-- **공통 완료 기준:** `RunContext.taskMcp`가 있으면 그 Run에만 Task MCP 서버를 연결(사용자 전역 설정 무변경), Capsule 입력 전달(SB-11), H0 판정 기준 적용(이월 P1-1: 같은 버전 또는 같은 major.minor와 사전 점검 통과), 모델을 호출하지 않는 사전 점검 구현, 버전이 바뀌면 재판정.
-- **Codex:** `approval_required`에 대상·인자 Digest 채우기(지금은 `None` Stub), SB-08·09 검토.
-- **Claude:** 실시간 승인 제어(이월 P1-2, SB-07), 진행 중 조정 검토(P1-3, SB-06).
-- **Antigravity:** Workspace `.agents/plugins/<이름>/mcp_config.json`과 세션 한정 `--settings` 권한으로 주입(H0 D5, A2에서 확인), 진행 중 조정 검토(P1-3), 시험 정리 함수에 요약 정리 반영([D15 기록](D15_AGY_SUMMARIES.md)).
-- Task MCP 서버(`telos-weaver` stdio 하위 명령)는 MCP·HOST 구현 전이므로, 주입은 시험용 stdio MCP 서버로 먼저 확인하고 실제 연결은 2차에서 합니다.
+배정(2026-11-16 사용자 지시): PH1-CODEX는 Codex, PH1-AGY는 Antigravity가 각자 맡고, PH1-CLAUDE는 통합 담당이 Claude 서브 에이전트로 진행합니다.
+
+**공통**
+
+- **경로:** Spec §19.5.3의 자기 Provider 경로만 수정합니다(`crates/adapters/src/<provider>.rs`, `crates/adapters/src/<provider>/**`, `crates/adapters/tests/<provider>_*.rs`, `crates/adapters/tests/fixtures/<provider>/**`). `crates/adapters/src/lib.rs`(Trait)·`runtime`·`discovery`·`crates/schema/**`는 변경 요청으로 처리합니다.
+- **Worktree·Branch:** `D:\worktree\TelosWeaver\ph1-<provider>`, `ph1/<provider>`, 기준은 최신 `master`.
+- **계약:** `provider.rs`(`RunContext.taskMcp`·`ApprovalRequiredPayload`의 `target`·`argsDigest`), `mcp.rs`(`TaskMcpBinding`: 서버 이름·명령·인자·자격 파일 경로), `judgment.rs`(`CapabilityEvidence`·`PreflightCheck`·`PreflightReport`·`judge`), `capability_keys`, `context.rs`(`CapsuleContent`). Spec §7.1·§7.3·§9.2·§19.6.6.
+
+| # | 할 일 | 완료 기준 |
+|---|---|---|
+| P1 | **계약 확인** | 위 계약 타입과 Contract 시험(`mcp_contract.rs`·`judgment_contract.rs`·`policy_contract.rs`)을 읽고 그대로 구현할 수 있는지 판단. 바꿀 점은 구현 전에 배정표 §4 변경 요청 |
+| P2 | **Capability 판정 기준 적용**(이월 P1-1, SB-10, H0 D11·D14) | 수단이 있는 기능의 `supported`/`unverified`를 Adapter 안의 고정 버전 비교 대신 `telos_schema::judge(통과한 버전 목록, 현재 버전, 사전 점검)`로 정합니다. 같은 버전이면 `supported`, 같은 major.minor이고 사전 점검을 통과하면 `supported`, 그 밖은 `unverified`. 실환경에서 통과한 `native_resume`·`native_fork`는 세 Provider가 같은 기준으로 판정(세부 제한은 `reason`과 실행 전 거부). 수단이 없는 기능은 계속 `unsupported`와 사유 |
+| P3 | **사전 점검**(모델 호출 없음) | `detect` 때 `--version` 출력 형식, Adapter가 실제로 쓰는 옵션의 수용, `--help`의 필수 옵션을 확인해 `PreflightReport`를 만듭니다. 옵션이 없어진 CLI를 Mock으로 재현해 `unverified`로 떨어지는 시험 포함 |
+| P4 | **Task MCP Run 단위 주입** | `RunContext.taskMcp`가 `Some`이면 그 Run에만 MCP 서버를 연결하고, `None`이면 지금과 같게 실행합니다. 사용자 전역 설정 파일을 읽기만 하고 쓰지 않습니다. 자격 원문을 설정 파일·인자·로그에 넣지 않고 `credentialFile` 경로만 넘깁니다. Core의 Task MCP 서버는 아직 없으므로 시험용 stdio MCP 서버(도구 하나)를 `tests/fixtures/<provider>/`에 두고 실환경에서 Worker가 그 도구를 호출하는지 확인합니다. Run이 끝나면 주입 파일을 정리합니다 |
+| P5 | **Capsule 입력**(SB-11) | `SessionMode::Capsule`은 새 세션으로 시작하고 Core가 만든 Capsule 본문을 입력에 포함합니다. `fresh`와 구분되는 점(본문 전달, 이전 세션 미사용)을 시험으로 고정합니다. Capsule 조립은 CONTEXT의 일이며 Adapter는 받은 입력을 전달만 합니다. 전달 경계가 지금 `TaskSpec`·`RunContext`로 부족하면 변경 요청 |
+| P6 | **승인 요청의 대상·Digest** | `approval_required`를 내는 Provider는 `target`과 `argsDigest`(인자 원문의 SHA-256)를 채웁니다. Core가 실행 직전에 같은 대상·인자인지 다시 확인하는 데 씁니다 |
+| P7 | **증거** | `docs/phase-1/evidence/<작업 ID>/README.md`. 시험마다 Host·CLI 버전·종류(Mock/실환경)·세션 ID. 지원 백로그에 반영할 판정 변화(SB 번호별)를 따로 정리해 통합 담당에게 전달 |
+
+**Codex (PH1-CODEX)**
+
+| # | 할 일 | 완료 기준 |
+|---|---|---|
+| C1 | P4의 주입 수단 | App Server Thread 시작의 설정 재정의(`mcp_servers`)로 그 Thread에만 연결. `~/.codex/config.toml`을 바꾸지 않음을 시험 전후 비교로 확인 |
+| C2 | P6 | `crates/adapters/src/codex/run.rs`의 `target: None, args_digest: None` Stub을 실제 값으로 교체 |
+| C3 | SB-08 | Linux(`psyki-nas`)에서 `send_input`·`answer_approval` 실환경 시험. 서버 공용 Clone은 통합 담당이 다시 만든 뒤 진행(그 전까지 미검증으로 기록) |
+| C4 | SB-09 | 명령 실행 외 승인(`fileChange`·권한 확장·MCP 도구 호출)의 종류별 실환경 결과 또는 미검증 사유. Task MCP 도구 호출이 승인 요청을 만드는지는 P4와 함께 확인 |
+| C5 | 이월 P1-3 | Codex의 진행 중 조정(`turn/steer`)이 Phase 1에서도 Run당 Turn 하나 계약(§7.3) 안에 있는지 재확인 |
+
+**Claude (PH1-CLAUDE)**
+
+| # | 할 일 | 완료 기준 |
+|---|---|---|
+| L1 | P4의 주입 수단 | `--mcp-config <Run 상태 파일>`. 사용자·프로젝트의 기존 MCP 설정과 섞이는 범위를 확인해 기록하고(`--strict-mcp-config` 사용 여부 판단), 주입한 서버의 도구만 추가로 허용 |
+| L2 | 실시간 승인(이월 P1-2, SB-07) | `--permission-prompt-tool stdio`로 받은 승인 요청을 `approval_required` 이벤트(P6 포함)로 내고, `answer_approval`의 Allow/Deny를 CLI에 돌려줍니다. 응답 전 Run 취소, 모르는 요청 ID, 같은 요청 중복 응답을 시험. 승인 경로가 없는 실행에서는 지금처럼 정책에 따라 거부 |
+| L3 | 진행 중 조정 검토(이월 P1-3, SB-06) | 같은 Turn에 입력을 반영하는 수단이 2.1.318에 있는지 문서·실험으로 확인. 없으면 `send_input`은 계속 `UnsupportedCapability`이고 후속 입력은 Resume Run이라는 판정과 근거를 기록 |
+| L4 | 검증 버전 목록 | 2.1.318 재시험 결과(H0 A1)를 `CapabilityEvidence` 형태의 근거로 반영 |
+
+**Antigravity (PH1-AGY)**
+
+| # | 할 일 | 완료 기준 |
+|---|---|---|
+| A1 | P4의 주입 수단(H0 D5) | Run Workspace의 `.agents/plugins/<이름>/{plugin.json, mcp_config.json}`과 세션 한정 `--settings '{"permissions":{"allow":["mcp(<server>/<tool>)"]}}'`. 사용자 설정(`~/.gemini/**`의 설정 파일)을 바꾸지 않음을 확인. 주입 경로는 `telos_schema::INJECTED_WORKSPACE_PATHS`(`.agents/`)와 일치시키고 Run 종료 때 지웁니다. 이미 `.agents/`가 있는 Workspace에서는 사용자 파일을 건드리지 않고 자기 플러그인 폴더만 만들고 지웁니다 |
+| A2 | 자동 업데이트 대응(H0 D14) | CLI가 하루에도 버전이 바뀌므로 P2·P3가 실제로 동작하는지 1.5.x에서 확인(같은 major.minor + 사전 점검 통과 → `supported`) |
+| A3 | 진행 중 조정 검토(이월 P1-3, SB-06) | Claude L3와 같은 방식으로 판정·근거 기록 |
+| A4 | 시험 정리 | 시험 세션 정리 함수에 요약 원본 정리를 넣습니다([D15 기록](D15_AGY_SUMMARIES.md), [정리 도구](agy_summary_cleanup.py)). 시험 뒤 확장 대화 목록에 빈 항목이 남지 않는지 확인 |
+| A5 | 미지원 재확인 | SB-01·02·04(Headless Fork·실행 중 승인 응답·특정 Turn 기준 재개)가 현재 CLI `--help`에서 달라졌는지만 확인하고, 달라지지 않았으면 미지원 유지 |
 
 ### 3.9 2차 작업 (Mock으로 먼저 개발)
 
