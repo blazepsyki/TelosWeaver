@@ -23,8 +23,8 @@
 |---|---|---|---|---|---|---|
 | PH1-INTEGRATION | `claude-opus-5.5/session-c9336d2c` | in-progress | `master` / 대표 저장소 작업 트리 | `bac970e` | 계획 `56f6091`, 리뷰 반영 `9626249`(Codex)·`274ea35`(Antigravity), 정정 `b24120d`, 병합 `c696cb4` | Spec v1.5.10 §19.6·이 배정표 확정(2026-11-07 사용자 확정). H0 통과 확정(2026-11-16). 다음: 1차 작업 배정(사용자 지정)·통합, H1 수직 경로 Harness. [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) |
 | PH1-CONTRACT | `claude-opus-5.5/session-c9336d2c` | integrated | `ph1/contract`(병합 뒤 삭제) / — | `b7655c1` | 계약 `b4032f6`·`880e5c3`·`f88fa84`·`5ef9484`·`5c65144`·`8d84b01`·`e891221`·`b81aaa3`·`f48eb27`·`d074957`, Spec `86d7c8b`·`b9c88cd`, 인터페이스 `de5fd51`, 문서 `12c59c5`, 병합 `bac970e` | 사용자 지정(2026-11-07, INTEGRATION 겸임). H0 결정 [H0_DECISIONS.md](H0_DECISIONS.md) D1~D15. 10종 계약·Core 인터페이스·[수용 대조표](H0_ACCEPTANCE_MAP.md) 등록 완료. 확인은 §5의 검토 대행 기록. H0 통과 확정(2026-11-16). 이후 계약 변경 요청(`REQ1-NNN`) 처리를 계속 맡음 |
-| PH1-PERSIST | — | unassigned | — | — | — | 착수 가능(1차) |
-| PH1-SCHED | — | unassigned | — | — | — | 착수 가능(1차). 단일 Scheduler 소유권, 대기 자원·취소 전파, 재시작 대조·안전 보류 |
+| PH1-PERSIST | `claude-opus-5.5/session-c9336d2c` | in-progress | `ph1/persist` / `D:\worktree\TelosWeaver\ph1-persist` | `0abe108` | — | 사용자 지정(2026-11-16, 통합 담당이 직접). 계약 확인 결과 REQ1-001 제출. 착수 가능(1차) |
+| PH1-SCHED | `claude-opus-5.5/session-c9336d2c` | reserved | `ph1/sched` / `D:\worktree\TelosWeaver\ph1-sched` (예정) | — | — | 사용자 지정(2026-11-16, 통합 담당이 직접). PERSIST 통합 뒤 착수. 착수 가능(1차). 단일 Scheduler 소유권, 대기 자원·취소 전파, 재시작 대조·안전 보류 |
 | PH1-CONTEXT | — | unassigned | — | — | — | 착수 가능(1차). 지원 백로그 SB-11(Capsule) |
 | PH1-WORKSPACE | — | unassigned | — | — | — | 착수 가능(1차). Writer·기존 변경 보존, 고정 Revision의 승인된 Git 반영 |
 | PH1-ARTIFACT | — | unassigned | — | — | — | 착수 가능(1차) |
@@ -54,6 +54,7 @@
 
 | 요청 ID | 요청 작업 | 변경 대상·이유 | 영향 작업 | 처리 주체 | 상태·결과 Commit |
 |---|---|---|---|---|---|
+| REQ1-001 | PH1-PERSIST | 계약 확인에서 찾은 `persistence::Store`·Journal 공백. (1) `crates/schema/src/journal.rs` `JournalKind`에 `WorkspaceChanged`·`BudgetChanged`·`UsageRecorded` 추가(해당 쓰기에 맞는 종류가 없음). (2) `crates/core/src/persistence/mod.rs`: `stateVersion` 필드가 없는 Plan·예산 장부의 버전을 돌려주는 `Versioned<T>`, Journal 전용 쓰기(`DecisionApplied`·`Control`), Context Snapshot·예산 장부 쓰기, 같은 멱등 키 재적용을 알리는 오류, Provider 원본 이벤트의 Run별 저장·조회(§14.3), 사용량·검증·Run Session·Snapshot 등 조회 추가. (3) 의존성 `rusqlite`(bundled SQLite, 동기 API가 `Store`와 맞음). Wire 계약의 기존 필드·메서드는 바꾸지 않음 | SCHED, HOST, MASTER, CONTEXT, WORKSPACE, VALIDATION, EXT(생성 타입) | CONTRACT·INTEGRATION(동일 담당), 사용자가 PERSIST·SCHED를 통합 담당에게 지정 | 채택·처리 중(`ph1/persist`) |
 
 ## 5. H0 계약 범위와 등록 경로
 
@@ -103,3 +104,4 @@ Phase 0 환경의 설치 버전·로그인 상태가 현재도 같다고 가정�
 | 2026-11-11 (시각 미기록) | `claude-opus-5.5/session-c9336d2c` | H0 계약 10종(`b4032f6`~`d074957`)과 Spec v1.5.11 반영, 사용자 결정(a)에 따라 미배정 모듈의 Core 서비스 인터페이스를 검토 대행으로 작성(`de5fd51`), 수용 대조표·문서 정합화(`12c59c5`) 뒤 `master`에 병합(`bac970e`). PH1-CONTRACT `in-progress → review`, H0 `준비 중 → 사용자 판정 대기`, §5 계약 기록 | `bac970e` |
 | 2026-11-16 (시각 미기록) | `claude-opus-5.5/session-c9336d2c` | **사용자 확정: H0 통과.** 공통 계약 기준 Commit `6a4f58a → bac970e`. PH1-CONTRACT `review → integrated`, H1 `대기 → 준비 중`. 1차(PERSIST·SCHED·CONTEXT·WORKSPACE·ARTIFACT·CONFIG·RN·세 Provider)·2차(MCP·VALIDATION·MASTER·HOST·EXT) 착수 가능 표시, 착수 지시 [H0_KICKOFF.md](evidence/PH1-INTEGRATION/H0_KICKOFF.md) 등록. 담당 지정은 사용자 몫이며 이 기록은 배정이 아님 | `bac970e` |
 | 2026-11-16 (시각 미기록) | `claude-opus-5.5/session-c9336d2c` | 사용자 지시: PH1-CODEX는 Codex, PH1-AGY는 Antigravity가 각자 맡음(`unassigned → reserved`, 착수 때 담당이 자기 행 기록). PH1-CLAUDE는 통합 담당의 Claude 서브 에이전트로 진행(`unassigned → in-progress`, Branch `ph1/claude`, Worktree `D:\worktree\TelosWeaver\ph1-claude`). 착수 지시 §3.8에 Provider별 할 일·완료 기준 구체화(`c5963c5`) | `c5963c5` |
+| 2026-11-16 (시각 미기록) | `claude-opus-5.5/session-c9336d2c` | 사용자 지시: PH1-PERSIST·PH1-SCHED를 통합 담당이 직접 맡음. PERSIST `unassigned → in-progress`(Branch `ph1/persist`, Worktree `D:\worktree\TelosWeaver\ph1-persist`), SCHED `unassigned → reserved`(PERSIST 통합 뒤 착수). PERSIST 계약 확인: `Store` 인터페이스·Journal 종류의 공백을 REQ1-001로 제출·채택 | `0abe108` |
