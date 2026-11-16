@@ -32,9 +32,9 @@
 | PH1-MCP | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). SCHED 공개 인터페이스 통합 후 연결 |
 | PH1-MASTER | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). 정식 정책(SB-11 Capsule 허용 포함), 이월 P1-2의 Core 판단·제어 연결, VALIDATION 승인 기록·HOST API·Provider·EXT와 연계 |
 | PH1-HOST | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). PERSIST·SCHED 통합 후 연결. Task MCP 주입·승인/제어 라우팅, 이월 P1-5(Windows 정상 종료), SB-12·13·18 |
-| PH1-CODEX | — | unassigned | — | — | — | 착수 가능(1차). 이월 P1-1 적용, SB-08·09 검토. SB-05 특정 Turn Resume는 제품 P1 범위의 백로그로 유지 |
-| PH1-CLAUDE | — | unassigned | — | — | — | 착수 가능(1차). 이월 P1-1(SB-10)·P1-2(실시간 승인, SB-07)·P1-3(SB-06) 검토 |
-| PH1-AGY | — | unassigned | — | — | — | 착수 가능(1차). 이월 P1-1(SB-10)·P1-3(SB-06) 검토 |
+| PH1-CODEX | Codex (사용자 지정 2026-11-16, 세션 ID는 착수 때 담당이 기록) | reserved | `ph1/codex` / `D:\\worktree\\TelosWeaver\\ph1-codex` (예정) | — | — | [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) §3.8. 착수 가능(1차). 이월 P1-1 적용, SB-08·09 검토. SB-05 특정 Turn Resume는 제품 P1 범위의 백로그로 유지 |
+| PH1-CLAUDE | `claude-opus-5.5/session-c9336d2c`의 Claude 서브 에이전트 (사용자 지시 2026-11-16) | in-progress | `ph1/claude` / `D:\\worktree\\TelosWeaver\\ph1-claude` | `c5963c5` | — | [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) §3.8. 배정표 기록·검수·통합은 통합 담당이 함. 착수 가능(1차). 이월 P1-1(SB-10)·P1-2(실시간 승인, SB-07)·P1-3(SB-06) 검토 |
+| PH1-AGY | Antigravity (사용자 지정 2026-11-16, 세션 ID는 착수 때 담당이 기록) | reserved | `ph1/agy` / `D:\\worktree\\TelosWeaver\\ph1-agy` (예정) | — | — | [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) §3.8. 착수 가능(1차). 이월 P1-1(SB-10)·P1-3(SB-06) 검토 |
 | PH1-CONFIG | — | unassigned | — | — | — | 착수 가능(1차) |
 | PH1-RN | — | unassigned | — | — | — | 착수 가능(1차). 설치 설정 소유권·사용자 후속 변경 보존, P0 RPC·TTL·중복·Degraded |
 | PH1-EXT | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). HOST API 확장 통합 후 연결 |
@@ -102,3 +102,4 @@ Phase 0 환경의 설치 버전·로그인 상태가 현재도 같다고 가정�
 | 2026-11-10 20:55 | `claude-opus-5.5/session-c9336d2c` | 사용자 지시로 H0 계약 작업 착수. Branch `ph1/contract`, Worktree `D:\worktree\TelosWeaver\ph1-contract`, 기준 `b7655c1`. 첫 커밋 Spec v1.5.11(H0 결정 D1~D14 반영, `86d7c8b`) | `b7655c1` |
 | 2026-11-11 (시각 미기록) | `claude-opus-5.5/session-c9336d2c` | H0 계약 10종(`b4032f6`~`d074957`)과 Spec v1.5.11 반영, 사용자 결정(a)에 따라 미배정 모듈의 Core 서비스 인터페이스를 검토 대행으로 작성(`de5fd51`), 수용 대조표·문서 정합화(`12c59c5`) 뒤 `master`에 병합(`bac970e`). PH1-CONTRACT `in-progress → review`, H0 `준비 중 → 사용자 판정 대기`, §5 계약 기록 | `bac970e` |
 | 2026-11-16 (시각 미기록) | `claude-opus-5.5/session-c9336d2c` | **사용자 확정: H0 통과.** 공통 계약 기준 Commit `6a4f58a → bac970e`. PH1-CONTRACT `review → integrated`, H1 `대기 → 준비 중`. 1차(PERSIST·SCHED·CONTEXT·WORKSPACE·ARTIFACT·CONFIG·RN·세 Provider)·2차(MCP·VALIDATION·MASTER·HOST·EXT) 착수 가능 표시, 착수 지시 [H0_KICKOFF.md](evidence/PH1-INTEGRATION/H0_KICKOFF.md) 등록. 담당 지정은 사용자 몫이며 이 기록은 배정이 아님 | `bac970e` |
+| 2026-11-16 (시각 미기록) | `claude-opus-5.5/session-c9336d2c` | 사용자 지시: PH1-CODEX는 Codex, PH1-AGY는 Antigravity가 각자 맡음(`unassigned → reserved`, 착수 때 담당이 자기 행 기록). PH1-CLAUDE는 통합 담당의 Claude 서브 에이전트로 진행(`unassigned → in-progress`, Branch `ph1/claude`, Worktree `D:\worktree\TelosWeaver\ph1-claude`). 착수 지시 §3.8에 Provider별 할 일·완료 기준 구체화(`c5963c5`) | `c5963c5` |
