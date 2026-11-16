@@ -32,9 +32,9 @@
 | PH1-MCP | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). SCHED 공개 인터페이스 통합 후 연결 |
 | PH1-MASTER | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). 정식 정책(SB-11 Capsule 허용 포함), 이월 P1-2의 Core 판단·제어 연결, VALIDATION 승인 기록·HOST API·Provider·EXT와 연계 |
 | PH1-HOST | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). PERSIST·SCHED 통합 후 연결. Task MCP 주입·승인/제어 라우팅, 이월 P1-5(Windows 정상 종료), SB-12·13·18 |
-| PH1-CODEX | Codex (사용자 지정 2026-11-16, 세션 ID는 착수 때 담당이 기록) | reserved | `ph1/codex` / `D:\\worktree\\TelosWeaver\\ph1-codex` (예정) | — | — | [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) §3.8. 착수 가능(1차). 이월 P1-1 적용, SB-08·09 검토. SB-05 특정 Turn Resume는 제품 P1 범위의 백로그로 유지 |
-| PH1-CLAUDE | `claude-opus-5.5/session-c9336d2c`의 Claude 서브 에이전트 (사용자 지시 2026-11-16) | in-progress | `ph1/claude` / `D:\\worktree\\TelosWeaver\\ph1-claude` | `c5963c5` | — | [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) §3.8. 배정표 기록·검수·통합은 통합 담당이 함. 착수 가능(1차). 이월 P1-1(SB-10)·P1-2(실시간 승인, SB-07)·P1-3(SB-06) 검토 |
-| PH1-AGY | Antigravity (사용자 지정 2026-11-16, 세션 ID는 착수 때 담당이 기록) | reserved | `ph1/agy` / `D:\\worktree\\TelosWeaver\\ph1-agy` (예정) | — | — | [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) §3.8. 착수 가능(1차). 이월 P1-1(SB-10)·P1-3(SB-06) 검토 |
+| PH1-CODEX | Codex (사용자 지정 2026-11-16, 세션 ID는 착수 때 담당이 기록) | reserved | `ph1/codex` / `D:\worktree\TelosWeaver\ph1-codex` (예정) | — | — | [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) §3.8. 착수 가능(1차). 이월 P1-1 적용, SB-08·09 검토. SB-05 특정 Turn Resume는 제품 P1 범위의 백로그로 유지 |
+| PH1-CLAUDE | `claude-opus-5.5/session-c9336d2c`의 Claude 서브 에이전트 (사용자 지시 2026-11-16) | in-progress | `ph1/claude` / `D:\worktree\TelosWeaver\ph1-claude` | `c5963c5` | — | [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) §3.8. 배정표 기록·검수·통합은 통합 담당이 함. 착수 가능(1차). 이월 P1-1(SB-10)·P1-2(실시간 승인, SB-07)·P1-3(SB-06) 검토 |
+| PH1-AGY | Antigravity (사용자 지정 2026-11-16, 세션 ID는 착수 때 담당이 기록) | reserved | `ph1/agy` / `D:\worktree\TelosWeaver\ph1-agy` (예정) | — | — | [착수 지시](evidence/PH1-INTEGRATION/H0_KICKOFF.md) §3.8. 착수 가능(1차). 이월 P1-1(SB-10)·P1-3(SB-06) 검토 |
 | PH1-CONFIG | — | unassigned | — | — | — | 착수 가능(1차) |
 | PH1-RN | — | unassigned | — | — | — | 착수 가능(1차). 설치 설정 소유권·사용자 후속 변경 보존, P0 RPC·TTL·중복·Degraded |
 | PH1-EXT | — | unassigned | — | — | — | 착수 가능(2차: Mock 개발, 실제 연결은 선행 통합 뒤). HOST API 확장 통합 후 연결 |
