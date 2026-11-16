@@ -26,7 +26,7 @@ H0에서 각 `mod.rs`에 공개 Trait과 오류 타입만 두었습니다(Spec �
 
 | 모듈 | 공개 인터페이스 | 책임 | Spec | 소유 | 주요 요구사항 |
 |---|---|---|---|---|---|
-| `persistence` | `Store`(동기), `WriteBatch`·`StateWrite` | 프로젝트별 SQLite, 조건부 쓰기 한 번 = 한 Transaction, Journal 커서, 미완 의도·잠금 조회 | §14 | PH1-PERSIST | SAFE-06·13, OPS-03 |
+| `persistence` | `Store`(동기), `WriteBatch`·`StateWrite`, 구현 `SqliteStore` | 프로젝트별 SQLite(`core.db`) 독점 연결, 조건부 쓰기 한 번 = 한 Transaction, Journal 커서·정리, 실행 의도·멱등 키·잠금, Provider 원본 이벤트, Schema 버전·백업·Migration. **구현됨(라이브러리)**, Daemon 연결은 SCHED·HOST 통합 때 | §14 | PH1-PERSIST | SAFE-06·13, OPS-01·03 |
 | `scheduler` | `Scheduler`, `RunExecutor`(HOST가 구현하는 Port), `Actor` | Task 생성·Run 요청·취소·재작업·완료 판정, 이벤트·검증 통지, 재시작 대조 | §9, §14.3 | PH1-SCHED | TASK-01~06, DELEG-04·09·10 |
 | `context` | `ContextBuilder` | Context Snapshot, Capsule 저장, Provider 입력 본문 | §6, §8 | PH1-CONTEXT | CTX-01~04, SESS-06~07 |
 | `workspace` | `WorkspaceManager` | none/directory/git-worktree, 잠금, Diff, Revision 고정, 승인 Revision 반영 | §10, §12 | PH1-WORKSPACE | WS-01~02, GIT-01~05·08 |
@@ -37,7 +37,7 @@ H0에서 각 `mod.rs`에 공개 Trait과 오류 타입만 두었습니다(Spec �
 
 `policy`의 정식 정책 서비스(경로·명령·Session 소유권·예산 잔액 조회)와 `master`의 미집행 kind 5종(검증·재작업·사용자 질문·완료 판정 등)은 PH1-MASTER, `api`·`execution`의 Phase 1 확장은 PH1-HOST가 맡습니다.
 
-## Phase 0에서 정한 항목
+## Phase 0·1에서 정한 항목
 
 | 항목 | 결정 |
 |---|---|
@@ -46,10 +46,10 @@ H0에서 각 `mod.rs`에 공개 Trait과 오류 타입만 두었습니다(Spec �
 | 프로세스 감독 | Windows Job Object(생성 시점 연결), Unix Process Group. 구현은 `telos-adapters::runtime` |
 | 마스터 결정 Payload 검증 | `telos-schema`의 kind별 타입으로 역직렬화(미정의 필드 거부) 후 `policy::validate`의 순서 검사 |
 | Run 승인 | 신뢰된 `RunAuthorizer`만 허용. 정책 파일이 없으면 `DenyRuns`, 있으면 운영자 정책(`integration::LocalRunPolicy`) |
+| 영속 저장소 (Phase 1) | `rusqlite`(번들 SQLite) 동기 API. 연결 하나가 파일을 독점(`locking_mode=EXCLUSIVE`), `journal_mode=WAL`·`synchronous=FULL`. Schema 버전은 `PRAGMA user_version`, Migration은 코드 안의 버전별 SQL 목록 |
 
 ## 아직 정하지 않은 항목
 
-- SQLite 접근 crate와 Migration 도구 (`persistence`, 저장 위치는 H0 D1로 확정)
 - 정식 정책·Snapshot 서비스와 운영자 정책의 교체 방식
 
 ## 실행
