@@ -52,8 +52,15 @@
             "artifact-registered",
             "validation-recorded",
             "approval-recorded",
-            "lock-changed"
+            "lock-changed",
+            "workspace-changed",
+            "usage-recorded"
           ]
+        },
+        {
+          "description": "예산 장부의 예약·소비 변경 (§13.2)",
+          "type": "string",
+          "const": "budget-changed"
         },
         {
           "description": "긴급 취소·권한 철회 등 활성 실행에 적용하는 제어 이벤트 (§13.1)",

@@ -109,6 +109,10 @@ pub enum JournalKind {
     ValidationRecorded,
     ApprovalRecorded,
     LockChanged,
+    WorkspaceChanged,
+    /// 예산 장부의 예약·소비 변경 (§13.2)
+    BudgetChanged,
+    UsageRecorded,
     /// 긴급 취소·권한 철회 등 활성 실행에 적용하는 제어 이벤트 (§13.1)
     Control,
 }

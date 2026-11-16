@@ -1,9 +1,9 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.11)  
+> **문서 버전:** 1.5 (개정 1.5.12)  
 > **작성일:** 2026-10-23  
-> **수정일:** 2026-11-10  
+> **수정일:** 2026-11-16  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
 > **상태:** 구현 기준 설계안. 사용자 확정 결정과 이를 구체화한 설계를 포함하며 구현 완료를 뜻하지 않습니다.  
 > **초기 UI:** VS Code Extension  
@@ -44,6 +44,7 @@
 | v1.5.9 | 2026-10-26 | Phase 0 완료(G3 통과 확정) 뒤 Phase 1 병렬 구현 절차 신설(§19.6, 사용자 결정: 병렬 절차·계약 게이트 먼저·통합 담당 유지·이월 과제는 관련 작업에 편입): 게이트 H0~H3, H0 공통 계약 10종, 작업 17종(PH1-*)과 독점 경로, 진행 순서, §19.5 규칙 재사용, Phase 0 임시 구성 대체 |
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
 | v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2), Workspace 기록·Git 기준선·잠금 충돌·Diff·원본 반영 요청(§10), Lock 인수 조건(§14.3), Context Snapshot 필드·입력 문제·신뢰 구분(§6.1), 전략 대체·Capsule 내용(§8.2), 사용량 기록 역할·Unknown·중복 합산 방지(§8.3), Provider 승인 요청의 상관·경로·기한(§4.3, `approval_required`에 대상·인자 Digest 추가), 권한 집합 교집합과 사용자 전용 행위(§13.1), 예산 Profile·장부와 마스터 예약분(§13.2), Local API Phase 1 메서드·Snapshot+커서 재접속·`cursor_expired`·연결 범위·버전 상향 시점(§17), 설정 파일 형식·항목 종류별 계층 규칙·출처 기록·설치 설정 소유권과 보존(§13.1), Capability 증거 기록·판정 함수·사전 점검·Core 사용 조건과 Capsule 대체(§7.1), Core 서비스 인터페이스 배치와 모듈 사이 주입 방식, Scheduler↔HOST 실행 Port(§19.6.2) |
+| v1.5.12 | 2026-11-16 | PH1-PERSIST 구현에서 정한 저장소 설계(REQ1-001): SQLite 단일 연결의 파일 독점과 내구성 설정, 백업 파일 규칙, 버전 규칙(새 기록 1), Plan·예산 장부의 저장소 관리 버전, Journal 항목을 만드는 쓰기와 만들지 않는 쓰기, Journal 종류 `WorkspaceChanged`·`BudgetChanged`·`UsageRecorded` 추가, 결정 적용·제어 이벤트의 Journal 전용 쓰기, 같은 멱등 키 재적용의 배치 전체 미적용, 잠금 인수 절차, Provider 원본 이벤트 저장, Journal 보존 범위(§14.1·§14.3·§19.6.2) |
 
 ## 목차
 
@@ -1048,6 +1049,8 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 
 **Schema 버전(H0 계약):** DB에 Schema 버전을 기록하고, 현재 버전이면 열고, 이전 버전이면 백업을 만든 뒤 Migration하며(백업 실패 시 열지 않음), Core보다 새 버전이면 열지 않고 오류를 보고합니다.
 
+**저장소 구현(PH1-PERSIST):** DB 파일은 프로젝트 상태 디렉터리의 `core.db`입니다. Core는 연결 하나로 파일을 독점하며(SQLite `locking_mode=EXCLUSIVE`), 같은 프로젝트 DB를 다른 프로세스가 열면 실패로 보고합니다(OPS-01의 단일 소유권). `journal_mode=WAL`·`synchronous=FULL`로 Commit이 돌아온 기록은 프로세스·OS 장애 뒤에도 남습니다. Schema 버전은 `PRAGMA user_version`에, 적용한 Migration은 `schema_migrations`에 기록합니다. 이전 버전을 열 때의 백업은 같은 디렉터리의 `core.db.v<이전 버전>.<시각>.bak`이며, 같은 이름이 이미 있거나 만들지 못하면 Migration하지 않습니다. 버전이 없는데 Table이 있는 파일은 Core DB로 받아들이지 않습니다. 기록은 계약 타입의 JSON을 그대로 저장하고 조회·조건 검사에 쓰는 값만 열로 둡니다. DB 크기 상한을 넘거나 디스크가 부족해 쓰기가 실패하면 그 배치는 전부 취소되고 호출자는 후속 실행을 보류합니다(§15.1).
+
 ### 14.2 장애별 기본 동작
 
 | 장애 | P0 최소 동작 | P1 고도화 |
@@ -1070,6 +1073,8 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 스케줄러 소유권과 `controllerEpoch`를 조건부 갱신하여 이전 제어자의 결정을 차단합니다. 실행 의도 기록 후 실제 시작 전 장애와 시작 후 응답 유실을 구분할 수 있도록 Adapter의 멱등성·상태 확인을 시험합니다. 외부 변경의 결과를 확정할 수 없으면 NeedsReconciliation으로 두고 무조건 재실행하지 않습니다.
 
 **실행 의도 단계(H0 계약 `RunIntent`):** `recorded`(전달 전) → `dispatched`(Adapter에 요청, 시작 결과 미수신) → `started`(시작 결과·Native ID·프로세스 정체성 수신) → `settled`(종료 확정), 전달 전 취소는 `abandoned`입니다. 재시작 때 `recorded`는 다시 전달할 수 있고, `dispatched`·`started`는 실제 프로세스·Session을 대조합니다. 프로세스 정체성은 Host·PID·OS의 프로세스 시작 시각·Run 실행 토큰의 SHA-256으로 기록합니다. 멱등 키는 기능 범위별로 입력 Digest와 함께 저장하고, 같은 키·같은 Digest는 처음 결과를 재생, 다른 Digest는 거부합니다. 상태 변경 기록(`JournalEntry`)은 프로젝트 DB 안에서 1부터 빈틈없이 올라가는 `sequence`를 가지며 UI·API 구독 커서로 씁니다. Provider 원본 이벤트는 Run별 `sequence`로 따로 저장합니다.
+
+**조건부 쓰기와 Journal(PH1-PERSIST, REQ1-001):** 쓰기 묶음 하나가 한 Transaction이며 하나라도 어긋나면 상태·Journal 모두 남지 않고 번호도 쓰지 않습니다. 새 기록의 버전은 1, 갱신은 읽은 버전과 같을 때만 적용해 1 올립니다. `stateVersion` 필드가 없는 Plan·예산 장부는 저장소가 버전을 따로 관리해 조회 때 함께 돌려줍니다. 실행 의도는 `recorded`로만 만들 수 있고 Run마다 하나이며, 단계를 뒤로 옮기거나 요청 내용(Run·멱등 키·Digest)을 바꾸는 쓰기는 거부합니다. Session·Context Snapshot·Artifact Version·사용량 기록은 불변이어서 같은 내용의 재기록은 무시하고 다른 내용은 거부합니다. 같은 멱등 키가 이미 있으면 그 묶음 전체를 적용하지 않고, Digest가 같으면 재생·다르면 충돌로 구분해 알립니다. 잠금 인수는 이전 잠금 해제와 Epoch를 올린 새 잠금 획득을 한 묶음으로 하며, 그 뒤 이전 소유자의 해제는 거부합니다. Journal 종류는 Plan·Task·Run·실행 의도·Session·결정 적용·Artifact 등록·검증·승인·잠금·Workspace·예산·사용량·제어입니다. 항목의 `payload`에는 변경 뒤 기록을 넣어 UI가 추가 조회 없이 상태를 갱신할 수 있게 합니다. Context Snapshot·Artifact 참조·멱등 키 기록과 내용이 같은 재기록은 Journal 항목을 만들지 않습니다. 대상 기록이 없는 항목은 결정 적용(`DecisionApplied`)과 제어(`Control`)만 직접 쓸 수 있습니다. Journal은 오래된 항목부터 지울 수 있고, 지워진 범위를 가리키는 커서는 `cursor_expired`입니다. 번호는 지운 뒤에도 이어집니다. Provider 원본 이벤트는 Run별 `sequence`로 따로 저장하고 Journal 번호를 쓰지 않으며, 같은 Run·같은 `sequence`의 재전달은 무시합니다.
 
 ## 15. 로그·스트림·운영 진단
 
@@ -1580,7 +1585,7 @@ H0에서는 각 계약의 정의 경로·제공/사용 작업·확인자·Contra
 
 H0 완료 시 공통 인터페이스와 컴파일 가능한 등록 경로(명시적 Stub 포함), Schema·계약 시험을 계약 기준 Commit에 포함합니다. Stub은 가용 기능으로 표시하지 않습니다. 대표 저장소의 AGENTS.md·README.md와 `crates/core/README.md`도 Phase 1 배정표·모듈 배치(`config` 포함)와 일치시킵니다.
 
-**Core 서비스 인터페이스(H0, 2026-11-11):** 각 소유 모듈의 `mod.rs`에 Trait과 오류 타입만 두고, 모듈 사이는 `Arc<dyn Trait>`로 주입합니다(`crates/core/tests/phase1_h0_interfaces.rs`가 객체 안전성·`Send + Sync`를 확인). 미배정 모듈의 인터페이스는 통합 담당이 검토 대행자로 작성했으며 각 담당이 착수 때 확인합니다. `persistence::Store`는 동기 API이며 `apply(WriteBatch)` 한 번이 한 Transaction입니다(쓰기마다 예상 버전, 하나라도 어긋나면 전체 미적용, 같은 Transaction에 `JournalEntry` 추가). 조회는 미완 실행 의도·잠금·`journal_after`(보존 범위 밖이면 `cursor_expired`)를 포함합니다. `scheduler::Scheduler`는 Task 생성·Run 요청·취소·재작업·완료 판정·Provider 승인 응답과 HOST·VALIDATION 통지, 재시작 대조(`recover`)를 받고, 요청 주체(`Actor`: 사용자·마스터(Epoch 포함)·Worker Run·Core)를 함께 받습니다. HOST가 구현하는 `scheduler::RunExecutor` Port는 시작(시작 결과와 프로세스 증거)·취소 접수·승인 전달·증거로 프로세스 생존 확인(확인 불가는 `None`)을 제공합니다. `context::ContextBuilder`(Snapshot 생성·Capsule 저장·Provider 입력 본문), `workspace::WorkspaceManager`(준비·Diff·Revision 고정·승인 Revision 반영·정리·잠금), `artifact::ArtifactStore`(동기, 파일/바이트 등록·Checksum 확인 부분 읽기·참조 추가·참조 없는 내용 정리), `validation::Validator`·`ApprovalService`(요청·결정·실행 직전 소비·철회), `mcp::TaskMcpService`(Run 범위 연결 정보 발급·폐기·도구 처리), `config::ConfigService`(동기, 계층 합성과 경고·설치 항목 기록·Digest 일치 시 제거)를 둡니다. 구현 전 모듈은 Trait만 있고 등록된 구현이 없으므로 가용 기능으로 표시하지 않습니다.
+**Core 서비스 인터페이스(H0, 2026-11-11):** 각 소유 모듈의 `mod.rs`에 Trait과 오류 타입만 두고, 모듈 사이는 `Arc<dyn Trait>`로 주입합니다(`crates/core/tests/phase1_h0_interfaces.rs`가 객체 안전성·`Send + Sync`를 확인). 미배정 모듈의 인터페이스는 통합 담당이 검토 대행자로 작성했으며 각 담당이 착수 때 확인합니다. `persistence::Store`는 동기 API이며 `apply(WriteBatch)` 한 번이 한 Transaction입니다(쓰기마다 예상 버전, 하나라도 어긋나면 전체 미적용, 같은 Transaction에 `JournalEntry` 추가). 조회는 미완 실행 의도·잠금·`journal_after`(보존 범위 밖이면 `cursor_expired`)를 포함합니다. REQ1-001(2026-11-16)로 Plan·예산 장부의 버전 반환(`Versioned`), Context Snapshot·예산 장부·Journal 전용 쓰기, 같은 멱등 키 재적용 오류(`IdempotencyReplay`)·규칙 위반(`Invalid`)·사용 중(`AlreadyOpen`) 오류, Provider 원본 이벤트 저장·조회, 사용량·검증·승인·Run Session·Workspace·Artifact의 Plan/Task/Run별 조회를 더했습니다(§14.3). `scheduler::Scheduler`는 Task 생성·Run 요청·취소·재작업·완료 판정·Provider 승인 응답과 HOST·VALIDATION 통지, 재시작 대조(`recover`)를 받고, 요청 주체(`Actor`: 사용자·마스터(Epoch 포함)·Worker Run·Core)를 함께 받습니다. HOST가 구현하는 `scheduler::RunExecutor` Port는 시작(시작 결과와 프로세스 증거)·취소 접수·승인 전달·증거로 프로세스 생존 확인(확인 불가는 `None`)을 제공합니다. `context::ContextBuilder`(Snapshot 생성·Capsule 저장·Provider 입력 본문), `workspace::WorkspaceManager`(준비·Diff·Revision 고정·승인 Revision 반영·정리·잠금), `artifact::ArtifactStore`(동기, 파일/바이트 등록·Checksum 확인 부분 읽기·참조 추가·참조 없는 내용 정리), `validation::Validator`·`ApprovalService`(요청·결정·실행 직전 소비·철회), `mcp::TaskMcpService`(Run 범위 연결 정보 발급·폐기·도구 처리), `config::ConfigService`(동기, 계층 합성과 경고·설치 항목 기록·Digest 일치 시 제거)를 둡니다. 구현 전 모듈은 Trait만 있고 등록된 구현이 없으므로 가용 기능으로 표시하지 않습니다.
 
 #### 19.6.3 작업 묶음과 독점 수정 경로
 
