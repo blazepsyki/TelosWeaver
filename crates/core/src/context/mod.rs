@@ -21,6 +21,7 @@ pub enum ContextError {
 #[async_trait]
 pub trait ContextBuilder: Send + Sync {
     /// Run 시작 전 Snapshot을 만듭니다. 입력 Version은 이 시점에 고정하고 `RunInput` 참조를 추가합니다.
+    /// 돌려주는 Snapshot의 `run_id`는 `run.run_id`, `snapshot_id`는 `run.context_snapshot_id`여야 합니다 (REQ1-002).
     async fn build(
         &self,
         task: &TaskRecord,

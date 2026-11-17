@@ -46,15 +46,19 @@ H1에 가장 먼저 필요한 것은 PERSIST와 SCHED입니다. 담당 수가 �
 
 ### 3.2 PH1-SCHED
 
-- **경로:** `crates/core/src/scheduler/**`, `crates/core/tests/scheduler_*.rs`
-- **인터페이스:** `scheduler::Scheduler` 구현. `scheduler::RunExecutor`는 HOST가 구현하는 Port이므로 시험에서는 대역을 씁니다. `Store`·`ContextBuilder`·`WorkspaceManager`·`ArtifactStore`·`Validator`도 Trait 대역으로 개발합니다.
-- **계약:** `state.rs`(`TaskStatus::can_transition_to`·`RunStatus::can_transition_to`가 전이의 원본), `journal.rs`(`IntentPhase::recovery_action`), `policy.rs`(`BudgetLedger`), `mcp.rs`(`DelegateTaskInput`), `state_model.rs`. Spec §9·§14.3.
-- **완료 기준:** 프로젝트별 단일 Scheduler 소유권, 의존·순환 검사, Provider/Host별 동시성, 자식 깊이·전체 Task 상한과 중복 자식 방지, 대기 자원과 즉시 설명 가능한 거부(`Unavailable`), 취소 전파, Timeout·재시도, ACK만으로 완료 처리 금지, 취소/완료 경합, `recover`의 재전달·재추적·안전 보류 구분.
+**통합됨(REQ1-002, 2026-11-17).** 구현 `scheduler::TaskScheduler`, 증거 [PH1-SCHED](../PH1-SCHED/README.md), 규칙은 Spec §9.5 "Scheduler 집행 규칙"과 §14.3 "재시작 대조". 다른 작업이 Scheduler와 맞물리는 지점은 다음과 같습니다.
+
+- **HOST:** `RunExecutor`의 `start`·`cancel`·`probe`를 구현하고, Provider 이벤트로 Run 종료를 판정해 `Scheduler::on_run_finished(RunReport)`로 보고합니다. `enforce_deadlines`를 주기적으로, `recover`를 Core 시작 때 부릅니다.
+- **MASTER:** 정식 정책으로 `SchedulerPolicy`(`budget_profile`·`child_profiles`·`authorize_run`·`completion_rule`)를 구현하고, 결정을 `register_tasks`·`request_run`·`request_rework`·`cancel_task`·`complete_task`·`begin_wait`/`end_wait`로 집행합니다(`Actor::Master`의 Epoch 확인은 Scheduler가 함).
+- **MCP:** `delegate_task`·`cancel_task`를 `Actor::Worker`로 부릅니다. 지금 실행할 수 없는 위임은 `SchedulerError::Unavailable`입니다.
+- **VALIDATION:** 검증 Job을 만들기 전에 `begin_validation`, 판정을 저장한 뒤 `on_validation_finished`를 부릅니다.
+- **CONTEXT:** §3.3의 Snapshot ID 규칙을 지킵니다.
+- **Provider 승인 응답:** Scheduler를 거치지 않습니다. 승인 대기 중의 Task 상태만 `begin_wait`·`end_wait`로 표시합니다.
 
 ### 3.3 PH1-CONTEXT
 
 - **경로:** `crates/core/src/context/**`, `crates/core/tests/context_*.rs`
-- **인터페이스:** `context::ContextBuilder`
+- **인터페이스:** `context::ContextBuilder`. 돌려주는 Snapshot의 `runId`는 그 Run, `snapshotId`는 `RunContext.contextSnapshotId`와 같아야 합니다(Scheduler가 Run마다 먼저 정함, REQ1-002). 다르면 Scheduler가 실행하지 않습니다
 - **계약:** `context.rs`(`ContextSnapshot`·`InputIssue`·`StrategyFallback`·`CapsuleContent`·`UsageRecord`), `judgment.rs`(`session_fallback`), `context_contract.rs`. Spec §6·§8, 지원 백로그 SB-11.
 - **완료 기준:** 실행 전 Snapshot 고정, 필수 입력 누락·충돌·오래됨·읽기 실패 구분과 `blocking` 판정, 신뢰 구분(지침과 자료 분리), Fresh/Capsule 구성과 대체 사유 기록, Capsule의 `structured` Artifact 저장, 사용량 기록(Unknown은 0으로 적지 않음, 부모 포함분 중복 합산 금지).
 
@@ -143,8 +147,8 @@ H1에 가장 먼저 필요한 것은 PERSIST와 SCHED입니다. 담당 수가 �
 |---|---|---|---|
 | PH1-MCP | `crates/core/src/mcp/**`, `crates/core/tests/mcp_*.rs` | `mcp::TaskMcpService`, `mcp.rs`(도구 6종·`TaskMcpScope`), `api.rs`의 `tasks.tool`·`ConnectionScope::TaskMcp`. H0 D4 | SCHED 통합 뒤 |
 | PH1-VALIDATION | `crates/core/src/validation/**`, `crates/core/tests/validation_*.rs` | `validation::Validator`·`ApprovalService`, `validation.rs`(`ValidationJob`·`ApprovalDecision::permits`). H0 D8 | SCHED·ARTIFACT 통합 뒤 |
-| PH1-MASTER | Spec §19.5.3의 PH0-MASTER 경로 | 결정 8종 집행, `policy.rs`(`PermissionSet`·`BudgetProfile`·`ProviderApprovalRequest::route_for`). H0 D3·D6 | SCHED·ARTIFACT 통합 뒤 |
-| PH1-HOST | Spec §19.5.3의 PH0-HOST 경로 | `scheduler::RunExecutor` 구현, `api.rs` Phase 1 메서드와 API 버전 `1.0` 상향(EXT와 같은 변경, H0 D13), `journal.subscribe`. 이월 P1-5 | PERSIST·SCHED 통합 뒤 |
+| PH1-MASTER | Spec §19.5.3의 PH0-MASTER 경로 | 결정 8종을 `Scheduler`로 집행, `scheduler::SchedulerPolicy` 구현, `policy.rs`(`PermissionSet`·`BudgetProfile`·`ProviderApprovalRequest::route_for`). H0 D3·D6 | SCHED·ARTIFACT 통합 뒤 |
+| PH1-HOST | Spec §19.5.3의 PH0-HOST 경로 | `scheduler::RunExecutor`(`start`·`cancel`·`probe`) 구현과 Run 종료 보고(`Scheduler::on_run_finished`), `api.rs` Phase 1 메서드와 API 버전 `1.0` 상향(EXT와 같은 변경, H0 D13), `journal.subscribe`. 이월 P1-5 | PERSIST·SCHED 통합 뒤 |
 | PH1-EXT | `extension/**` | 생성 타입(`extension/src/generated/`)만 사용. QuickInput과 TreeView, Webview 없음(H0 D12) | HOST API 확장 통합 뒤 |
 
 ## 4. 통합 담당이 하는 일
