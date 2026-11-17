@@ -109,6 +109,8 @@ pub struct FakeContext {
     /// 요청 전략 대신 쓸 전략(대체 상황)
     pub fallback: Mutex<Option<SessionMode>>,
     pub fail: AtomicBool,
+    /// 참이면 `capsule` 요청에도 Capsule을 저장하지 못한 Snapshot을 돌려줍니다.
+    pub no_capsule: AtomicBool,
 }
 
 #[async_trait]
@@ -126,6 +128,9 @@ impl ContextBuilder for FakeContext {
         let mut snapshot = records::snapshot(&run.run_id, &task.spec.id);
         snapshot.snapshot_id = run.context_snapshot_id.clone();
         snapshot.strategy = run.session.mode;
+        if run.session.mode == SessionMode::Capsule && !self.no_capsule.load(Ordering::SeqCst) {
+            snapshot.capsule = Some(records::artifact_ref("capsule", "v2"));
+        }
         if let Some(mode) = *self.fallback.lock().unwrap() {
             snapshot.fallback = Some(StrategyFallback {
                 requested: run.session.mode,

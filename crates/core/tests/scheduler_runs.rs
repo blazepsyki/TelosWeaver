@@ -809,3 +809,43 @@ async fn expired_waits_do_not_hang_forever() {
     assert_eq!((parent.status, parent.wait), (TaskStatus::Running, None));
     assert_eq!(h.status(&child.spec.id), TaskStatus::Running);
 }
+
+// §8.2, REQ1-003: `capsule`은 문맥 구성이 저장한 Capsule Version을 전달하고, 없으면 `fresh`로 바꿔 실행하지 않습니다.
+#[tokio::test]
+async fn capsule_runs_carry_the_stored_capsule_version() {
+    let h = Harness::new("capsule");
+    h.register(vec![spec("a", &[]), spec("b", &[])]).await;
+    let capsule = SessionRequest {
+        mode: SessionMode::Capsule,
+        source_session_id: Some("ignored-session".into()),
+        source_turn_id: None,
+        capsule_version_id: None,
+    };
+
+    let admission = h
+        .scheduler
+        .request_run(Actor::User, "a", capsule.clone(), "k-a")
+        .await
+        .unwrap();
+    let RunAdmission::Started { run_id } = admission else {
+        panic!("{admission:?}");
+    };
+    let context = h.executor.last_context();
+    assert_eq!(context.session.mode, SessionMode::Capsule);
+    assert_eq!(context.session.capsule_version_id.as_deref(), Some("v2"));
+    // Capsule은 이전 세션을 쓰지 않습니다.
+    assert_eq!(context.session.source_session_id, None);
+    assert!(!context.session.lacks_capsule_version());
+    assert_eq!(h.run(&run_id).session_mode, SessionMode::Capsule);
+
+    // 문맥 구성이 Capsule을 저장하지 못했으면 실행하지 않고 흔적을 남기지 않습니다.
+    h.context.no_capsule.store(true, Ordering::SeqCst);
+    let missing = h
+        .scheduler
+        .request_run(Actor::User, "b", capsule, "k-b")
+        .await;
+    unavailable(&missing);
+    assert_eq!(h.status("b"), TaskStatus::Ready);
+    assert!(h.store.task_runs("b").unwrap().is_empty());
+    assert_eq!(h.executor.started_runs().len(), 1);
+}

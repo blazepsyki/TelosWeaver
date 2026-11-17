@@ -101,3 +101,47 @@ fn approval_event_extra_fields_are_optional() {
     assert_eq!(parsed.target, None);
     assert_eq!(parsed.args_digest, None);
 }
+
+// §4.3, REQ1-003: Provider 승인 요청의 행위 낱말과 인자 Digest 규칙
+#[test]
+fn approval_actions_and_args_digest_are_shared_rules() {
+    assert_eq!(
+        approval_actions::ALL,
+        [
+            "command_execution",
+            "file_change",
+            "mcp_tool_call",
+            "permissions",
+            "tool_use"
+        ]
+    );
+    // 마스터가 대신 승인할 수 있는 Provider 행위는 같은 낱말로 적습니다.
+    let permissions = perms(&["claude"], false, &[approval_actions::FILE_CHANGE]);
+    assert_eq!(
+        ProviderApprovalRequest::route_for(true, approval_actions::FILE_CHANGE, &permissions),
+        ApprovalRoute::Master
+    );
+    assert_eq!(
+        ProviderApprovalRequest::route_for(true, approval_actions::COMMAND_EXECUTION, &permissions),
+        ApprovalRoute::User
+    );
+
+    // 객체 키 순서와 공백은 Digest에 영향이 없고, 값이 바뀌면 Digest가 바뀝니다.
+    let a: serde_json::Value = serde_json::from_str(
+        r#"{"file_path":"a.txt","content":"hi","n":[1,2,{"y":true,"x":null}]}"#,
+    )
+    .unwrap();
+    let b: serde_json::Value = serde_json::from_str(
+        r#"{ "n": [1, 2, {"x": null, "y": true}], "content": "hi", "file_path": "a.txt" }"#,
+    )
+    .unwrap();
+    assert_eq!(args_digest(&a), args_digest(&b));
+    let mut c = a.clone();
+    c["content"] = "bye".into();
+    assert_ne!(args_digest(&a), args_digest(&c));
+    // 정렬한 압축 표기 `{"a":1}`의 SHA-256
+    assert_eq!(
+        args_digest(&serde_json::json!({"a": 1})),
+        "sha256:015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862"
+    );
+}

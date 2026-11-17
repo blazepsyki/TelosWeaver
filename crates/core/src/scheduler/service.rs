@@ -1025,8 +1025,20 @@ impl TaskScheduler {
                 mode: snapshot.strategy,
                 source_session_id: None,
                 source_turn_id: None,
-                capsule_version_id: snapshot.capsule.as_ref().map(|c| c.version_id.clone()),
+                capsule_version_id: None,
             };
+        }
+        if context.session.mode == SessionMode::Capsule {
+            // Capsule은 문맥 구성이 저장한 Version을 그대로 전달합니다. 없으면 `fresh`로 바꿔 실행하지 않습니다 (REQ1-003).
+            context.session.source_session_id = None;
+            context.session.source_turn_id = None;
+            context.session.capsule_version_id =
+                snapshot.capsule.as_ref().map(|c| c.version_id.clone());
+            if context.session.lacks_capsule_version() {
+                return Err(abort(SchedulerError::Unavailable {
+                    reason: "capsule strategy has no stored capsule version".into(),
+                }));
+            }
         }
         let used_source = source.filter(|_| {
             matches!(
