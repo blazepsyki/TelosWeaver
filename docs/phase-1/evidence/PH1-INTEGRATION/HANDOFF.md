@@ -28,7 +28,7 @@
 | PH1-CODEX·PH1-AGY | `reserved` | 사용자가 Codex·Antigravity에 각자 시키기로 함. 착수 여부는 배정표 행으로 확인 |
 | 나머지 10개 작업 | `unassigned` | 담당 지정은 사용자 몫 |
 
-두 Worktree 모두 `git status`가 깨끗합니다. 대표 저장소 작업 트리도 깨끗합니다. `master`는 `origin/master`와 같습니다(사용자가 push함).
+두 Worktree 모두 `git status`가 깨끗합니다. 대표 저장소 작업 트리도 깨끗합니다. `master`는 `e25a102`까지 `origin/master`와 같고(사용자가 push함), 그 뒤 이 문서와 배정표 기록 Commit만 앞서 있습니다. Branch `ph1/sched`·`ph1/claude`는 로컬에만 있습니다.
 
 ### 2.2 `ph1/sched`의 검사 결과 (`4751f30`, 2026-11-17, Windows 로컬, rustc 1.100.0)
 
