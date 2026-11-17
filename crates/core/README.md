@@ -27,7 +27,7 @@ H0에서 각 `mod.rs`에 공개 Trait과 오류 타입만 두었습니다(Spec �
 | 모듈 | 공개 인터페이스 | 책임 | Spec | 소유 | 주요 요구사항 |
 |---|---|---|---|---|---|
 | `persistence` | `Store`(동기), `WriteBatch`·`StateWrite`, 구현 `SqliteStore` | 프로젝트별 SQLite(`core.db`) 독점 연결, 조건부 쓰기 한 번 = 한 Transaction, Journal 커서·정리, 실행 의도·멱등 키·잠금, Provider 원본 이벤트, Schema 버전·백업·Migration. **구현됨(라이브러리)**, Daemon 연결은 SCHED·HOST 통합 때 | §14 | PH1-PERSIST | SAFE-06·13, OPS-01·03 |
-| `scheduler` | `Scheduler`, `RunExecutor`(HOST가 구현하는 Port), `Actor` | Task 생성·Run 요청·취소·재작업·완료 판정, 이벤트·검증 통지, 재시작 대조 | §9, §14.3 | PH1-SCHED | TASK-01~06, DELEG-04·09·10 |
+| `scheduler` | `Scheduler`, `RunExecutor`(HOST가 구현), `SchedulerPolicy`(MASTER가 구현), `Actor`·`RunReport`, 구현 `TaskScheduler` | 단일 처리 순서, 등록·의존성·순환·깊이·Task 수 상한, 동시성 대기열, Run 시작과 실행 의도 기록, 재시도·재작업, 취소 전파, 검증 연결·완료 판정, 기한, 재시작 대조. **구현됨(라이브러리)**, Daemon 연결은 HOST 통합 때 | §9, §14.3 | PH1-SCHED | TASK-01~06, DELEG-04·09·10, SAFE-02·13 |
 | `context` | `ContextBuilder` | Context Snapshot, Capsule 저장, Provider 입력 본문 | §6, §8 | PH1-CONTEXT | CTX-01~04, SESS-06~07 |
 | `workspace` | `WorkspaceManager` | none/directory/git-worktree, 잠금, Diff, Revision 고정, 승인 Revision 반영 | §10, §12 | PH1-WORKSPACE | WS-01~02, GIT-01~05·08 |
 | `artifact` | `ArtifactStore`(동기), `NewArtifact` | 내용 주소 저장, 불변 Version, Checksum 확인 읽기, 참조·정리 | §5.3, §10 | PH1-ARTIFACT | ART-01~03 |

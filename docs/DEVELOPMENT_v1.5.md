@@ -1,9 +1,9 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.12)  
+> **문서 버전:** 1.5 (개정 1.5.13)  
 > **작성일:** 2026-10-23  
-> **수정일:** 2026-11-16  
+> **수정일:** 2026-11-17  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
 > **상태:** 구현 기준 설계안. 사용자 확정 결정과 이를 구체화한 설계를 포함하며 구현 완료를 뜻하지 않습니다.  
 > **초기 UI:** VS Code Extension  
@@ -45,6 +45,7 @@
 | v1.5.10 | 2026-11-07 | Phase 1 계획 리뷰: Phase 0 완료·제외 범위의 기계적 재사용 방지, H0 Core 모듈 간 계약·Transaction·승인 경계 명확화, 계약 검토를 위한 사전 배정 허용, 작업별 P0 범위·이월 책임 보완, H3 필수 E2E-13·14와 코딩·실패 시나리오 명시. 제품 요구사항과 지원 판정은 변경하지 않음 |
 | v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2), Workspace 기록·Git 기준선·잠금 충돌·Diff·원본 반영 요청(§10), Lock 인수 조건(§14.3), Context Snapshot 필드·입력 문제·신뢰 구분(§6.1), 전략 대체·Capsule 내용(§8.2), 사용량 기록 역할·Unknown·중복 합산 방지(§8.3), Provider 승인 요청의 상관·경로·기한(§4.3, `approval_required`에 대상·인자 Digest 추가), 권한 집합 교집합과 사용자 전용 행위(§13.1), 예산 Profile·장부와 마스터 예약분(§13.2), Local API Phase 1 메서드·Snapshot+커서 재접속·`cursor_expired`·연결 범위·버전 상향 시점(§17), 설정 파일 형식·항목 종류별 계층 규칙·출처 기록·설치 설정 소유권과 보존(§13.1), Capability 증거 기록·판정 함수·사전 점검·Core 사용 조건과 Capsule 대체(§7.1), Core 서비스 인터페이스 배치와 모듈 사이 주입 방식, Scheduler↔HOST 실행 Port(§19.6.2) |
 | v1.5.12 | 2026-11-16 | PH1-PERSIST 구현에서 정한 저장소 설계(REQ1-001): SQLite 단일 연결의 파일 독점과 내구성 설정, 백업 파일 규칙, 버전 규칙(새 기록 1), Plan·예산 장부의 저장소 관리 버전, Journal 항목을 만드는 쓰기와 만들지 않는 쓰기, Journal 종류 `WorkspaceChanged`·`BudgetChanged`·`UsageRecorded` 추가, 결정 적용·제어 이벤트의 Journal 전용 쓰기, 같은 멱등 키 재적용의 배치 전체 미적용, 잠금 인수 절차, Provider 원본 이벤트 저장, Journal 보존 범위(§14.1·§14.3·§19.6.2) |
+| v1.5.13 | 2026-11-17 | PH1-SCHED 구현에서 정한 Scheduler 설계(REQ1-002): 단일 처리 순서와 한 요청 한 배치, 등록 시 Ready/Blocked 판정과 거부 조건, 예산 장부의 Task 수 예약·소비, Run 시작 순서와 실행 의도 기록 시점, 동시성 계산과 대기열·위임의 즉시 거부, 잠금 해제 시점, 요청 없는 재실행 금지, 재시도·재작업 상한의 계산, 완료 판정과 부모·후속 Task 해제, 취소 전파와 늦은 결과 처리, 실행 시간·대기 기한, 요청 주체 확인(§9.4·§9.5), 재시작 대조 판정표와 대조 판단(§14.3), Scheduler·실행 감독·정책 Port 변경(§19.6.2) |
 
 ## 목차
 
@@ -845,6 +846,22 @@ Run은 Starting·Running·Waiting·Succeeded·Failed·Cancelling·Cancelled·Int
 
 Timeout, Protocol 장애, 검증 실패, 외부 변경 결과 불명을 구분합니다. 재시도는 횟수·전체 시간·자원 예산과 부작용 확인을 충족할 때만 새 Run으로 수행합니다. 멱등 키, 이벤트 순서, 상태 Version의 조건부 갱신을 적용합니다.
 
+**Scheduler 집행 규칙(PH1-SCHED, REQ1-002):**
+
+- **처리 순서:** 프로젝트 DB를 독점한 Core 프로세스 안의 Scheduler 하나가 모든 Task·Run 변경을 차례로 처리하고, 한 요청의 상태 변경을 저장소의 한 배치로 기록합니다(OPS-01).
+- **등록:** 선행 Task가 모두 `Completed`면 `Ready`, 아니면 `Blocked`로 저장합니다. 순환·없는 선행 Task·중복 ID·다른 Plan/Project가 하나라도 있으면 요청 전체를 거부합니다. 위임 깊이는 부모 사슬로 세며 최상위가 0입니다.
+- **Task 수 예산:** 등록 때 예약하고, Task가 종료 상태(취소 포함)가 되면 소비로 옮깁니다. Worker 위임은 마스터 예약분을 뺀 범위만 씁니다. 토큰·비용 상한은 사용량 기록과 정책이 집행합니다.
+- **Run 시작 순서:** 정책 확인(Host·Provider·권한·Session 소유권) → 동시성 → Workspace 준비와 잠금 → 문맥 Snapshot → [Task `Running`·Run `Starting`·실행 의도 `recorded`·Snapshot·멱등 키]를 한 배치 → 의도 `dispatched` → Adapter 시작 → [의도 `started`·Run `Running`·Session 기록]. 막는 입력 문제가 있으면 실행하지 않고 `Blocked`로 둡니다. 문맥 구성이 전략을 대체했으면 실제 쓴 전략으로 Adapter에 전달합니다. Snapshot의 ID는 Scheduler가 Run마다 먼저 정해 문맥 구성에 넘깁니다.
+- **시작 실패:** Adapter가 시작하지 않았음이 확실하면 Run `Failed`(`start_failed`)와 재시도 규칙을 따르고, 시작 응답을 잃었으면 Run `Interrupted`·Task `NeedsReconciliation`으로 두고 의도를 `dispatched`로 남깁니다.
+- **동시성:** Provider·Host별로 끝이 확정되지 않은 실행 의도를 셉니다. 자식을 기다리는 부모, 추적을 잃은 Run, 결과 불명 Run도 자리를 차지합니다. 마스터·사용자의 요청은 Core 메모리의 대기열에 요청 순서대로 넣고 자리가 나면 시작합니다(재시작 뒤에는 다시 요청). Worker의 위임은 기다리지 않고 바로 `unavailable`로 거부하며, 등록한 자식이 시작하지 못하면 그 자식을 취소하고 부모를 깨웁니다(§9.3).
+- **잠금:** Run이 확정 종료(`Succeeded`·`Failed`·`Cancelled`)할 때 그 종료 기록과 같은 배치에서 Run의 잠금을 모두 풉니다. `resume`은 Session Writer 잠금을 함께 잡습니다. 결과를 모르는 Run의 잠금은 대조가 끝날 때까지 둡니다.
+- **재실행:** 실패 뒤에는 Task를 `Ready`로 되돌릴 뿐 Scheduler가 스스로 새 Run을 만들지 않습니다. 같은 Task Revision의 실패 Run이 `executionRetryLimit` 이하이고 실패 종류가 `authentication`·`configuration`·`unsupported_capability`·`tool_denied`가 아니면 `Ready`, 아니면 `Failed`입니다. 재작업(요청 또는 필수 검증 실패)은 같은 Revision의 성공 Run이 `reworkLimit` 이하일 때만 `Ready`이고 넘으면 거부(요청) 또는 `Failed`(검증 실패)입니다.
+- **검증 결과:** 필수 검증마다 같은 계약 Revision의 마지막 Job을 봅니다. 모두 `passed`면 `Verified`, 하나라도 `failed`면 재작업, 실행 오류·판정 불가·건너뜀·취소면 `WaitingMaster`(복귀 `Validating`)입니다. 아직 끝나지 않은 필수 검증이 있으면 상태를 바꾸지 않습니다.
+- **완료:** 완료 판정만 `Completed`를 만듭니다. 필수 검증이 있으면 `Verified`에서만, 없으면 `Executed`에서 가능하며, 완료 정책이 요구하면 그 Task Revision의 허용된 결과 검토 승인이 있어야 합니다. 완료 뒤 선행 조건을 채운 Task를 `Ready`로 풀고, 기다리던 자식이 모두 종료 상태가 된 `WaitingChild` 부모를 복귀시킵니다. 자식의 Run 성공만으로는 부모를 깨우지 않습니다.
+- **취소:** 실행이 없는 상태는 바로 `Cancelled`, 실행·검증·대기 중은 `Cancelling`으로 두고 Run 정지를 요청하며 멈출 Run이 없으면 바로 `Cancelled`입니다. `cancelPropagation`이 `descendants`인 자손에 전파하고 `independent` 자식 아래는 건드리지 않습니다. `Cancelling` Task는 Run이 성공으로 끝나도 `Cancelled`입니다. Task의 가장 최근 Run이 아닌 Run의 보고, 이미 끝난 Run의 보고는 Task를 바꾸지 않습니다.
+- **기한:** 실행 시간 상한을 넘긴 Run은 정지를 요청하고, 그 정지는 취소가 아니라 `timeout` 실패로 기록해 재시도 규칙을 따릅니다. `WaitingChild`의 기한이 지나면 부모는 자식 결과 없이 복귀합니다. 마스터·사용자 응답 대기는 복귀 상태가 `Running`이면 복귀하고(승인 요청은 거부로 답함), 아니면 `Failed`입니다.
+- **요청 주체:** 마스터의 요청은 Plan이 `Active`이고 `controllerEpoch`가 같을 때만 받습니다. Worker는 살아 있는 자기 Run의 자격으로 위임과 자기 자손의 취소만 할 수 있습니다. 같은 멱등 키·같은 요청은 처음 결과를 돌려주고 다른 요청은 거부합니다.
+
 ## 10. Workspace·Git·산출물 보관
 
 | Profile | 운영 규칙 |
@@ -1075,6 +1092,17 @@ Core SQLite와 파일 저장소를 원본으로 두며, UI는 API의 상태 Snap
 **실행 의도 단계(H0 계약 `RunIntent`):** `recorded`(전달 전) → `dispatched`(Adapter에 요청, 시작 결과 미수신) → `started`(시작 결과·Native ID·프로세스 정체성 수신) → `settled`(종료 확정), 전달 전 취소는 `abandoned`입니다. 재시작 때 `recorded`는 다시 전달할 수 있고, `dispatched`·`started`는 실제 프로세스·Session을 대조합니다. 프로세스 정체성은 Host·PID·OS의 프로세스 시작 시각·Run 실행 토큰의 SHA-256으로 기록합니다. 멱등 키는 기능 범위별로 입력 Digest와 함께 저장하고, 같은 키·같은 Digest는 처음 결과를 재생, 다른 Digest는 거부합니다. 상태 변경 기록(`JournalEntry`)은 프로젝트 DB 안에서 1부터 빈틈없이 올라가는 `sequence`를 가지며 UI·API 구독 커서로 씁니다. Provider 원본 이벤트는 Run별 `sequence`로 따로 저장합니다.
 
 **조건부 쓰기와 Journal(PH1-PERSIST, REQ1-001):** 쓰기 묶음 하나가 한 Transaction이며 하나라도 어긋나면 상태·Journal 모두 남지 않고 번호도 쓰지 않습니다. 새 기록의 버전은 1, 갱신은 읽은 버전과 같을 때만 적용해 1 올립니다. `stateVersion` 필드가 없는 Plan·예산 장부는 저장소가 버전을 따로 관리해 조회 때 함께 돌려줍니다. 실행 의도는 `recorded`로만 만들 수 있고 Run마다 하나이며, 단계를 뒤로 옮기거나 요청 내용(Run·멱등 키·Digest)을 바꾸는 쓰기는 거부합니다. Session·Context Snapshot·Artifact Version·사용량 기록은 불변이어서 같은 내용의 재기록은 무시하고 다른 내용은 거부합니다. 같은 멱등 키가 이미 있으면 그 묶음 전체를 적용하지 않고, Digest가 같으면 재생·다르면 충돌로 구분해 알립니다. 잠금 인수는 이전 잠금 해제와 Epoch를 올린 새 잠금 획득을 한 묶음으로 하며, 그 뒤 이전 소유자의 해제는 거부합니다. Journal 종류는 Plan·Task·Run·실행 의도·Session·결정 적용·Artifact 등록·검증·승인·잠금·Workspace·예산·사용량·제어입니다. 항목의 `payload`에는 변경 뒤 기록을 넣어 UI가 추가 조회 없이 상태를 갱신할 수 있게 합니다. Context Snapshot·Artifact 참조·멱등 키 기록과 내용이 같은 재기록은 Journal 항목을 만들지 않습니다. 대상 기록이 없는 항목은 결정 적용(`DecisionApplied`)과 제어(`Control`)만 직접 쓸 수 있습니다. Journal은 오래된 항목부터 지울 수 있고, 지워진 범위를 가리키는 커서는 `cursor_expired`입니다. 번호는 지운 뒤에도 이어집니다. Provider 원본 이벤트는 Run별 `sequence`로 따로 저장하고 Journal 번호를 쓰지 않으며, 같은 Run·같은 `sequence`의 재전달은 무시합니다.
+
+**재시작 대조(PH1-SCHED, REQ1-002):** Core가 시작하면 Scheduler가 남은 실행 의도를 다음과 같이 처리합니다.
+
+| 남은 실행 의도 | 처리 |
+|---|---|
+| `recorded` | 외부 실행이 없었으므로 의도를 `abandoned`, Run을 `Cancelled`, Task를 `Ready`로 되돌리고 잠금을 풉니다. 프로세스를 찾지 않습니다 |
+| `dispatched`·`started`, 프로세스가 살아 있음 | Run·Task를 `Interrupted`로 둡니다. P0의 Core는 이전 프로세스의 출력을 다시 받지 않습니다. 잠금·의도는 남깁니다 |
+| `dispatched`·`started`, 프로세스 없음·확인 불가·증거 없음 | Run `Unknown`, Task `NeedsReconciliation`. 다시 실행하지 않고 잠금·의도는 남깁니다 |
+| 취소 중이던 Task | 정지를 확인하지 못했으므로 `Cancelled`로 확정하지 않고 `NeedsReconciliation`으로 둡니다 |
+
+주인 Run이 없거나 확정 종료한 Run의 잠금만 풉니다. `Interrupted`·`NeedsReconciliation` Task는 사용자·마스터의 대조 판단(다시 실행·결과 채택·실패·취소)으로만 풀리며, 그때 남은 Run·의도·잠금을 정리합니다. 결과 채택은 `Executed`로 두고 완료는 따로 판정합니다. 대조를 반복해도 결과가 같고 기록이 늘지 않습니다.
 
 ## 15. 로그·스트림·운영 진단
 
@@ -1585,7 +1613,7 @@ H0에서는 각 계약의 정의 경로·제공/사용 작업·확인자·Contra
 
 H0 완료 시 공통 인터페이스와 컴파일 가능한 등록 경로(명시적 Stub 포함), Schema·계약 시험을 계약 기준 Commit에 포함합니다. Stub은 가용 기능으로 표시하지 않습니다. 대표 저장소의 AGENTS.md·README.md와 `crates/core/README.md`도 Phase 1 배정표·모듈 배치(`config` 포함)와 일치시킵니다.
 
-**Core 서비스 인터페이스(H0, 2026-11-11):** 각 소유 모듈의 `mod.rs`에 Trait과 오류 타입만 두고, 모듈 사이는 `Arc<dyn Trait>`로 주입합니다(`crates/core/tests/phase1_h0_interfaces.rs`가 객체 안전성·`Send + Sync`를 확인). 미배정 모듈의 인터페이스는 통합 담당이 검토 대행자로 작성했으며 각 담당이 착수 때 확인합니다. `persistence::Store`는 동기 API이며 `apply(WriteBatch)` 한 번이 한 Transaction입니다(쓰기마다 예상 버전, 하나라도 어긋나면 전체 미적용, 같은 Transaction에 `JournalEntry` 추가). 조회는 미완 실행 의도·잠금·`journal_after`(보존 범위 밖이면 `cursor_expired`)를 포함합니다. REQ1-001(2026-11-16)로 Plan·예산 장부의 버전 반환(`Versioned`), Context Snapshot·예산 장부·Journal 전용 쓰기, 같은 멱등 키 재적용 오류(`IdempotencyReplay`)·규칙 위반(`Invalid`)·사용 중(`AlreadyOpen`) 오류, Provider 원본 이벤트 저장·조회, 사용량·검증·승인·Run Session·Workspace·Artifact의 Plan/Task/Run별 조회를 더했습니다(§14.3). `scheduler::Scheduler`는 Task 생성·Run 요청·취소·재작업·완료 판정·Provider 승인 응답과 HOST·VALIDATION 통지, 재시작 대조(`recover`)를 받고, 요청 주체(`Actor`: 사용자·마스터(Epoch 포함)·Worker Run·Core)를 함께 받습니다. HOST가 구현하는 `scheduler::RunExecutor` Port는 시작(시작 결과와 프로세스 증거)·취소 접수·승인 전달·증거로 프로세스 생존 확인(확인 불가는 `None`)을 제공합니다. `context::ContextBuilder`(Snapshot 생성·Capsule 저장·Provider 입력 본문), `workspace::WorkspaceManager`(준비·Diff·Revision 고정·승인 Revision 반영·정리·잠금), `artifact::ArtifactStore`(동기, 파일/바이트 등록·Checksum 확인 부분 읽기·참조 추가·참조 없는 내용 정리), `validation::Validator`·`ApprovalService`(요청·결정·실행 직전 소비·철회), `mcp::TaskMcpService`(Run 범위 연결 정보 발급·폐기·도구 처리), `config::ConfigService`(동기, 계층 합성과 경고·설치 항목 기록·Digest 일치 시 제거)를 둡니다. 구현 전 모듈은 Trait만 있고 등록된 구현이 없으므로 가용 기능으로 표시하지 않습니다.
+**Core 서비스 인터페이스(H0, 2026-11-11):** 각 소유 모듈의 `mod.rs`에 Trait과 오류 타입만 두고, 모듈 사이는 `Arc<dyn Trait>`로 주입합니다(`crates/core/tests/phase1_h0_interfaces.rs`가 객체 안전성·`Send + Sync`를 확인). 미배정 모듈의 인터페이스는 통합 담당이 검토 대행자로 작성했으며 각 담당이 착수 때 확인합니다. `persistence::Store`는 동기 API이며 `apply(WriteBatch)` 한 번이 한 Transaction입니다(쓰기마다 예상 버전, 하나라도 어긋나면 전체 미적용, 같은 Transaction에 `JournalEntry` 추가). 조회는 미완 실행 의도·잠금·`journal_after`(보존 범위 밖이면 `cursor_expired`)를 포함합니다. REQ1-001(2026-11-16)로 Plan·예산 장부의 버전 반환(`Versioned`), Context Snapshot·예산 장부·Journal 전용 쓰기, 같은 멱등 키 재적용 오류(`IdempotencyReplay`)·규칙 위반(`Invalid`)·사용 중(`AlreadyOpen`) 오류, Provider 원본 이벤트 저장·조회, 사용량·검증·승인·Run Session·Workspace·Artifact의 Plan/Task/Run별 조회를 더했습니다(§14.3). `scheduler::Scheduler`는 Task 등록(마스터·사용자)·위임(Worker)·Run 요청(시작 또는 대기열)·취소·재작업·검증 시작과 판정 통지·응답 대기 시작과 끝·완료 판정·대조 판단, HOST의 Run 종료 보고(`RunReport`), 기한 처리, 재시작 대조(`recover`)를 받고, 요청 주체(`Actor`: 사용자·마스터(Epoch 포함)·Worker Run·Core)를 함께 받습니다. Provider 이벤트 해석과 Run 종료 판정은 HOST가 하고 Scheduler는 확정된 보고만 받습니다. HOST가 구현하는 `scheduler::RunExecutor` Port는 시작(시작 결과와 프로세스 증거)·취소 접수·증거로 프로세스 생존 확인(확인 불가는 `None`)을 제공합니다. MASTER의 정식 정책이 구현하는 `scheduler::SchedulerPolicy` Port는 예산 Profile 조회, 자식 Task의 권한·예산·완료 정책(부모 범위 안), Run 시작 직전 확인(Host·Provider·권한·Session 소유권), 완료 정책의 승인 요구를 제공합니다. Provider 승인 응답의 경로는 Scheduler를 거치지 않으며 HOST·MASTER·VALIDATION이 `ProviderApprovalRequest` 위에서 정합니다(REQ1-002, 2026-11-17). 구현 `scheduler::TaskScheduler`. `context::ContextBuilder`(Snapshot 생성·Capsule 저장·Provider 입력 본문), `workspace::WorkspaceManager`(준비·Diff·Revision 고정·승인 Revision 반영·정리·잠금), `artifact::ArtifactStore`(동기, 파일/바이트 등록·Checksum 확인 부분 읽기·참조 추가·참조 없는 내용 정리), `validation::Validator`·`ApprovalService`(요청·결정·실행 직전 소비·철회), `mcp::TaskMcpService`(Run 범위 연결 정보 발급·폐기·도구 처리), `config::ConfigService`(동기, 계층 합성과 경고·설치 항목 기록·Digest 일치 시 제거)를 둡니다. 구현 전 모듈은 Trait만 있고 등록된 구현이 없으므로 가용 기능으로 표시하지 않습니다.
 
 #### 19.6.3 작업 묶음과 독점 수정 경로
 
