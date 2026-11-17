@@ -110,3 +110,20 @@ fn unknown_usage_stays_absent_not_zero() {
     assert!(value["usage"].get("inputTokens").is_none());
     assert_eq!(value["role"], "master");
 }
+
+// §8.2, REQ1-003: `capsule` 요청은 Capsule Version이 있어야 합니다.
+#[test]
+fn capsule_request_needs_a_capsule_version() {
+    let mut request = SessionRequest {
+        mode: SessionMode::Capsule,
+        source_session_id: None,
+        source_turn_id: None,
+        capsule_version_id: None,
+    };
+    assert!(request.lacks_capsule_version());
+    request.capsule_version_id = Some("v1".into());
+    assert!(!request.lacks_capsule_version());
+    request.mode = SessionMode::Fresh;
+    request.capsule_version_id = None;
+    assert!(!request.lacks_capsule_version());
+}

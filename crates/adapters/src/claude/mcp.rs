@@ -17,11 +17,8 @@ use telos_schema::TaskMcpBinding;
 use super::configuration;
 use crate::AdapterError;
 
-/// MCP 서버 프로세스에 자격 파일 경로를 넘기는 환경 변수입니다.
-///
-/// 계약(`TaskMcpBinding`)은 경로를 어떤 수단으로 서버에 넘길지 정하지 않습니다. 세 Provider와 PH1-MCP가 같은
-/// 이름을 쓰도록 `telos-schema`로 옮기는 변경 요청을 냈습니다(증거 문서 "남은 요청").
-pub const TASK_MCP_CREDENTIAL_FILE_ENV: &str = "TELOS_TASK_MCP_CREDENTIAL_FILE";
+/// MCP 서버 프로세스에 자격 파일 경로를 넘기는 환경 변수입니다. 계약 상수를 그대로 씁니다 (REQ1-003).
+pub use telos_schema::TASK_MCP_CREDENTIAL_FILE_ENV;
 
 /// Run 하나의 주입 파일입니다. 버려질 때 파일을 지웁니다.
 #[derive(Debug)]

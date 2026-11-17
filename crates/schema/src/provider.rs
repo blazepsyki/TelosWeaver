@@ -48,12 +48,21 @@ pub enum SessionMode {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SessionRequest {
     pub mode: SessionMode,
+    /// `resume`·`native-fork`의 원본 Session
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_session_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_turn_id: Option<String>,
+    /// 전달할 Capsule Artifact의 Version. `capsule` 모드에서는 반드시 있어야 합니다 (REQ1-003).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capsule_version_id: Option<String>,
+}
+
+impl SessionRequest {
+    /// `capsule` 모드인데 Capsule Version이 없는 요청입니다. Core와 Adapter는 `fresh`로 바꿔 실행하지 않고 거부합니다 (§2.1, REQ1-003).
+    pub fn lacks_capsule_version(&self) -> bool {
+        self.mode == SessionMode::Capsule && self.capsule_version_id.is_none()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

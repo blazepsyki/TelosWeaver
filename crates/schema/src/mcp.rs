@@ -37,8 +37,13 @@ pub struct TaskMcpBinding {
     pub command: String,
     pub args: Vec<String>,
     /// Run 범위 연결 자격 파일. 현재 사용자만 읽을 수 있게 만들고 Run 종료 때 폐기합니다.
+    /// Adapter는 MCP 서버 프로세스의 환경 변수 [`TASK_MCP_CREDENTIAL_FILE_ENV`]로 이 경로를 넘깁니다 (REQ1-003).
     pub credential_file: String,
 }
+
+/// Task MCP 서버 프로세스가 자격 파일 경로를 읽는 환경 변수입니다 (REQ1-003). 세 Provider Adapter와
+/// `telos-weaver` Task MCP 하위 명령이 같은 이름을 씁니다. 자격 원문은 환경 변수에 넣지 않습니다.
+pub const TASK_MCP_CREDENTIAL_FILE_ENV: &str = "TELOS_TASK_MCP_CREDENTIAL_FILE";
 
 /// Core가 연결 자격에 묶어 보관하는 허용 범위입니다. Provider에 넘기지 않습니다.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

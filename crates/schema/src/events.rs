@@ -86,6 +86,7 @@ pub struct ToolCompletedPayload {
 #[serde(rename_all = "camelCase")]
 pub struct ApprovalRequiredPayload {
     pub request_id: String,
+    /// 행위 분류. [`approval_actions`]의 낱말 중 하나입니다 (REQ1-003).
     pub action: String,
     pub summary: String,
     /// 실행 중 응답을 보낼 수 있는지. Agy처럼 응답 경로가 없으면 `false`입니다 (§7.4).
@@ -93,9 +94,79 @@ pub struct ApprovalRequiredPayload {
     /// 행위 대상(명령·파일 경로 등). 승인 대상 고정에 씁니다 (H0, §11.2).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target: Option<String>,
-    /// 행위 인자의 SHA-256. 원문 대신 고정합니다.
+    /// 행위 인자의 SHA-256. 원문 대신 고정합니다. 계산은 [`args_digest`]입니다 (REQ1-003).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub args_digest: Option<String>,
+}
+
+/// Provider 승인 요청의 행위 분류입니다 (§4.3, REQ1-003). 세 Provider가 같은 낱말을 써서 같은 행위가 같은 경로로 갑니다.
+/// `PermissionSet::master_approvable_actions`에서 Provider 승인 요청에 해당하는 항목도 이 낱말을 씁니다.
+pub mod approval_actions {
+    /// 셸 명령 실행
+    pub const COMMAND_EXECUTION: &str = "command_execution";
+    /// 파일 생성·수정·삭제
+    pub const FILE_CHANGE: &str = "file_change";
+    /// MCP 도구 호출(Task MCP 포함)
+    pub const MCP_TOOL_CALL: &str = "mcp_tool_call";
+    /// 네트워크·쓰기 범위 등 권한 확장
+    pub const PERMISSIONS: &str = "permissions";
+    /// 위 분류에 들지 않는 도구 사용
+    pub const TOOL_USE: &str = "tool_use";
+
+    pub const ALL: &[&str] = &[
+        COMMAND_EXECUTION,
+        FILE_CHANGE,
+        MCP_TOOL_CALL,
+        PERMISSIONS,
+        TOOL_USE,
+    ];
+}
+
+/// 행위 인자의 Digest(`sha256:<hex>`)입니다 (REQ1-003). 인자 JSON을 객체 키 순서로 정렬한 압축 표기(공백 없음,
+/// 문자열은 `serde_json` 표기)로 바꿔 계산하므로 같은 인자는 표기 순서와 관계없이 같은 값입니다.
+/// Adapter는 Provider가 보낸 인자 원문에 이 함수를 쓰고, Core는 실행 직전 같은 함수로 다시 계산해 비교합니다.
+pub fn args_digest(args: &serde_json::Value) -> String {
+    use sha2::{Digest, Sha256};
+    fn write(value: &serde_json::Value, out: &mut Vec<u8>) {
+        match value {
+            serde_json::Value::Array(items) => {
+                out.push(b'[');
+                for (index, item) in items.iter().enumerate() {
+                    if index > 0 {
+                        out.push(b',');
+                    }
+                    write(item, out);
+                }
+                out.push(b']');
+            }
+            serde_json::Value::Object(map) => {
+                let mut keys: Vec<&String> = map.keys().collect();
+                keys.sort_unstable();
+                out.push(b'{');
+                for (index, key) in keys.into_iter().enumerate() {
+                    if index > 0 {
+                        out.push(b',');
+                    }
+                    out.extend(
+                        serde_json::Value::String(key.clone())
+                            .to_string()
+                            .into_bytes(),
+                    );
+                    out.push(b':');
+                    write(&map[key], out);
+                }
+                out.push(b'}');
+            }
+            scalar => out.extend(scalar.to_string().into_bytes()),
+        }
+    }
+    let mut canonical = Vec::new();
+    write(args, &mut canonical);
+    let hex: String = Sha256::digest(&canonical)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    format!("sha256:{hex}")
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]

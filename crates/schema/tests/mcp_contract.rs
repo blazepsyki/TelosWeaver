@@ -116,3 +116,12 @@ fn tool_errors_use_snake_case_codes() {
         "limit_exceeded"
     );
 }
+
+// REQ1-003: 세 Provider Adapter와 Task MCP 하위 명령이 같은 환경 변수로 자격 파일 경로를 주고받습니다.
+#[test]
+fn credential_file_path_travels_in_one_named_variable() {
+    assert_eq!(
+        TASK_MCP_CREDENTIAL_FILE_ENV,
+        "TELOS_TASK_MCP_CREDENTIAL_FILE"
+    );
+}

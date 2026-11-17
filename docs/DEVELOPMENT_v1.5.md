@@ -1,7 +1,7 @@
 # TelosWeaver — 범용 멀티 에이전트 오케스트레이터 설계 및 기능 명세 (v1.5)
 
 > **프로젝트명:** TelosWeaver (`telos-weaver`)  
-> **문서 버전:** 1.5 (개정 1.5.13)  
+> **문서 버전:** 1.5 (개정 1.5.14)  
 > **작성일:** 2026-10-23  
 > **수정일:** 2026-11-17  
 > **문서 유형:** 제품 범위·아키텍처·실행 계약·기능 요구사항·개발 및 검증 계획  
@@ -46,6 +46,7 @@
 | v1.5.11 | 2026-11-10 | H0 결정 반영(`docs/phase-1/H0_DECISIONS.md` D1~D14, 사용자 결정): Core DB·Artifact·Worktree를 프로젝트별 사용자 상태 디렉터리에(§14.1·§5.3·§10), 마스터 결정은 Turn 끝 JSON(§4.2), Task MCP는 stdio 하위 명령과 Provider별 Run 단위 주입(§9.2), 기본 마스터 Claude `sonnet`(§4.1), 설정 TOML과 위치(§13.1), 이름 붙인 검증 명령만 실행(§11.1), 승인 뒤 로컬 Merge·push 제외(§10), Capability 판정 기준과 버전 변화 점검(§7.1), Master View는 기본 UI(§17), Phase 0 API·정책과 비호환(§19.6.1). H0 계약에서 정한 설계: Task·Run 전이 함수가 원본·`stateVersion` 조건부 갱신·대기 복귀 상태(§9.4), Session 소유 Task(§8.1), 마스터 유실 시 Plan `Held`(§14.2), Run `Cancelling`의 실제 결과 기록(§9.4), 실행 의도 5단계와 재시작 처리·프로세스 증거(`ProcessEvidence`)·멱등 Digest·Journal 커서(§14.3), DB Schema 버전 판정(§14.1), Task MCP 도구 입출력·권한 입력 배제·보고 형식·범위 보관·자격 폐기·`RunContext.taskMcp`(§9.2), Artifact 표기·크기·참조(§5.3), 검증 Job 상태·명령 매개변수(§11.1), 승인 기록 필드·상태·적용 조건(§11.2), Workspace 기록·Git 기준선·잠금 충돌·Diff·원본 반영 요청(§10), Lock 인수 조건(§14.3), Context Snapshot 필드·입력 문제·신뢰 구분(§6.1), 전략 대체·Capsule 내용(§8.2), 사용량 기록 역할·Unknown·중복 합산 방지(§8.3), Provider 승인 요청의 상관·경로·기한(§4.3, `approval_required`에 대상·인자 Digest 추가), 권한 집합 교집합과 사용자 전용 행위(§13.1), 예산 Profile·장부와 마스터 예약분(§13.2), Local API Phase 1 메서드·Snapshot+커서 재접속·`cursor_expired`·연결 범위·버전 상향 시점(§17), 설정 파일 형식·항목 종류별 계층 규칙·출처 기록·설치 설정 소유권과 보존(§13.1), Capability 증거 기록·판정 함수·사전 점검·Core 사용 조건과 Capsule 대체(§7.1), Core 서비스 인터페이스 배치와 모듈 사이 주입 방식, Scheduler↔HOST 실행 Port(§19.6.2) |
 | v1.5.12 | 2026-11-16 | PH1-PERSIST 구현에서 정한 저장소 설계(REQ1-001): SQLite 단일 연결의 파일 독점과 내구성 설정, 백업 파일 규칙, 버전 규칙(새 기록 1), Plan·예산 장부의 저장소 관리 버전, Journal 항목을 만드는 쓰기와 만들지 않는 쓰기, Journal 종류 `WorkspaceChanged`·`BudgetChanged`·`UsageRecorded` 추가, 결정 적용·제어 이벤트의 Journal 전용 쓰기, 같은 멱등 키 재적용의 배치 전체 미적용, 잠금 인수 절차, Provider 원본 이벤트 저장, Journal 보존 범위(§14.1·§14.3·§19.6.2) |
 | v1.5.13 | 2026-11-17 | PH1-SCHED 구현에서 정한 Scheduler 설계(REQ1-002): 단일 처리 순서와 한 요청 한 배치, 등록 시 Ready/Blocked 판정과 거부 조건, 예산 장부의 Task 수 예약·소비, Run 시작 순서와 실행 의도 기록 시점, 동시성 계산과 대기열·위임의 즉시 거부, 잠금 해제 시점, 요청 없는 재실행 금지, 재시도·재작업 상한의 계산, 완료 판정과 부모·후속 Task 해제, 취소 전파와 늦은 결과 처리, 실행 시간·대기 기한, 요청 주체 확인(§9.4·§9.5), 재시작 대조 판정표와 대조 판단(§14.3), Scheduler·실행 감독·정책 Port 변경(§19.6.2) |
+| v1.5.14 | 2026-11-17 | Provider 사이에 같아야 하는 규칙(REQ1-003): Task MCP 자격 파일 경로를 넘기는 환경 변수(§9.2), Provider 승인 요청의 행위 낱말 5개와 마스터 위임 목록의 같은 낱말 사용, 인자 Digest 계산 규칙(§4.3), `capsule` 요청의 Capsule Version 필수와 Scheduler의 전달(§8.2) |
 
 ## 목차
 
@@ -261,7 +262,7 @@ Core 집행 순서는 **호출자·소유권 확인 → Schema·Plan Revision·E
 
 마스터가 판단해도 사용자의 권한 상한을 바꾸지 못합니다. 승인 주체는 `user` 또는 위임받은 `master`로 기록합니다. 원본 브랜치 반영·외부 변경은 별도 행위 정책을 적용하며, 사용자가 위임한 범위와 사용자 전용 결정을 구분합니다. 포괄적인 승인 생략 옵션을 기본값으로 삼지 않습니다.
 
-**Provider 승인 요청(H0 계약 `ProviderApprovalRequest`):** Worker Run 중 Provider의 승인 요청(`approval_required`, 대상·인자 Digest 포함)은 Core가 요청 ID를 발급해 기록하고 경로를 정합니다. 응답 경로가 없으면 `unanswerable`로 거부·재계획하고, 최종 권한의 `masterApprovableActions`에 있는 행위면 마스터가 `answer_action`으로, 그 밖은 사용자에게 올립니다. 기한이 지나면 거부로 처리하며, 응답은 `ApprovalDecision`으로 기록한 뒤 실행 직전 대상·Digest·정책을 다시 확인해 Adapter에 전달합니다.
+**Provider 승인 요청(H0 계약 `ProviderApprovalRequest`):** Worker Run 중 Provider의 승인 요청(`approval_required`, 대상·인자 Digest 포함)은 Core가 요청 ID를 발급해 기록하고 경로를 정합니다. 응답 경로가 없으면 `unanswerable`로 거부·재계획하고, 최종 권한의 `masterApprovableActions`에 있는 행위면 마스터가 `answer_action`으로, 그 밖은 사용자에게 올립니다. 기한이 지나면 거부로 처리하며, 응답은 `ApprovalDecision`으로 기록한 뒤 실행 직전 대상·Digest·정책을 다시 확인해 Adapter에 전달합니다. Provider 승인 요청의 행위(`action`)는 `command_execution`(명령 실행)·`file_change`(파일 변경)·`mcp_tool_call`(MCP 도구 호출)·`permissions`(권한 확장)·`tool_use`(그 밖의 도구) 중 하나이며(`telos_schema::approval_actions`), 마스터가 대신 승인할 수 있는 Provider 행위도 같은 낱말로 적습니다. 인자 Digest(`argsDigest`)는 Provider가 보낸 인자 JSON을 객체 키 순서로 정렬한 압축 표기의 SHA-256(`sha256:<hex>`)이며 Adapter와 Core가 같은 함수(`telos_schema::args_digest`)로 계산합니다(REQ1-003).
 
 ## 5. 공통 도메인 및 Task·Artifact 계약
 
@@ -746,7 +747,7 @@ Session은 여러 Run에서 재사용할 수 있습니다. 동일 Session의 쓰
 5. 완료된 부작용을 재실행하지 않도록 결과와 실행 의도를 확인합니다. 분기 깊이·개수·동시성·전체 예산에 상한을 적용합니다.
 6. 실패하면 이유와 선택한 Capsule/Fresh 대체 경로를 기록합니다. Native Fork에 성공한 것처럼 표시하지 않습니다.
 
-대체는 Snapshot의 `fallback`(요청 전략·사용 전략·사유·거부된 Capability 키)으로 남깁니다. Capsule 내용(목표·결정·근거 Artifact·제약·미해결 질문·원래 이력의 출처와 생략 범위)은 `structured` Artifact로 저장하고 Snapshot에서 참조합니다(H0 계약 `CapsuleContent`).
+대체는 Snapshot의 `fallback`(요청 전략·사용 전략·사유·거부된 Capability 키)으로 남깁니다. Capsule 내용(목표·결정·근거 Artifact·제약·미해결 질문·원래 이력의 출처와 생략 범위)은 `structured` Artifact로 저장하고 Snapshot에서 참조합니다(H0 계약 `CapsuleContent`). `capsule` 요청은 Capsule Version(`capsuleVersionId`)이 있어야 하며, Scheduler는 문맥 구성이 저장한 Capsule Version을 넣어 Adapter에 전달하고 이전 Session은 넘기지 않습니다. Capsule Version이 없으면 `fresh`로 바꿔 실행하지 않고 거부합니다(REQ1-003).
 
 독립 Reviewer에는 대상 Artifact와 검증 계약을 우선 전달합니다. 구현자의 결론과 전체 이력 상속은 검토 독립성과 필요한 문맥을 고려해 선택합니다. 모든 Worker의 전체 대화를 마스터에 반복 전달하지 않습니다.
 
@@ -804,7 +805,7 @@ MCP 인자의 Task ID만으로 호출자를 신뢰하지 않습니다. Core가 �
 | Codex | App Server Thread 시작의 설정 재정의(`mcp_servers`) |
 | Antigravity | Run Workspace의 `.agents/plugins/<이름>/{plugin.json, mcp_config.json}`과 세션 한정 `--settings`의 `permissions.allow`(`mcp(<server>/<tool>)`). 1.5.3에서 확인(H0 A2) |
 
-연결 자격 원문은 Workspace나 MCP 설정 파일에 쓰지 않고, Core 상태 디렉터리의 자격 파일 경로만 넘깁니다. 주입용 `.agents/` 파일은 Diff·Artifact 수집과 원본 Branch 반영에서 제외합니다. Provider가 남기는 도구 Schema 캐시(예: Antigravity `~/.gemini/antigravity-cli/mcp/<server>/`)는 고정 서버 이름으로 재사용합니다.
+연결 자격 원문은 Workspace나 MCP 설정 파일에 쓰지 않고, Core 상태 디렉터리의 자격 파일 경로만 넘깁니다. 주입용 `.agents/` 파일은 Diff·Artifact 수집과 원본 Branch 반영에서 제외합니다. Provider가 남기는 도구 Schema 캐시(예: Antigravity `~/.gemini/antigravity-cli/mcp/<server>/`)는 고정 서버 이름으로 재사용합니다. Adapter는 자격 파일 경로를 MCP 서버 프로세스의 환경 변수 `TELOS_TASK_MCP_CREDENTIAL_FILE`(`telos_schema::TASK_MCP_CREDENTIAL_FILE_ENV`)로 넘기고, Task MCP 하위 명령은 그 변수로 자격 파일을 찾습니다(REQ1-003).
 
 **도구 계약(H0 계약 `mcp`):** `delegate_task`는 권한·예산·완료 정책 Profile을 입력으로 받지 않고 Core가 부모의 남은 범위 안에서 정합니다. 등록은 항상 비동기이며 `waitForResult`가 참이면 호출자를 `WaitingChild`로 둡니다. `report_task_result`는 Workspace 안 파일 경로 또는 본문으로 출력을 보고하고, Core가 경로 범위·소유권·출력 계약을 검사해 불변 Artifact로 등록합니다. `cancel_task`의 접수와 실제 정지는 구분합니다. Run 단위 허용 범위(Project·Plan·호출 Task/Run·허용 도구·남은 자식 수·만료)는 Core만 보관하며, 연결 자격 파일은 현재 사용자만 읽을 수 있게 만들고 Run 종료 때 폐기합니다. 지금 실행할 수 없는 위임은 `unavailable` 오류로 즉시 거부하고 무한 대기하지 않습니다. Adapter에는 `RunContext.taskMcp`(서버 이름·명령·자격 파일 경로)로 전달합니다.
 

@@ -14,7 +14,6 @@
 use std::collections::{HashMap, HashSet};
 
 use serde_json::{Map, Value};
-use sha2::{Digest, Sha256};
 use telos_schema::{
     ApprovalRequiredPayload, ErrorPayload, FailureKind, ProviderEventPayload,
     SessionStartedPayload, TextChannel, TextDeltaPayload, ToolCompletedPayload, ToolOutcome,
@@ -305,14 +304,14 @@ fn classify(status: Option<u64>, api_error: Option<&str>, reason: Option<&str>) 
     }
 }
 
-/// 승인 요청의 행위 분류입니다. Codex Adapter가 이미 쓰는 이름(`command_execution`·`file_change`)을 같은 뜻으로 쓰고,
-/// MCP 도구는 `mcp_tool_call`, 그 밖은 `tool_use`입니다. 도구 이름은 `summary`에 남깁니다.
+/// 승인 요청의 행위 분류입니다. 계약 낱말(`telos_schema::approval_actions`, REQ1-003)을 쓰고 도구 이름은 `summary`에 남깁니다.
 fn approval_action(tool: &str) -> &'static str {
+    use telos_schema::approval_actions::*;
     match tool {
-        "Bash" | "PowerShell" => "command_execution",
-        "Write" | "Edit" | "MultiEdit" | "NotebookEdit" => "file_change",
-        _ if tool.starts_with("mcp__") => "mcp_tool_call",
-        _ => "tool_use",
+        "Bash" | "PowerShell" => COMMAND_EXECUTION,
+        "Write" | "Edit" | "MultiEdit" | "NotebookEdit" => FILE_CHANGE,
+        _ if tool.starts_with("mcp__") => MCP_TOOL_CALL,
+        _ => TOOL_USE,
     }
 }
 
@@ -326,46 +325,9 @@ fn approval_target(tool: &str, input: &Value) -> String {
         .to_owned()
 }
 
-/// 인자의 SHA-256(`sha256:<hex>`)입니다. CLI가 보낸 인자 JSON을 키 순서로 정렬한 압축 표기로 바꿔 계산하므로
-/// 같은 인자는 표기 순서와 관계없이 같은 값이 됩니다.
+/// 인자의 Digest입니다. 계약 함수(`telos_schema::args_digest`, REQ1-003)를 씁니다.
 pub(crate) fn args_digest(input: &Value) -> String {
-    let mut canonical = Vec::new();
-    write_canonical(input, &mut canonical);
-    let hex: String = Sha256::digest(&canonical)
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect();
-    format!("sha256:{hex}")
-}
-
-fn write_canonical(value: &Value, out: &mut Vec<u8>) {
-    match value {
-        Value::Array(items) => {
-            out.push(b'[');
-            for (index, item) in items.iter().enumerate() {
-                if index > 0 {
-                    out.push(b',');
-                }
-                write_canonical(item, out);
-            }
-            out.push(b']');
-        }
-        Value::Object(map) => {
-            let mut keys: Vec<&String> = map.keys().collect();
-            keys.sort_unstable();
-            out.push(b'{');
-            for (index, key) in keys.into_iter().enumerate() {
-                if index > 0 {
-                    out.push(b',');
-                }
-                out.extend(Value::String(key.clone()).to_string().into_bytes());
-                out.push(b':');
-                write_canonical(&map[key], out);
-            }
-            out.push(b'}');
-        }
-        scalar => out.extend(scalar.to_string().into_bytes()),
-    }
+    telos_schema::args_digest(input)
 }
 
 fn str_field<'a>(object: &'a Map<String, Value>, key: &str) -> Option<&'a str> {
