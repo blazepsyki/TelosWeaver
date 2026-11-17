@@ -1,0 +1,6 @@
+{"type":"system","subtype":"init","session_id":"dfa979a0-75e3-469c-8b52-2e23fc9342a9","model":"claude-haiku-5-5","claude_code_version":"2.1.325","permissionMode":"default","tools":["mcp__telosweaver__telos_probe"],"mcp_servers":[{"name":"telosweaver","status":"connected","source":"dynamic"}]}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_01ACnKQ3VrcdtFyauA82ZgcG","name":"mcp__telosweaver__telos_probe","input":{}}]},"session_id":"dfa979a0-75e3-469c-8b52-2e23fc9342a9"}
+{"type":"user","message":{"role":"user","content":[{"tool_use_id":"toolu_01ACnKQ3VrcdtFyauA82ZgcG","type":"tool_result","content":[{"type":"text","text":"PROBE_OK_EXP"}]}]},"session_id":"dfa979a0-75e3-469c-8b52-2e23fc9342a9"}
+{"type":"rate_limit_event"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"PROBE_OK_EXP"}]},"session_id":"dfa979a0-75e3-469c-8b52-2e23fc9342a9"}
+{"type":"result","subtype":"success","is_error":false,"num_turns":2,"result":"PROBE_OK_EXP","session_id":"dfa979a0-75e3-469c-8b52-2e23fc9342a9","terminal_reason":"completed","permission_denials":[]}
