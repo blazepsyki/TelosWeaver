@@ -232,7 +232,7 @@ C:\Users\Psyki-HOME\.vscode\extensions\anthropic.claude-code-2.1.310-win32-x64\r
 
 ### VS Code Workspace 경로와 cwd 맞추기
 
-확장은 VS Code 창의 **첫 번째 Workspace 폴더**와 같은 cwd의 세션만 보여 줍니다. 예를 들어 VS Code에서 `D:\Downloads\Vibe_dev`를 열었다면 `D:\Downloads\Vibe_dev\TelosWeaver`에서 실행한 세션은 다른 저장 폴더(`D--Downloads-Vibe-dev-TelosWeaver`)에 기록되어 목록에 나오지 않습니다.
+확장은 VS Code 창의 **첫 번째 Workspace 폴더**와 같은 cwd의 세션만 보여 줍니다. 예를 들어 VS Code에서 `D:\Downloads\Vibe_dev`를 열었다면 `D:\Downloads\Vibe_dev\Ongoing Projects\TelosWeaver`에서 실행한 세션은 다른 저장 폴더(`D--Downloads-Vibe-dev-Ongoing-Projects-TelosWeaver`)에 기록되어 목록에 나오지 않습니다.
 
 - 작업은 배정된 Worktree에서 실행하고, 확인은 **그 Worktree 폴더를 VS Code 창으로 열어** 진행합니다. 표시를 위해 작업 경로를 대표 저장소나 상위 폴더로 바꾸지 않습니다.
 - 경로의 대소문자·드라이브 문자 표기가 달라도 Windows에서는 같은 폴더로 처리하지만, 심볼릭 링크나 Junction 경로는 실제 경로와 다른 폴더로 기록될 수 있으므로 `Resolve-Path` 결과를 기록합니다.
@@ -250,7 +250,7 @@ VS Code의 Claude Code 세션이 부르는 자식 프로세스에는 `CLAUDE_COD
 
 ```powershell
 $claudeExe = 'C:\Users\Psyki-HOME\.vscode\extensions\anthropic.claude-code-2.1.310-win32-x64\resources\native-binary\claude.exe'
-$workspace = (Resolve-Path 'D:\Downloads\Vibe_dev\TelosWeaver').Path   # VS Code에서 연 폴더와 같은 경로
+$workspace = (Resolve-Path 'D:\Downloads\Vibe_dev\Ongoing Projects\TelosWeaver').Path   # VS Code에서 연 폴더와 같은 경로
 $sessionId = [guid]::NewGuid().ToString()
 $prompt = 'AGENTS.md와 README.md를 읽고 프로젝트 구조를 한국어로 설명해 주세요. 파일은 수정하지 마세요.'
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
@@ -284,7 +284,7 @@ claude_exe = Path(
     r"C:\Users\Psyki-HOME\.vscode\extensions\anthropic.claude-code-2.1.310-win32-x64"
     r"\resources\native-binary\claude.exe"
 )
-workspace = Path(r"D:\Downloads\Vibe_dev\TelosWeaver").resolve(strict=True)
+workspace = Path(r"D:\Downloads\Vibe_dev\Ongoing Projects\TelosWeaver").resolve(strict=True)
 session_id = str(uuid.uuid4())
 prompt = "AGENTS.md와 README.md를 읽고 프로젝트 구조를 설명해 주세요. 파일은 수정하지 마세요."
 
@@ -439,7 +439,7 @@ Get-ChildItem "$env:USERPROFILE\.gemini\config\projects\*.json" | ForEach-Object
 ```
 
 - `--app_data_dir=antigravity --version`이 종료 코드 `0`으로 버전을 출력하는지 먼저 확인합니다 (Spec §7.5 규칙 5).
-- Windows에서 `Resolve-Path` 대신 Rust `canonicalize()` 등으로 얻은 `\\?\D:\...` 확장 경로 접두사를 `--add-dir`에 그대로 넘기면 `agy`가 Workspace 밖 경로로 오인해 파일 쓰기를 `scratch/`로 우회시키므로, `\\?\` 접두사 없는 일반 절대 경로(`D:\Downloads\Vibe_dev\TelosWeaver` 등)를 전달합니다 ([PH0-AGY Linux 검증 기록 §5](phase-0/evidence/PH0-AGY/LINUX.md)).
+- Windows에서 `Resolve-Path` 대신 Rust `canonicalize()` 등으로 얻은 `\\?\D:\...` 확장 경로 접두사를 `--add-dir`에 그대로 넘기면 `agy`가 Workspace 밖 경로로 오인해 파일 쓰기를 `scratch/`로 우회시키므로, `\\?\` 접두사 없는 일반 절대 경로(`D:\Downloads\Vibe_dev\Ongoing Projects\TelosWeaver` 등)를 전달합니다 ([PH0-AGY Linux 검증 기록 §5](phase-0/evidence/PH0-AGY/LINUX.md)).
 
 ### Linux·WSL·Remote SSH
 
@@ -462,7 +462,7 @@ ls -la ~/.gemini/antigravity/
 
 ```powershell
 $agyExe = "$env:USERPROFILE\.gemini\bin\agy.exe"
-$workspace = (Resolve-Path 'D:\Downloads\Vibe_dev\TelosWeaver').Path
+$workspace = (Resolve-Path 'D:\Downloads\Vibe_dev\Ongoing Projects\TelosWeaver').Path
 $project = 'TelosWeaver'   # 또는 'c1ad552c-317e-44a5-b059-c8f9df88d085'
 $prompt = 'AGENTS.md와 README.md를 읽고 프로젝트 구조를 한국어로 설명해 주세요. 파일은 수정하지 마세요.'
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
@@ -504,7 +504,7 @@ import subprocess
 from pathlib import Path
 
 agy_exe = Path.home() / ".gemini" / "bin" / "agy.exe"
-workspace = Path(r"D:\Downloads\Vibe_dev\TelosWeaver").resolve(strict=True)
+workspace = Path(r"D:\Downloads\Vibe_dev\Ongoing Projects\TelosWeaver").resolve(strict=True)
 # Windows에서 \\?\ 접두사가 붙은 경우 제거
 workspace_str = str(workspace).removeprefix("\\\\?\\")
 project_name = "TelosWeaver"

@@ -23,7 +23,7 @@
 
 | 관리 항목 | 현재 값 |
 |---|---|
-| 대표 저장소 | `D:\Downloads\Vibe_dev\TelosWeaver`, Branch `master`. 공개 원격 `origin` = https://github.com/blazepsyki/TelosWeaver (`master`만 push, 작업 Branch는 로컬에서 병합 후 삭제) |
+| 대표 저장소 | `D:\Downloads\Vibe_dev\Ongoing Projects\TelosWeaver`, Branch `master`. 공개 원격 `origin` = https://github.com/blazepsyki/TelosWeaver (`master`만 push, 작업 Branch는 로컬에서 병합 후 삭제) |
 | 통합 담당자 ID | `claude-opus-5.5/session-c9336d2c` (2026-10-24 사용자 지정) |
 | 공통 계약 기준 Commit | `6a4f58a` (2026-10-26 REQ-024 공통 Capability 키 `CommonCapabilityKey` 추가, 다른 계약 불변). 이전 `7497877` (2026-10-25 REQ-018 RN RPC 인증·알림·구독 계약 추가, RN 외 계약은 변화 없음). 이전 `3a37919` (REQ-010), G0 개정 1 `077bd78`, 1차 기준 `9710402` |
 | 공통 계약 기준 설명 | §5의 7개 계약. 변경은 §4 변경 요청으로만 처리합니다. 판정 근거: `evidence/PH0-INTEGRATION/README.md`, 개정: `evidence/PH0-INTEGRATION/G0_REVISION_1.md` |

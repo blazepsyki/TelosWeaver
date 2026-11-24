@@ -143,8 +143,8 @@ ls ~/.vscode-server/extensions | grep -E 'openai\.chatgpt|anthropic\.claude-code
 공개 원격(GitHub `blazepsyki/TelosWeaver`)에는 `master`만 올라갑니다. 작업 Branch까지 다루려면 대표 저장소를 Git 원격으로 씁니다. `master`만 검증할 때는 `git clone https://github.com/blazepsyki/TelosWeaver ~/src/TelosWeaver`도 됩니다.
 
 ```bash
-git config --global --add safe.directory /mnt/d/Downloads/Vibe_dev/TelosWeaver
-mkdir -p ~/src && git clone /mnt/d/Downloads/Vibe_dev/TelosWeaver ~/src/TelosWeaver
+git config --global --add safe.directory '/mnt/d/Downloads/Vibe_dev/Ongoing Projects/TelosWeaver'
+mkdir -p ~/src && git clone '/mnt/d/Downloads/Vibe_dev/Ongoing Projects/TelosWeaver' ~/src/TelosWeaver
 ```
 
 검증할 때는 대상 Commit을 정확히 지정합니다.
